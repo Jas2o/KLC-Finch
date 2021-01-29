@@ -1,0 +1,39 @@
+﻿<UserControl x:Class="KLC_Finch.controlDashboard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <!--  Loaded="UserControl_Loaded"-->
+    <Grid Margin="5">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="2" Orientation="Horizontal">
+            <Button x:Name="btnStaticImageStart" Content="StartStaticImage" Margin="0,0,5,0" Click="btnStaticImageStart_Click"/>
+            <Button x:Name="btnStaticImageRefresh" Content="Refresh" Margin="0,0,5,0" Click="btnStaticImageRefresh_Click"/>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Grid.Column="1">
+            <Button x:Name="btnDashboardStartData" Content="StartDashboardData" Margin="0,0,5,0" Click="btnDashboardStartData_Click"/>
+            <Button x:Name="btnDashboardGetCpuRam" Content="GetCpuRam" Margin="0,0,5,0" Click="btnDashboardGetCpuRam_Click"/>
+            <Button x:Name="btnDashboardGetVolumes" Content="GetVolumes" Margin="0,0,5,0" Click="btnDashboardGetVolumes_Click"/>
+        </StackPanel>
+        <TextBox x:Name="txtDashboard" Margin="0" Background="DarkSlateBlue" Foreground="White" FontFamily="Consolas" IsReadOnly="true" VerticalScrollBarVisibility="Auto" Grid.Column="1" TextWrapping="Wrap" />
+        <Grid Grid.Row="1" Margin="0,5" Grid.Column="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="txtDashboardInput" TextWrapping="Wrap" IsEnabled="False"/>
+            <Button x:Name="btnDashboardSend" Content="Send" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Grid.Column="1" Margin="5,0,0,0" IsEnabled="False" />
+        </Grid>
+        <Image x:Name="imgScreenPreview" StretchDirection="DownOnly" />
+    </Grid>
+</UserControl>

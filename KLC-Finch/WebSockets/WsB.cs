@@ -1,0 +1,297 @@
+﻿using Fleck;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using static LibKaseya.Enums;
+
+namespace KLC {
+    public class WsB {
+
+        private LiveConnectSession Session;
+
+        private WebSocketServer ServerB;
+        public int PortB { get; private set; }
+        //private string Module;
+
+        private IWebSocketConnection ServerBsocketControlAgent;
+        private int clientPortControlAgent;
+        private int clientPortRemoteControl;
+
+        public WsB(LiveConnectSession session, int portB) {
+            Session = session;
+
+            //B - Find a free port me
+            PortB = portB;
+
+            //B - new WebSocketServer (my port B)
+            ServerB = new WebSocketServer("ws://0.0.0.0:" + PortB);
+
+            ServerB.Start(socket => {
+                socket.OnOpen = () => {
+                    ServerB_ClientConnected(socket);
+                };
+                socket.OnClose = () => {
+                    ServerB_ClientDisconnected(socket);
+                };
+                socket.OnMessage = message => {
+                    ServerB_MessageReceived(socket, message);
+                };
+                socket.OnPing = byteB => {
+                    socket.SendPong(byteB);
+                };
+                socket.OnBinary = byteB => {
+                    ServerB_BinaryReceived(socket, byteB);
+                };
+                socket.OnError = ex => {
+                    Console.WriteLine("B Error: " + ex.ToString());
+                };
+            });
+        }
+
+        private void ServerB_MessageReceived(IWebSocketConnection socket, string message) {
+            switch (socket.ConnectionInfo.Path) {
+                case "/control/agent":
+                    Console.WriteLine("ServerB Message Unhandled [ControlAgent]: " + message);
+                    break;
+
+                case "/app/dashboard":
+                    Session.ModuleDashboard.Receive(message);
+                    break;
+
+                case "/app/staticimage":
+                    Session.ModuleStaticImage.Receive(message);
+                    break;
+
+                case "/app/commandshell":
+                case "/app/terminal":
+                    Session.ModuleCommandTerminal.Receive(message);
+                    break;
+
+                case "/app/commandshellvt100":
+                    Session.ModuleCommandPowershell.Receive(message);
+                    break;
+
+                case "/app/files":
+                    Session.ModuleFileExplorer.Receive(message);
+                    break;
+
+                case "/app/registryeditor":
+                    Session.ModuleRegistryEditor.Receive(message);
+                    break;
+
+                default:
+                    Console.WriteLine("ServerB Message Unhandled: " + socket.ConnectionInfo.Path);
+                    break;
+            }
+        }
+
+        private void ServerB_BinaryReceived(IWebSocketConnection socket, byte[] data) {
+            //Session.Parent.LogText("B MSG " + e.IpPor);
+            //if (eB.HttpRequest.Url.PathAndQuery == "/control/agent") {
+
+            if (socket.ConnectionInfo.Path == "/app/files/download") {
+                if (Session.ModuleFileExplorer != null)
+                    Session.ModuleFileExplorer.HandleDownload(data);
+            } else if (socket.ConnectionInfo.Path == "/app/staticimage") {
+                if (Session.ModuleStaticImage != null)
+                    Session.ModuleStaticImage.HandleBytes(data);
+            } else if (socket.ConnectionInfo.ClientPort == clientPortRemoteControl) {
+                if (Session.ModuleRemoteControl != null)
+                    Session.ModuleRemoteControl.HandleBytesFromRC(data);
+            } else {
+                Console.WriteLine("ServerB Binary Unhandled: " + socket.ConnectionInfo.Path);
+            }
+
+            //string messageB = Encoding.UTF8.GetString(e.Data);
+            //Console.WriteLine(messageB);
+
+            /*
+            string messageB = Encoding.UTF8.GetString(e.Data);
+            if (messageB[0] == '{')
+                client2.Send(messageB);
+            else
+                client2.Send(e.Data);
+            */
+        }
+
+        private void ServerB_ClientDisconnected(IWebSocketConnection socket) {
+            Console.WriteLine("B Close");
+        }
+
+        private void ServerB_ClientConnected(IWebSocketConnection socket) {
+            //Module = e.HttpRequest.Url.PathAndQuery.Split('/')[2];
+
+            Console.WriteLine("B Connect (server port: " + PortB + ") " + socket.ConnectionInfo.Path);
+
+            int clientPort = socket.ConnectionInfo.ClientPort;
+
+            switch(socket.ConnectionInfo.Path) {
+                case "/control/agent":
+                    ServerBsocketControlAgent = socket;
+                    clientPortControlAgent = clientPort;
+                    break;
+
+                case "/app/dashboard":
+                    Session.ModuleDashboard.SetSocket(socket);
+                    break;
+
+                case "/app/staticimage":
+                    Session.ModuleStaticImage.SetSocket(socket);
+                    break;
+
+                case "/app/commandshell":
+                case "/app/terminal":
+                    Session.ModuleCommandTerminal.SetSocket(socket);
+                    break;
+
+                case "/app/commandshellvt100":
+                    Session.ModuleCommandPowershell.SetSocket(socket);
+                    break;
+
+                case "/app/files":
+                    Session.ModuleFileExplorer.SetSocket(socket);
+                    break;
+
+                case "/app/files/download":
+                    Session.ModuleFileExplorer.SetDownloadSocket(socket);
+                    break;
+
+                case "/app/registryeditor":
+                    Session.ModuleRegistryEditor.SetSocket(socket);
+                    break;
+
+                default:
+                    if(socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/")) {
+                        clientPortRemoteControl = clientPort;
+                        Session.ModuleRemoteControl.SetSocket(socket, clientPort);
+                    } else {
+                        Console.WriteLine("Unexpected: " + socket.ConnectionInfo.Path);
+                    }
+                    break;
+            }
+
+        }
+
+        public bool ControlAgentIsReady() {
+            return (ServerBsocketControlAgent != null);
+        }
+
+        public void Close() {
+            //ServerBsocket.Close();
+            ServerB.ListenerSocket.Close();
+        }
+
+        public void Send(IWebSocketConnection socket, byte[] data) {
+            socket.Send(data);
+        }
+
+        public void Send(IWebSocketConnection socket, string message) {
+            socket.Send(message);
+        }
+
+        public void StartModuleRemoteControl(bool modePrivate) {
+            //string fixed1 = "2bbf0748-c79a-4118-a8c0-fe13e2909e3d";
+            //string fixed2 = "898f6688-9246-4ecc-8659-af4e77a26813";
+            //string fixed3 = "bd2fa6e7-2142-4d1b-b0b7-39d589c5ae56";
+            //string fixed4 = "86865a88-3d5f-41e8-b918-e65b0f396b20";
+
+            string fixed1 = Guid.NewGuid().ToString();
+            string fixed2 = Guid.NewGuid().ToString();
+            string fixed3 = Guid.NewGuid().ToString();
+            string fixed4 = Guid.NewGuid().ToString();
+
+            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + fixed1 + "\",\"sessionTokenId\":\"" + fixed2 + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + fixed3 + "\",\"p2pConnectionId\":\"" + fixed4 + "\",\"type\":\"RemoteControl\"}";
+
+            if (ServerBsocketControlAgent != null)
+                ServerBsocketControlAgent.Send(json1);
+            else
+                throw new Exception("Agent offline?");
+
+            /*
+            JObject jMain = new JObject();
+            jMain["id"] = randTaskUUID2; //fixed3
+            jMain["p2pConnectionId"] = randSessionGuid; //fixed4
+            jMain["type"] = module; //was moduleId?
+            JObject jData = new JObject();
+            jData["rcPolicy"]
+                jData["sessionId"] //fixed1
+                jData["sessionTokenId"] //fixed2
+                jData["sessionType"] // (Private/Shared)
+            jMain["data"] = jData;
+            */
+
+            /*
+            {
+                "data": {
+                    "rcPolicy": {
+                        "AdminGroupId": removed,
+                        "AgentGuid": "429424626294329",
+                        "AskText": "",
+                        "Attributes": null,
+                        "EmailAddr": null,
+                        "JotunUserAcceptance": null,
+                        "NotifyText": "",
+                        "OneClickAccess": null,
+                        "RecordSession": null,
+                        "RemoteControlNotify": 1,
+                        "RequireRcNote": null,
+                        "RequiteFTPNote": null,
+                        "TerminateNotify": null,
+                        "TerminateText": ""
+                    },
+                    "sessionId": "ad036086-dc95-4ac7-bad6-1df2d00cefef",
+                    "sessionTokenId": "d12e3b7e-3756-45bf-a07a-16f9ffb78e8b",
+                    "sessionType": "Private"
+                },
+                "id": "ea0bdb9e-f119-4113-acf8-5eba1b493d37",
+                "p2pConnectionId": "b2581441-fca4-4a6c-8ebe-545cee582fde",
+                "type": "RemoteControl"
+            }
+            */
+        }
+
+        public void ControlAgentSendTask(string module) {
+            string randTaskUUID2 = Guid.NewGuid().ToString(); //Kaseya use a generic UUID v4 generator
+            string randSessionGuid = Guid.NewGuid().ToString(); //Not sure if okay to be random
+
+            JObject jMain = new JObject();
+            jMain["type"] = "Task";
+            jMain["id"] = randTaskUUID2;
+            jMain["p2pConnectionId"] = randSessionGuid;
+            JObject jData = new JObject();
+            jData["moduleId"] = module;
+            jData["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.376/content";
+            jMain["data"] = jData;
+
+            if (ServerBsocketControlAgent != null)
+                ServerBsocketControlAgent.Send(jMain.ToString());
+            else
+                throw new Exception("Agent offline?");
+        }
+
+        public void ControlAgentSendStaticImage(int height, int width) {
+            string randTaskUUID2 = Guid.NewGuid().ToString(); //Kaseya use a generic UUID v4 generator
+            string randSessionGuid = Guid.NewGuid().ToString(); //Not sure if okay to be random
+
+            JObject jMain = new JObject();
+            jMain["type"] = "StaticImage";
+            jMain["id"] = randTaskUUID2;
+            jMain["p2pConnectionId"] = randSessionGuid;
+            JObject jData = new JObject();
+            jData["height"] = height;
+            jData["width"] = width;
+            jMain["data"] = jData;
+
+            if (ServerBsocketControlAgent != null)
+                ServerBsocketControlAgent.Send(jMain.ToString());
+            else
+                throw new Exception("Agent offline?");
+        }
+
+    }
+}

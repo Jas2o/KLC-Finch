@@ -1,0 +1,256 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{910C7B34-0A9B-45BE-8D68-50F6709D8BE8}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>KLC_Finch</RootNamespace>
+    <AssemblyName>KLC-Finch</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\Build\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Finch Icon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="CredentialManagement, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\CredentialManagement.1.0.2\lib\net35\CredentialManagement.dll</HintPath>
+    </Reference>
+    <Reference Include="Fleck, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Fleck.1.1.0\lib\net45\Fleck.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTK, Version=3.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenTK.3.1.0\lib\net20\OpenTK.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTK.GLControl, Version=3.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenTK.GLControl.3.1.0\lib\net20\OpenTK.GLControl.dll</HintPath>
+    </Reference>
+    <Reference Include="RestSharp, Version=106.11.7.0, Culture=neutral, PublicKeyToken=598062e77f915f75, processorArchitecture=MSIL">
+      <HintPath>..\packages\RestSharp.106.11.7\lib\net452\RestSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="VP8.NET">
+      <HintPath>..\KLC-Hawk\VP8.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsFormsIntegration" />
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="AddToLib\Api15.cs" />
+    <Compile Include="AddToLib\EAL.cs" />
+    <Compile Include="AddToLib\EIRC.cs" />
+    <Compile Include="AddToLib\Util.cs" />
+    <Compile Include="Modules\Command\BaseTerm.cs" />
+    <Compile Include="Modules\Command\CommandPowershell.cs" />
+    <Compile Include="Modules\Command\CommandTerminal.cs" />
+    <Compile Include="Modules\Command\controlPowershell.xaml.cs">
+      <DependentUpon>controlPowershell.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Command\controlCommand.xaml.cs">
+      <DependentUpon>controlCommand.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Dashboard\controlDashboard.xaml.cs">
+      <DependentUpon>controlDashboard.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Dashboard\Dashboard.cs" />
+    <Compile Include="Modules\Dashboard\StaticImage.cs" />
+    <Compile Include="Modules\Extensions.cs" />
+    <Compile Include="Modules\FileExplorer\controlFiles.xaml.cs">
+      <DependentUpon>controlFiles.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\FileExplorer\Download.cs" />
+    <Compile Include="Modules\FileExplorer\FileExplorer.cs" />
+    <Compile Include="Modules\Registry\controlRegistry.xaml.cs">
+      <DependentUpon>controlRegistry.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Registry\RegistryEditor.cs" />
+    <Compile Include="Modules\Registry\RegistryValue.cs" />
+    <Compile Include="Modules\Registry\WindowRegistryKey.xaml.cs">
+      <DependentUpon>WindowRegistryKey.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Registry\WindowRegistryInt.xaml.cs">
+      <DependentUpon>WindowRegistryInt.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Registry\WindowRegistryBinary.xaml.cs">
+      <DependentUpon>WindowRegistryBinary.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Registry\WindowRegistryStringMulti.xaml.cs">
+      <DependentUpon>WindowRegistryStringMulti.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Registry\WindowRegistryString.xaml.cs">
+      <DependentUpon>WindowRegistryString.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\MITM.cs" />
+    <Compile Include="Modules\RemoteControl\RCClipboardMonitor.cs" />
+    <Compile Include="Modules\RemoteControl\RemoteControl.cs" />
+    <Compile Include="Modules\RemoteControl\OTK\FPSCounter.cs" />
+    <Compile Include="Modules\RemoteControl\OTK\QueueTexture.cs" />
+    <Compile Include="Modules\RemoteControl\OTK\RCScreen.cs" />
+    <Compile Include="WebSockets\LiveConnectSessionV1.cs" />
+    <Compile Include="WebSockets\WsM.cs" />
+    <Compile Include="WebSockets\WsA.cs" />
+    <Compile Include="WebSockets\WsB.cs" />
+    <Compile Include="WindowAlternative.xaml.cs">
+      <DependentUpon>WindowAlternative.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\WindowViewer.xaml.cs">
+      <DependentUpon>WindowViewer.xaml</DependentUpon>
+    </Compile>
+    <Resource Include="Finch Icon.ico" />
+    <None Include="OpenTK.dll.config" />
+    <None Include="Resources\Finch Icon.png" />
+    <None Include="WebSockets\Unused\LiveConnectSessionV1.cs" />
+    <None Include="WebSockets\Unused\WsY1.cs" />
+    <None Include="WebSockets\Unused\WsY2.cs" />
+    <None Include="WebSockets\Unused\WsZ.cs" />
+    <Page Include="Modules\Command\controlPowershell.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Modules\Command\controlCommand.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\Dashboard\controlDashboard.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\FileExplorer\controlFiles.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\Registry\controlRegistry.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\Registry\WindowRegistryKey.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Modules\Registry\WindowRegistryInt.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Modules\Registry\WindowRegistryBinary.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Modules\Registry\WindowRegistryStringMulti.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Modules\Registry\WindowRegistryString.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WindowException.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WindowNoCommand.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WindowException.xaml.cs">
+      <DependentUpon>WindowException.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="WindowNoCommand.xaml.cs">
+      <DependentUpon>WindowNoCommand.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="WindowAlternative.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\RemoteControl\WindowViewer.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
+  <Import Project="..\LibKaseyaLiveConnect\LibKaseyaLiveConnect.projitems" Label="Shared" />
+  <Import Project="..\LibKaseyaAuth\LibKaseyaAuth.projitems" Label="Shared" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

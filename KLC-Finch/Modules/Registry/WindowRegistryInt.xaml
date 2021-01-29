@@ -1,0 +1,32 @@
+﻿<Window x:Class="KLC_Finch.Modules.Registry.WindowRegistryInt"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:KLC_Finch.Modules.Registry"
+        mc:Ignorable="d"
+        Title="WindowRegistryInt" Width="360" SizeToContent="Height" WindowStyle="ToolWindow" WindowStartupLocation="CenterOwner">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBox x:Name="txtName" Grid.ColumnSpan="3" Margin="5" VerticalAlignment="Center" />
+        <TextBox x:Name="txtValue" Margin="5" Grid.Row="1" VerticalAlignment="Center" TextChanged="txtValue_TextChanged" />
+        <CheckBox x:Name="chkConfirmSave" Grid.Row="2" VerticalAlignment="Center" Content="Ready to Save" Margin="5" Checked="chkConfirmSave_Checked" Unchecked="chkConfirmSave_Unchecked" />
+        <Button x:Name="btnSave" Content="Save" Grid.Column="2" Grid.Row="2" Margin="5" Click="btnSave_Click" />
+
+        <GroupBox Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Header="Base" Margin="5">
+            <StackPanel Orientation="Vertical">
+                <RadioButton x:Name="radioBaseHex" GroupName="radioBase" Content="Hexadecimal" Checked="radioBaseHex_Checked" IsChecked="True"/>
+                <RadioButton x:Name="radioBaseDecimal" GroupName="radioBase" Content="Decimal" Checked="radioBaseDecimal_Checked"/>
+            </StackPanel>
+        </GroupBox>
+    </Grid>
+</Window>
