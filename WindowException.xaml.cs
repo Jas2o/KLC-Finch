@@ -29,10 +29,10 @@ namespace KLC_Finch {
             Exception = ex;
             ExceptionType = exType;
             this.DataContext = this;
-            this.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + " Exception";
 
             InitializeComponent();
 
+            this.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + " Exception";
             //btnContinue.Visibility = (allowContinue ? Visibility.Visible : Visibility.Collapsed);
         }
 

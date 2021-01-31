@@ -72,6 +72,7 @@ namespace KLC_Finch {
         #endregion
 
         private bool keyDownWin;
+        private bool autotypeAlwaysConfirmed;
 
         public WindowViewer(RemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080) {
             InitializeComponent();
@@ -568,10 +569,21 @@ namespace KLC_Finch {
             if(e.Button == System.Windows.Forms.MouseButtons.Middle) {
                 string text = Clipboard.GetText().Trim();
 
-                if (text.Length < 51 && !text.Contains('\n') && !text.Contains('\r')) {
+                if (!text.Contains('\n') && !text.Contains('\r')) {
                     //Console.WriteLine("Attempt autotype of " + text, "autotype");
-                    
-                    rc.SendAutotype(text);
+
+                    bool confirmed;
+                    if (text.Length < 51 || autotypeAlwaysConfirmed) {
+                        confirmed = true;
+                    } else {
+                        WindowConfirmation winConfirm = new WindowConfirmation("You really want to autotype this?", text);
+                        confirmed = (bool)winConfirm.ShowDialog();
+                        if (confirmed && (bool)winConfirm.chkDoNotAsk.IsChecked)
+                            autotypeAlwaysConfirmed = true;
+                    }
+                    if(confirmed)
+                        rc.SendAutotype(text);
+
                 } else {
                     Console.WriteLine("Autotype blocked: too long or had a new line character");
                 }
