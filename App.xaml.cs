@@ -20,7 +20,10 @@ namespace KLC_Finch {
             if (!Debugger.IsAttached) {
                 //Setup exception handling rather than closing rudely (this doesn't really work well).
                 AppDomain.CurrentDomain.UnhandledException += (sender, args) => ShowUnhandledException(args.ExceptionObject as Exception, "AppDomain.CurrentDomain.UnhandledException");
-                TaskScheduler.UnobservedTaskException += (sender, args) => ShowUnhandledException(args.Exception, "TaskScheduler.UnobservedTaskException");
+                TaskScheduler.UnobservedTaskException += (sender, args) => {
+                    ShowUnhandledException(args.Exception, "TaskScheduler.UnobservedTaskException");
+                    args.SetObserved();
+                };
 
                 Dispatcher.UnhandledException += (sender, args) => {
                     args.Handled = true;
