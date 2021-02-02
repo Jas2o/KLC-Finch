@@ -115,12 +115,20 @@ namespace KLC_Finch {
                             imgScreenPreview.Source = bitmap;
                         }
                     }));
+                } else if (type == (byte)Enums.KaseyaMessageTypes.Clipboard) {
+                    //Yes this is a thing...
+                    Console.WriteLine("StaticImage - Ignoring clipboard event");
                 } else {
                     Console.WriteLine("StaticImage - Unknown: " + type);
                     Console.WriteLine(jsonstr);
-                    string remainingHex = BitConverter.ToString(bytes, remStart, remLength).Replace("-", "");
-                    string remainingstr = Encoding.UTF8.GetString(bytes, 5 + jsonLength, remLength);
-                    Console.WriteLine(remainingHex);
+
+                    if (remStart < 0 || remLength < 1)
+                        Console.WriteLine("Start: " + remStart + " - Length: " + remLength);
+                    else {
+                        string remainingHex = BitConverter.ToString(bytes, remStart, remLength).Replace("-", "");
+                        string remainingstr = Encoding.UTF8.GetString(bytes, 5 + jsonLength, remLength);
+                        Console.WriteLine("StaticImage - Remaining: " + remainingHex);
+                    }
                 }
             }
         }

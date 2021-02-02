@@ -415,15 +415,19 @@ namespace KLC_Finch {
             if (virtualWidth != width || virtualHeight != height) {
                 Console.WriteLine("Virtual resolution did not match texture received.");
                 SetVirtual(width, height);
-                currentScreen.screen_width = width;
-                currentScreen.screen_height = height;
 
-                //This is a sad attempt a fixing a problem when changing left monitor's size.
-                //However if changing a middle monitor, the right monitor will break.
-                //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                if (currentScreen.screen_x < 0)
-                    currentScreen.screen_x = width * -1;
-
+                try {
+                    currentScreen.screen_width = width;
+                    currentScreen.screen_height = height;
+                    //This is a sad attempt a fixing a problem when changing left monitor's size.
+                    //However if changing a middle monitor, the right monitor will break.
+                    //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
+                    if (currentScreen.screen_x < 0)
+                        currentScreen.screen_x = width * -1;
+                } catch(Exception ex) {
+                    Console.WriteLine("[LoadTexture] " + ex.ToString());
+                }
+                
                 //textureData = null; //This seems to make it crack
                 //Need to find a better way to load the texture in, maybe just before render?
                 //return;
@@ -505,15 +509,20 @@ namespace KLC_Finch {
         public void ReceiveClipboard(string content) {
             clipboard = content;
             Dispatcher.Invoke((Action)delegate {
-                toolClipboardGet.Header = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(5);
+                //try {
+                    toolClipboardGet.Header = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(5);
 
-                //if (clipboardSyncEnabled) { //Commented out now that we use Receive-Only mode
+                    //if (clipboardSyncEnabled) { //Commented out now that we use Receive-Only mode
                     //this.BeginInvoke(new Action(() => {
                     if (clipboard.Length > 0)
-                        Clipboard.SetText(clipboard);
+                        Clipboard.SetDataObject(clipboard);
+                        //Clipboard.SetText(clipboard); //Apparently this doesn't work
                     else
                         Clipboard.Clear();
                     //}));
+                    //}
+                //} catch(Exception ex) {
+                    //new WindowException(ex, ex.GetType().ToString()).Show();
                 //}
             });
         }

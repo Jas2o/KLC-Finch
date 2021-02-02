@@ -1,4 +1,5 @@
 ﻿using Fleck;
+using KLC_Finch;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -48,7 +49,8 @@ namespace KLC {
                     ServerB_BinaryReceived(socket, byteB);
                 };
                 socket.OnError = ex => {
-                    Console.WriteLine("B Error: " + ex.ToString());
+                    //Console.WriteLine("B Error: " + ex.ToString());
+                    App.ShowUnhandledExceptionFromSrc(ex, "Websocket B");
                 };
             });
         }
