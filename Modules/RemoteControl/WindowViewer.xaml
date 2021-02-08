@@ -36,7 +36,8 @@
                 <MenuItem x:Name="toolDebugKeyboard" Header="Show Key/Click Events" Click="toolDebugKeyboard_Click" />
                 <MenuItem x:Name="toolDebugMouse" Header="Show Mouse Move Events" Click="toolDebugMouse_Click" />
                 <Separator/>
-                <MenuItem x:Name="toolReconnect" Header="Reconnect" Click="toolReconnect_Click" />
+                <MenuItem x:Name="toolShowAlternative" Header="Show Alternative" Click="toolShowAlternative_Click" />
+                <MenuItem x:Name="toolReconnect" Header="Reconnect Remote Control" Click="toolReconnect_Click" />
             </MenuItem>
         </Menu>
 

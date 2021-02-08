@@ -196,7 +196,7 @@ namespace KLC {
             socket.Send(message);
         }
 
-        public void StartModuleRemoteControl(bool modePrivate) {
+        public bool StartModuleRemoteControl(bool modePrivate) {
             //string fixed1 = "2bbf0748-c79a-4118-a8c0-fe13e2909e3d";
             //string fixed2 = "898f6688-9246-4ecc-8659-af4e77a26813";
             //string fixed3 = "bd2fa6e7-2142-4d1b-b0b7-39d589c5ae56";
@@ -209,10 +209,13 @@ namespace KLC {
 
             string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + fixed1 + "\",\"sessionTokenId\":\"" + fixed2 + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + fixed3 + "\",\"p2pConnectionId\":\"" + fixed4 + "\",\"type\":\"RemoteControl\"}";
 
-            if (ServerBsocketControlAgent != null)
-                ServerBsocketControlAgent.Send(json1);
-            else
-                throw new Exception("Agent offline?");
+            if (ServerBsocketControlAgent == null)
+                //throw new Exception("Agent offline?");
+                return false;
+
+            ServerBsocketControlAgent.Send(json1);
+
+            return true;
 
             /*
             JObject jMain = new JObject();
@@ -272,8 +275,7 @@ namespace KLC {
 
             if (ServerBsocketControlAgent != null)
                 ServerBsocketControlAgent.Send(jMain.ToString());
-            else
-                throw new Exception("Agent offline?");
+            //else throw new Exception("Agent offline?");
         }
 
         public void ControlAgentSendStaticImage(int height, int width) {

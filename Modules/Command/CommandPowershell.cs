@@ -34,6 +34,9 @@ namespace KLC_Finch {
         }
 
         public void SendKillCommand() {
+            if (serverB == null)
+                return;
+
             JObject jAction = new JObject();
             jAction["action"] = "KillCommand";
             serverB.Send(jAction.ToString());

@@ -36,20 +36,25 @@ namespace KLC_Finch {
         }
 
         private void btnAgentGuidConnect_Click(object sender, RoutedEventArgs e) {
-            if (txtAgentGuid.Text.Trim().Length > 0)
-                new WindowAlternative(txtAgentGuid.Text.Trim(), txtAuthToken.Text).Show();
+            if (txtAgentGuid.Text.Trim().Length > 0) {
+                App.alternative = new WindowAlternative(txtAgentGuid.Text.Trim(), txtAuthToken.Text);
+                App.alternative.Show();
+            }
         }
 
         private void btnLaunchWinJason_Click(object sender, RoutedEventArgs e) {
-            new WindowAlternative("429424626294329", txtAuthToken.Text).Show();
+            App.alternative = new WindowAlternative("429424626294329", txtAuthToken.Text);
+            App.alternative.Show();
         }
 
         private void btnLaunchWinTeamviewer_Click(object sender, RoutedEventArgs e) {
-            new WindowAlternative("111111111111111", txtAuthToken.Text).Show();
+            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Text);
+            App.alternative.Show();
         }
 
         private void btnLaunchMacMini_Click(object sender, RoutedEventArgs e) {
-            new WindowAlternative("718548734128395", txtAuthToken.Text).Show();
+            App.alternative = new WindowAlternative("718548734128395", txtAuthToken.Text);
+            App.alternative.Show();
         }
 
         private void btnLaunchRCTest_Click(object sender, RoutedEventArgs e) {
@@ -86,7 +91,8 @@ namespace KLC_Finch {
         }
 
         private void btnLaunchNull_Click(object sender, RoutedEventArgs e) {
-            new WindowAlternative(null, null).Show();
+            App.alternative = new WindowAlternative(null, null);
+            App.alternative.Show();
         }
 
     }

@@ -648,6 +648,11 @@ namespace KLC_Finch {
             glControl.MouseWheel += HandleMouseWheel;
         }
 
+        private void toolShowAlternative_Click(object sender, RoutedEventArgs e) {
+            App.alternative.Visibility = Visibility.Visible;
+            App.alternative.Focus();
+        }
+
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
             if (!controlEnabled || rc == null)
                 return;

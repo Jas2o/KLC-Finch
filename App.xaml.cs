@@ -14,6 +14,7 @@ namespace KLC_Finch {
     /// </summary>
     public partial class App : Application {
 
+        public static WindowAlternative alternative;
         public static WindowViewer viewer;
 
         public App() : base() {
@@ -49,13 +50,14 @@ namespace KLC_Finch {
             if (args.Length > 1) {
                 KLCCommand command = KLCCommand.NewFromBase64(args[1].Replace("kaseyaliveconnect:///", ""));
 
-                if(command.payload.navId == "remotecontrol/shared") {
-                    new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, false).Show();
-                } else if(command.payload.navId == "remotecontrol/private") {
-                    new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, true).Show();
-                } else {
-                    new WindowAlternative(command.payload.agentId, command.payload.auth.Token).Show();
-                }
+                if(command.payload.navId == "remotecontrol/shared")
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, false);
+                else if(command.payload.navId == "remotecontrol/private")
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, true);
+                else
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token);
+
+                alternative.Show();
             } else {
                 new MainWindow().Show();
             }

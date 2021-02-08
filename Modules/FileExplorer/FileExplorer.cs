@@ -277,6 +277,9 @@ namespace KLC_Finch {
         */
 
         private void Update() {
+            if (serverB == null)
+                return;
+
             //{"action":"GetFolderContents","path":["C:\\","temp"],"id":1582283274052}
             JObject jGet = new JObject();
 

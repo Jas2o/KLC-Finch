@@ -352,6 +352,9 @@ namespace KLC_Finch {
         }
 
         public string GetKey() {
+            if (selectedPath.Count == 0)
+                return null;
+
             return selectedPath[selectedPath.Count - 1];
         }
 

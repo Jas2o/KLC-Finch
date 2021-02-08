@@ -115,7 +115,8 @@ namespace KLC_Finch {
             if (session != null && session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
 
-            new WindowAlternative(agentID, shortToken).Show();
+            App.alternative = new WindowAlternative(agentID, shortToken);
+            App.alternative.Show();
             this.Close();
         }
 

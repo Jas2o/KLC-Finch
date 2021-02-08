@@ -45,16 +45,20 @@ namespace KLC_Finch {
                 App.viewer.Close();
                 App.viewer = null;
             }
-            Viewer = App.viewer = new WindowViewer(this, 1920, 1080);
-            if (session != null) {
-                session.WebsocketB.StartModuleRemoteControl(modePrivate);
-                Viewer.SetTitle(session.agent.Name + "::" + (modePrivate ? "Private" : "Shared"));
-            }
-            Viewer.Show();
 
-            timerHeartbeat = new System.Timers.Timer(1000);
-            timerHeartbeat.Elapsed += SendHeartbeat;
-            timerHeartbeat.Start();
+            bool connected = false;
+            if (session != null)
+                connected = session.WebsocketB.StartModuleRemoteControl(modePrivate);
+
+            if (connected) {
+                Viewer = App.viewer = new WindowViewer(this, 1920, 1080);
+                Viewer.SetTitle(session.agent.Name + "::" + (modePrivate ? "Private" : "Shared"));
+                Viewer.Show();
+
+                timerHeartbeat = new System.Timers.Timer(1000);
+                timerHeartbeat.Elapsed += SendHeartbeat;
+                timerHeartbeat.Start();
+            }
 
             /*
             string portProxy = GetNewPort().ToString();
@@ -112,11 +116,13 @@ namespace KLC_Finch {
 
         public void CloseViewer() {
             Disconnect();
-            Viewer.Close();
+            if(Viewer != null)
+                Viewer.Close();
         }
 
         public void Disconnect() {
-            timerHeartbeat.Stop();
+            if(timerHeartbeat != null)
+                timerHeartbeat.Stop();
             if (serverB != null)
                 serverB.Close();
         }
