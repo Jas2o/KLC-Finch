@@ -23,9 +23,6 @@
         <TextBlock TextWrapping="Wrap" Text="No KLC payload has been given, for debugging enter your Auth Token and select an agent." TextAlignment="Center" Grid.ColumnSpan="3" Margin="5"/>
         <TextBlock Grid.Row="1" TextWrapping="Wrap" Text="Token" VerticalAlignment="Center" Margin="5,0"/>
         <TextBlock Grid.Row="2" TextWrapping="Wrap" Text="GUID" VerticalAlignment="Center" Margin="5,0"/>
-        <TextBlock Grid.Row="3" TextWrapping="Wrap" Text="Windows" VerticalAlignment="Center" Margin="5,0"/>
-        <TextBlock Grid.Row="4" TextWrapping="Wrap" Text="Mac" VerticalAlignment="Center" Margin="5,0"/>
-        <TextBlock Grid.Row="5" TextWrapping="Wrap" Text="Test" VerticalAlignment="Center" Margin="5,0"/>
         <TextBox x:Name="txtAuthToken" Grid.Column="1" Grid.Row="1" TextWrapping="Wrap" Text="" Margin="5" Grid.ColumnSpan="2"/>
         <Grid Grid.Column="1" Grid.Row="2" Margin="5" Grid.ColumnSpan="2" >
             <Grid.ColumnDefinitions>
@@ -38,6 +35,7 @@
         <Button x:Name="btnLaunchWinJason" Content="Jason" Grid.Column="1" Grid.Row="3" Margin="5" Click="btnLaunchWinJason_Click"/>
         <Button x:Name="btnLaunchWinTeamviewer" Content="JumpBox" Grid.Column="2" Grid.Row="3" Margin="5" Click="btnLaunchWinTeamviewer_Click" />
         <Button x:Name="btnLaunchMacMini" Content="Mac Mini" Grid.Column="1" Grid.Row="4" Margin="5" Click="btnLaunchMacMini_Click"/>
+        <Button x:Name="btnLaunchWinTeamviewerShared" Content="TV Shared" Grid.Column="2" Grid.Row="4" Margin="5" Click="btnLaunchWinTeamviewerShared_Click" />
         <Button x:Name="btnLaunchRCTest" Content="RC Test" Grid.Column="1" Grid.Row="5" Margin="5" Click="btnLaunchRCTest_Click"/>
         <Button x:Name="btnLaunchNull" Content="Null" Grid.Column="2" Grid.Row="5" Margin="5" Click="btnLaunchNull_Click"/>
 

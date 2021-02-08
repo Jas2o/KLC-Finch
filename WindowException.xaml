@@ -16,13 +16,11 @@
         </Grid.RowDefinitions>
 
         <!--  Info  -->
-        <TextBlock Margin="10"
-                   FontSize="14"
-                   Text="{Binding Exception.Message, Mode=OneWay, TargetNullValue=-, FallbackValue='Exception error here.'}"
-                   TextWrapping="Wrap" />
+        <TextBlock Margin="10" FontSize="14" TextWrapping="Wrap"
+                   Text="{Binding Exception.Message, Mode=OneWay, TargetNullValue=-, FallbackValue='Exception error here.'}"/>
 
         <!--  Exception details  -->
-        <TextBox Grid.Row="1" Background="#EEEEEE" Text="{Binding Exception.StackTrace, Mode=OneWay, TargetNullValue=-}" VerticalScrollBarVisibility="Auto" IsReadOnly="true" HorizontalScrollBarVisibility="Auto" TextWrapping="Wrap" MinHeight="150" />
+        <TextBox Grid.Row="1" Background="#EEEEEE" Text="{Binding DetailsText, Mode=OneWay, TargetNullValue=-}" VerticalScrollBarVisibility="Auto" IsReadOnly="true" HorizontalScrollBarVisibility="Auto" TextWrapping="Wrap" MinHeight="150" />
         
         <!--  Close Button  -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">

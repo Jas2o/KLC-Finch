@@ -49,6 +49,9 @@ namespace KLC {
                     ServerB_BinaryReceived(socket, byteB);
                 };
                 socket.OnError = ex => {
+                    if (ex.Message.Contains("forcibly closed"))
+                        return;
+
                     //Console.WriteLine("B Error: " + ex.ToString());
                     App.ShowUnhandledExceptionFromSrc(ex, "Websocket B");
                 };

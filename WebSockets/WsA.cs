@@ -66,6 +66,9 @@ namespace KLC {
                     throw new NotImplementedException();
                 };
                 socket.OnError = ex => {
+                    if (ex.Message.Contains("forcibly closed"))
+                        return;
+
                     //Console.WriteLine("A Error: " + ex.ToString());
                     App.ShowUnhandledExceptionFromSrc(ex, "Websocket A");
                 };
@@ -93,8 +96,10 @@ namespace KLC {
         }
 
         public void Close() {
-            ServerAsocket.Close();
-            ServerA.ListenerSocket.Close();
+            if (ServerAsocket != null)
+                ServerAsocket.Close();
+            if(ServerA.ListenerSocket.Connected)
+                ServerA.ListenerSocket.Close();
         }
 
         public void Send(string message) {

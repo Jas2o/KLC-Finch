@@ -73,6 +73,7 @@ namespace KLC_Finch {
 
         private bool keyDownWin;
         private bool autotypeAlwaysConfirmed;
+        private bool windowActivatedMouseMove;
 
         public WindowViewer(RemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080) {
             InitializeComponent();
@@ -597,6 +598,9 @@ namespace KLC_Finch {
                     Console.WriteLine("Autotype blocked: too long or had a new line character");
                 }
             } else {
+                if(windowActivatedMouseMove)
+                    HandleMouseMove(sender, e);
+
                 rc.SendMouseDown(e.Button);
 
                 if (e.Button == System.Windows.Forms.MouseButtons.Left)
@@ -653,6 +657,13 @@ namespace KLC_Finch {
             App.alternative.Focus();
         }
 
+        private void Window_Activated(object sender, EventArgs e) {
+            if (!controlEnabled || currentScreen == null || rc == null)
+                return;
+
+            windowActivatedMouseMove = true;
+        }
+
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
             if (!controlEnabled || rc == null)
                 return;
@@ -670,8 +681,10 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!controlEnabled || currentScreen == null || rc == null)
+            if (!controlEnabled || currentScreen == null || rc == null || !this.IsActive)
                 return;
+
+            windowActivatedMouseMove = false;
 
             System.Drawing.Point point = new System.Drawing.Point(e.X - vpX, e.Y - vpY);
             if (point.X < 0 || point.Y < 0)

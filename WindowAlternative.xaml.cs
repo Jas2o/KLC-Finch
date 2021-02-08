@@ -59,7 +59,7 @@ namespace KLC_Finch {
 
         private void dispatcherTimer_Tick(object sender, EventArgs e) {
             if (directHasLaunched) {
-                if(!session.ModuleRemoteControl.Viewer.IsVisible)
+                if (!session.ModuleRemoteControl.Viewer.IsVisible)
                     Environment.Exit(0);
             } else {
                 if (session != null && session.WebsocketB.ControlAgentIsReady()) {
@@ -92,7 +92,14 @@ namespace KLC_Finch {
             if (session == null)
                 return; //Dragablz
 
-            session.Close();
+            if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer.IsVisible) {
+                this.Visibility = Visibility.Collapsed;
+                e.Cancel = true;
+            } else {
+                if (timerDirect != null)
+                    timerDirect.Stop();
+                session.Close();
+            }
         }
 
         private void btnRCShared_Click(object sender, RoutedEventArgs e) {

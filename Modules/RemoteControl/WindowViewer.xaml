@@ -12,7 +12,7 @@
         Closing="Window_Closing"
         PreviewKeyDown="OpenTkControl_PreviewKeyDown"
         KeyUp="OpenTkControl_KeyUp"
-        KeyboardNavigation.TabNavigation="None">
+        KeyboardNavigation.TabNavigation="None" Activated="Window_Activated">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

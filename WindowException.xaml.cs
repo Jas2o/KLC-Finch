@@ -19,15 +19,17 @@ namespace KLC_Finch {
     public partial class WindowException : Window {
 
         public Exception Exception { get; private set; }
-        public string ExceptionType { get; private set; }
+        public string ExceptionSource { get; private set; }
+        public string DetailsText { get; private set; }
 
         public WindowException() {
             InitializeComponent();
         }
 
-        public WindowException(Exception ex, string exType) { //, bool allowContinue
+        public WindowException(Exception ex, string source) { //, bool allowContinue
             Exception = ex;
-            ExceptionType = exType;
+            ExceptionSource = source;
+            DetailsText = ExceptionSource + "\r\n" + ex.ToString();
             this.DataContext = this;
 
             InitializeComponent();

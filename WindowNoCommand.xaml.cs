@@ -52,6 +52,11 @@ namespace KLC_Finch {
             App.alternative.Show();
         }
 
+        private void btnLaunchWinTeamviewerShared_Click(object sender, RoutedEventArgs e) {
+            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Text, true, false);
+            App.alternative.Show();
+        }
+
         private void btnLaunchMacMini_Click(object sender, RoutedEventArgs e) {
             App.alternative = new WindowAlternative("718548734128395", txtAuthToken.Text);
             App.alternative.Show();
@@ -94,6 +99,5 @@ namespace KLC_Finch {
             App.alternative = new WindowAlternative(null, null);
             App.alternative.Show();
         }
-
     }
 }
