@@ -33,9 +33,12 @@ namespace KLC {
         public FileExplorer ModuleFileExplorer;
         public RegistryEditor ModuleRegistryEditor;
 
-        public LiveConnectSession(string shortToken, string agentID) {
+        public WindowAlternative.HasConnected Callback;
+
+        public LiveConnectSession(string shortToken, string agentID, WindowAlternative.HasConnected callback=null) {
             agentGuid = agentID;
             shorttoken = shortToken;
+            Callback = callback;
             agent = new Agent(agentGuid, shorttoken);
 
             auth = KaseyaAuth.ApiAuthX(shorttoken);

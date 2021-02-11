@@ -142,6 +142,8 @@ namespace KLC {
                 case "/control/agent":
                     ServerBsocketControlAgent = socket;
                     clientPortControlAgent = clientPort;
+                    if(Session.Callback != null)
+                        Session.Callback();
                     break;
 
                 case "/app/dashboard":

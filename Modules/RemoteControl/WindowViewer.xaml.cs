@@ -93,6 +93,9 @@ namespace KLC_Finch {
 
             if (rc != null)
                 rc.Disconnect();
+
+            if (App.alternative.Visibility != Visibility.Visible)
+                Environment.Exit(0);
         }
 
         public void SetTitle(string title) {

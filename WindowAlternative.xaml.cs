@@ -23,8 +23,6 @@ namespace KLC_Finch {
         private string agentID;
         private string shortToken;
 
-        private System.Windows.Threading.DispatcherTimer timerDirect;
-        private bool directHasLaunched;
         private bool directToPrivate;
 
         /*
@@ -47,39 +45,26 @@ namespace KLC_Finch {
                 this.agentID = agentID;
             if(shortToken != null)
                 this.shortToken = shortToken;
+            this.directToPrivate = directToPrivate;
 
-            if (directToRemoteControl) {
-                this.directToPrivate = directToPrivate;
-                timerDirect = new System.Windows.Threading.DispatcherTimer();
-                timerDirect.Tick += new EventHandler(dispatcherTimer_Tick);
-                timerDirect.Interval = new TimeSpan(0, 0, 1);
-                timerDirect.Start();
-            }
+            HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : null);
+            session = new KLC.LiveConnectSession(shortToken, agentID, callback);
+            this.Title = session.agent.Name + " - KLC-Finch";
         }
 
-        private void dispatcherTimer_Tick(object sender, EventArgs e) {
-            if (directHasLaunched) {
-                if (!session.ModuleRemoteControl.Viewer.IsVisible)
-                    Environment.Exit(0);
-            } else {
-                if (session != null && session.WebsocketB.ControlAgentIsReady()) {
-                    directHasLaunched = true;
-                    timerDirect.Interval = new TimeSpan(0, 0, 5);
+        public delegate void HasConnected();
+        public void ConnectDirect() {
+            session.ModuleRemoteControl = new RemoteControl(session, directToPrivate);
+            Application.Current.Dispatcher.Invoke((Action)delegate {
+                session.ModuleRemoteControl.Connect();
 
-                    session.ModuleRemoteControl = new RemoteControl(session, directToPrivate);
-                    session.ModuleRemoteControl.Connect();
-
-                    this.Visibility = Visibility.Collapsed;
-                }
-            }
+                this.Visibility = Visibility.Collapsed;
+            });
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
             if (shortToken == null || agentID == null)
                 return; //Dragablz
-
-            session = new KLC.LiveConnectSession(shortToken, agentID);
-            this.Title = session.agent.Name + " - KLC-Finch";
 
             if (session.agent.IsMac) {
                 tabCommand.Header = "Terminal";
@@ -96,8 +81,6 @@ namespace KLC_Finch {
                 this.Visibility = Visibility.Collapsed;
                 e.Cancel = true;
             } else {
-                if (timerDirect != null)
-                    timerDirect.Stop();
                 session.Close();
             }
         }
