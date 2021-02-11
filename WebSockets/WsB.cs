@@ -126,6 +126,9 @@ namespace KLC {
 
         private void ServerB_ClientDisconnected(IWebSocketConnection socket) {
             Console.WriteLine("B Close");
+
+            if (Session.ModuleRemoteControl != null)
+                Session.ModuleRemoteControl.Disconnect();
         }
 
         private void ServerB_ClientConnected(IWebSocketConnection socket) {

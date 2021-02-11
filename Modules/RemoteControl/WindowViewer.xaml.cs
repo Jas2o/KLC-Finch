@@ -79,7 +79,7 @@ namespace KLC_Finch {
             InitializeComponent();
 
             this.rc = rc;
-            socketAlive = true;
+            socketAlive = false;
 
             SetVirtual(virtualWidth, virtualHeight);
 
@@ -183,11 +183,12 @@ namespace KLC_Finch {
 
         public void NotifySocketClosed() {
             socketAlive = false;
+            rc = null;
             Dispatcher.Invoke((Action)delegate {
                 toolLatency.Header = "N/C";
             });
 
-            //OpenTkControl.InvalidateVisual();
+            glControl.Invalidate();
         }
 
         private void Render() {
@@ -404,8 +405,10 @@ namespace KLC_Finch {
         }
 
         private void toolScreen_ItemClicked(object sender, RoutedEventArgs e) {
-            MenuItem source = (MenuItem)e.Source;
+            if (rc == null)
+                return;
 
+            MenuItem source = (MenuItem)e.Source;
             string[] screen_selected = source.Header.ToString().Split(':');
 
             currentScreen = listScreen.First(x => x.screen_name == screen_selected[0]);
@@ -759,22 +762,17 @@ namespace KLC_Finch {
         }
 
         private void OpenTkControl_KeyUp(object sender, KeyEventArgs e) {
-            if (!controlEnabled || rc == null)
-                return;
-
-            //if (Array.Exists(KLCAlt.Keycode.Modifiers, mod => mod == e.ScanCode))
-            //return;
-
             System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
 
-            if (e2.KeyCode == System.Windows.Forms.Keys.Pause) {
+            if (e2.KeyCode == System.Windows.Forms.Keys.PrintScreen) {
+                rc.CaptureNextScreen();
+            } else if (!controlEnabled || rc == null) {
+                //Do nothing
+            } else if (e2.KeyCode == System.Windows.Forms.Keys.Pause) {
                 rc.SendPanicKeyRelease();
                 listHeldKeys.Clear();
                 KeyWinSet(false);
-            } else if (e2.KeyCode == System.Windows.Forms.Keys.PrintScreen) {
-                rc.CaptureNextScreen();
             } else {
-
                 KeycodeV2 keykaseyaUN = KeycodeV2.ListUnhandled.Find(x => x.Key == e2.KeyCode);
                 if (keykaseyaUN != null)
                     return;

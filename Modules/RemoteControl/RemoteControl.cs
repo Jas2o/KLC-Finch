@@ -46,15 +46,15 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
 
+            Viewer = App.viewer = new WindowViewer(this, 1920, 1080);
+            Viewer.SetTitle(session.agent.Name + "::" + (modePrivate ? "Private" : "Shared"));
+            Viewer.Show();
+
             bool connected = false;
             if (session != null)
                 connected = session.WebsocketB.StartModuleRemoteControl(modePrivate);
 
             if (connected) {
-                Viewer = App.viewer = new WindowViewer(this, 1920, 1080);
-                Viewer.SetTitle(session.agent.Name + "::" + (modePrivate ? "Private" : "Shared"));
-                Viewer.Show();
-
                 timerHeartbeat = new System.Timers.Timer(1000);
                 timerHeartbeat.Elapsed += SendHeartbeat;
                 timerHeartbeat.Start();
@@ -125,10 +125,15 @@ namespace KLC_Finch {
                 timerHeartbeat.Stop();
             if (serverB != null)
                 serverB.Close();
+            if(Viewer != null)
+                Viewer.NotifySocketClosed();
         }
 
         private void SendHeartbeat(object sender, ElapsedEventArgs e) {
-            string sendjson = "{\"timestamp\":" + DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() + "}";
+            if (!serverB.IsAvailable)
+                return;
+
+                string sendjson = "{\"timestamp\":" + DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() + "}";
             SendJson(Enums.KaseyaMessageTypes.Ping, sendjson);
         }
 
