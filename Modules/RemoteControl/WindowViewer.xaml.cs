@@ -94,7 +94,7 @@ namespace KLC_Finch {
             if (rc != null)
                 rc.Disconnect();
 
-            if (App.alternative.Visibility != Visibility.Visible)
+            if (App.alternative != null && App.alternative.Visibility != Visibility.Visible)
                 Environment.Exit(0);
         }
 
@@ -660,6 +660,9 @@ namespace KLC_Finch {
         }
 
         private void toolShowAlternative_Click(object sender, RoutedEventArgs e) {
+            if (App.alternative == null)
+                return;
+
             App.alternative.Visibility = Visibility.Visible;
             App.alternative.Focus();
         }

@@ -41,10 +41,11 @@ namespace KLC_Finch {
         public WindowAlternative(string agentID, string shortToken, bool directToRemoteControl=false, bool directToPrivate = false) {
             InitializeComponent();
 
-            if (agentID != null)
-                this.agentID = agentID;
-            if(shortToken != null)
-                this.shortToken = shortToken;
+            if (agentID == null || shortToken == null)
+                return;
+
+            this.agentID = agentID;
+            this.shortToken = shortToken;
             this.directToPrivate = directToPrivate;
 
             HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : null);
