@@ -146,49 +146,6 @@ namespace KLC_Finch {
             return port;
         }
 
-        /*
-        private void ServerOnOpen(IWebSocketConnection socket) {
-            int newport = GetNewPort();
-            server2 = new WebSocketServer("ws://0.0.0.0:" + newport);
-            server2.Start(socket2 => {
-                socket2.OnOpen = () => Server2OnOpen(socket2);
-                socket2.OnClose = () => { Console.WriteLine("2: Close!"); myViewer.NotifySocketClosed(); };
-                socket2.OnMessage = message => Console.WriteLine("2: " + message);
-                socket2.OnPing = byteA => Console.WriteLine("2: Ping");
-                socket2.OnPong = byteA => Console.WriteLine("2: Pong");
-                socket2.OnBinary = byteA => HandleBytesFromRC(socket2, byteA);
-                socket2.OnError = ex => Console.WriteLine("2: Error: " + ex.ToString());
-            });
-
-            string json1 = "{\"data\":{\"adminId\":\"" + session.auth.AdminId + "\",\"adminName\":\"" + session.auth.UserName + "\",\"jsonWebToken\":\"" + session.eal.auth_jwt + "\",\"server\":\"vsa-web.company.com.au\",\"serverPort\":443,\"tenantId\":\"1\"},\"type\":\"AdminIdentity\"}";
-            string json2 = "{\"data\":{\"agentId\":\"" + session.agentGuid + "\",\"connectPort\":" + newport + ",\"endpointId\":\"" + session.eirc.endpoint_id + "\",\"jsonWebToken\":\"" + session.eirc.session_jwt + "\",\"policy\":0,\"tenantId\":\"" + session.auth.TenantId + "\"},\"p2pConnectionId\":\"" + session.randSessionGuid + "\",\"type\":\"AgentIdentity\"}";
-
-            socket.Send(json1);
-            socket.Send(json2);
-        }
-
-        private void Server2OnOpen(IWebSocketConnection socket2) {
-            if (socket2.ConnectionInfo.Path == "/control/agent") {
-                //string fixed1 = "2bbf0748-c79a-4118-a8c0-fe13e2909e3d";
-                //string fixed2 = "898f6688-9246-4ecc-8659-af4e77a26813";
-                //string fixed3 = "bd2fa6e7-2142-4d1b-b0b7-39d589c5ae56";
-                //string fixed4 = "86865a88-3d5f-41e8-b918-e65b0f396b20";
-
-                string fixed1 = Guid.NewGuid().ToString();
-                string fixed2 = Guid.NewGuid().ToString();
-                string fixed3 = Guid.NewGuid().ToString();
-                string fixed4 = Guid.NewGuid().ToString();
-
-                string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + session.auth.RoleId + ",\"AgentGuid\":\"" + session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + fixed1 + "\",\"sessionTokenId\":\"" + fixed2 + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + fixed3 + "\",\"p2pConnectionId\":\"" + fixed4+"\",\"type\":\"RemoteControl\"}";
-
-                socket2.Send(json1);
-            } else {
-                //Path = /app/remotecontrol/2bbf0748-c79a-4118-a8c0-fe13e2909e3d
-                //Console.WriteLine();
-            }
-        }
-        */
-
         public unsafe void HandleBytesFromRC(byte[] bytes) {
             byte type = bytes[0];
 

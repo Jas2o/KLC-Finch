@@ -36,6 +36,7 @@ namespace KLC_Finch {
         private string clipboard = "";
         private KLC.ClipBoardMonitor clipboardMon;
         private bool socketAlive = false;
+        private bool reachedFirstConnect = false;
         private List<RCScreen> listScreen = new List<RCScreen>();
         private RCScreen currentScreen = null;
 
@@ -79,7 +80,7 @@ namespace KLC_Finch {
             InitializeComponent();
 
             this.rc = rc;
-            socketAlive = false;
+            reachedFirstConnect = socketAlive = false;
 
             SetVirtual(virtualWidth, virtualHeight);
 
@@ -100,7 +101,7 @@ namespace KLC_Finch {
 
         public void SetRemoteControl(RemoteControl rc) {
             this.rc = rc;
-            socketAlive = true;
+            reachedFirstConnect = socketAlive = true;
         }
 
         public void SetVirtual(int virtualWidth, int virtualHeight) {
@@ -256,7 +257,7 @@ namespace KLC_Finch {
             if (socketAlive)
                 GL.ClearColor((controlEnabled ? System.Drawing.Color.Black : System.Drawing.Color.MidnightBlue));
             else
-                GL.ClearColor(System.Drawing.Color.Maroon);
+                GL.ClearColor((reachedFirstConnect ? System.Drawing.Color.Maroon : System.Drawing.Color.SlateGray));
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
