@@ -98,6 +98,9 @@ namespace KLC_Finch {
         }
 
         public void Reconnect() {
+            Visibility visBefore = App.alternative.Visibility;
+            App.alternative.Visibility = Visibility.Visible;
+
             WindowState tempState = Viewer.WindowState;
             Viewer.WindowState = WindowState.Normal;
             int tempLeft = (int)Viewer.Left;
@@ -112,6 +115,8 @@ namespace KLC_Finch {
             Viewer.Width = tempWidth;
             Viewer.Height = tempHeight;
             Viewer.WindowState = tempState;
+
+            App.alternative.Visibility = visBefore;
         }
 
         public void CloseViewer() {

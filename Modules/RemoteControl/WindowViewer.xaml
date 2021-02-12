@@ -44,18 +44,5 @@
         <WindowsFormsHost Grid.Row="1">
             <opentk:GLControl x:Name="glControl" Load="glControl_Load" Paint="glControl_Paint" Resize="glControl_Resize" />
         </WindowsFormsHost>
-
-        <!--xmlns:glWpfControl="clr-namespace:OpenTK.Wpf;assembly=GLWpfControl"
-        <glWpfControl:GLWpfControl x:Name="OpenTkControl"
-                                   Loaded="OpenTkControl_Loaded"
-                                   Render="OpenTkControl_OnRender"
-                                   SizeChanged="OpenTkControl_SizeChanged"
-                                   MouseDown="OpenTkControl_MouseDown"
-                                   MouseUp="OpenTkControl_MouseUp"
-                                   MouseMove="OpenTkControl_MouseMove"
-                                   MouseWheel="OpenTkControl_MouseWheel"
-                                   PreviewKeyDown="OpenTkControl_PreviewKeyDown"
-                                   KeyUp="OpenTkControl_KeyUp"
-                                   Grid.Row="1"/>-->
     </Grid>
 </Window>

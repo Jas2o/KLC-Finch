@@ -102,10 +102,12 @@ namespace KLC_Finch {
             this.Title = title;
         }
 
+        /*
         public void SetRemoteControl(RemoteControl rc) {
             this.rc = rc;
             reachedFirstConnect = socketAlive = true;
         }
+        */
 
         public void SetVirtual(int virtualWidth, int virtualHeight) {
             this.virtualWidth = virtualWidth;
@@ -574,6 +576,11 @@ namespace KLC_Finch {
         private void toolReconnect_Click(object sender, RoutedEventArgs e) {
             if(rc != null)
                 rc.Reconnect();
+            else {
+                //Hack
+                if (App.alternative.session.ModuleRemoteControl != null)
+                    rc = App.alternative.session.ModuleRemoteControl;
+            }
         }
 
         KeycodeV2 keyshift = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.ShiftKey);
