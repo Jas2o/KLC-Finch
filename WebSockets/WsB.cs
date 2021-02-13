@@ -106,6 +106,8 @@ namespace KLC {
                 if (Session.ModuleStaticImage != null)
                     Session.ModuleStaticImage.HandleBytes(data);
             } else if (socket.ConnectionInfo.ClientPort == clientPortRemoteControl) {
+                //string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "");
+                //e.g. /app/remotecontrol/3c3757ca-72f5-4a1a-ac51-5c457e731fd0
                 if (Session.ModuleRemoteControl != null)
                     Session.ModuleRemoteControl.HandleBytesFromRC(data);
             } else {
@@ -127,8 +129,10 @@ namespace KLC {
         private void ServerB_ClientDisconnected(IWebSocketConnection socket) {
             Console.WriteLine("B Close");
 
-            if (Session.ModuleRemoteControl != null)
-                Session.ModuleRemoteControl.Disconnect();
+            if (Session.ModuleRemoteControl != null) {
+                string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "");
+                Session.ModuleRemoteControl.Disconnect(sessionId);
+            }
         }
 
         private void ServerB_ClientConnected(IWebSocketConnection socket) {
@@ -204,26 +208,21 @@ namespace KLC {
             socket.Send(message);
         }
 
-        public bool StartModuleRemoteControl(bool modePrivate) {
-            //string fixed1 = "2bbf0748-c79a-4118-a8c0-fe13e2909e3d";
-            //string fixed2 = "898f6688-9246-4ecc-8659-af4e77a26813";
-            //string fixed3 = "bd2fa6e7-2142-4d1b-b0b7-39d589c5ae56";
-            //string fixed4 = "86865a88-3d5f-41e8-b918-e65b0f396b20";
+        public string StartModuleRemoteControl(bool modePrivate) {
+            string guidGenSessionId = Guid.NewGuid().ToString();
+            string guidGenSessionTokenId = Guid.NewGuid().ToString();
+            string guidGenId = Guid.NewGuid().ToString();
+            string guidGenP2pConnectionId = Guid.NewGuid().ToString();
 
-            string fixed1 = Guid.NewGuid().ToString();
-            string fixed2 = Guid.NewGuid().ToString();
-            string fixed3 = Guid.NewGuid().ToString();
-            string fixed4 = Guid.NewGuid().ToString();
-
-            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + fixed1 + "\",\"sessionTokenId\":\"" + fixed2 + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + fixed3 + "\",\"p2pConnectionId\":\"" + fixed4 + "\",\"type\":\"RemoteControl\"}";
+            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
 
             if (ServerBsocketControlAgent == null)
                 //throw new Exception("Agent offline?");
-                return false;
+                return null;
 
             ServerBsocketControlAgent.Send(json1);
 
-            return true;
+            return guidGenSessionId;
 
             /*
             JObject jMain = new JObject();

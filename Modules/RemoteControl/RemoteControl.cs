@@ -23,6 +23,7 @@ namespace KLC_Finch {
 
         public WindowViewer Viewer;
         private KLC.LiveConnectSession session;
+        private string rcSessionId;
         System.Timers.Timer timerHeartbeat;
         private bool modePrivate;
         private VP8.Decoder decoder;
@@ -50,46 +51,16 @@ namespace KLC_Finch {
             Viewer.SetTitle(session.agent.Name + "::" + (modePrivate ? "Private" : "Shared"));
             Viewer.Show();
 
-            bool connected = false;
-            if (session != null)
-                connected = session.WebsocketB.StartModuleRemoteControl(modePrivate);
+            if (session != null) {
+                rcSessionId = session.WebsocketB.StartModuleRemoteControl(modePrivate);
+                Viewer.SetSessionID(rcSessionId);
+            }
 
-            if (connected) {
+            if (rcSessionId != null) {
                 timerHeartbeat = new System.Timers.Timer(1000);
                 timerHeartbeat.Elapsed += SendHeartbeat;
                 timerHeartbeat.Start();
             }
-
-            /*
-            string portProxy = GetNewPort().ToString();
-            Console.WriteLine("[TestWithAdminEndPoint] Starting with port: " + portProxy);
-
-            string file1 = @"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.org.exe";
-            string file2 = @"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.exe"; //Only for testing half the connection
-
-            Disconnect();
-
-            server = new WebSocketServer("ws://0.0.0.0:" + portProxy);
-            server.RestartAfterListenError = true;
-            server.Start(socket => {
-                socket.OnOpen = () => ServerOnOpen(socket);
-                socket.OnClose = () => Console.WriteLine("Close!");
-                socket.OnMessage = message => Console.WriteLine(message);
-                socket.OnPing = byteA => {
-                    //Required to stay connected longer than 2 min 10 sec
-                    socket.SendPong(byteA);
-                    //Console.WriteLine("RC Ping");
-                };
-                //socket.OnPong = byteA => Console.WriteLine("Pong");
-                socket.OnBinary = byteA => Console.WriteLine("Binary");
-                socket.OnError = ex => Console.WriteLine("Error");
-            });
-
-            processKAE = new Process();
-            processKAE.StartInfo.FileName = (File.Exists(file1) ? file1 : file2);
-            processKAE.StartInfo.Arguments = "-viewerport " + portProxy;
-            processKAE.Start();
-            */
         }
 
         public void SetSocket(IWebSocketConnection ServerBsocket, int ipPort) {
@@ -120,18 +91,18 @@ namespace KLC_Finch {
         }
 
         public void CloseViewer() {
-            Disconnect();
+            Disconnect(rcSessionId);
             if(Viewer != null)
                 Viewer.Close();
         }
 
-        public void Disconnect() {
+        public void Disconnect(string sessionId) {
             if(timerHeartbeat != null)
                 timerHeartbeat.Stop();
             if (serverB != null)
                 serverB.Close();
             if(Viewer != null)
-                Viewer.NotifySocketClosed();
+                Viewer.NotifySocketClosed(sessionId);
         }
 
         private void SendHeartbeat(object sender, ElapsedEventArgs e) {
@@ -161,7 +132,7 @@ namespace KLC_Finch {
                 //Private session failed, this is supposed to prompt the user if they want to use a Shared session
             } else if (type == (byte)Enums.KaseyaMessageTypes.PrivateSessionDisconnected) {
                 Console.WriteLine("PrivateSessionDisconnected");
-                Viewer.NotifySocketClosed();
+                Viewer.NotifySocketClosed(rcSessionId);
                 serverB.Close();
                 //serverB.DisconnectClient(clientB);
             } else {

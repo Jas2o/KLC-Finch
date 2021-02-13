@@ -40,6 +40,7 @@ namespace KLC_Finch {
         private List<RCScreen> listScreen = new List<RCScreen>();
         private RCScreen currentScreen = null;
 
+        private string sessionId;
         private RemoteControl rc;
         #region Copy
         int screenWidth = 0, screenHeight = 0, virtualWidth, virtualHeight, vpX, vpY;
@@ -92,7 +93,7 @@ namespace KLC_Finch {
             clipboardMon.OnUpdate -= SyncClipboard;
 
             if (rc != null)
-                rc.Disconnect();
+                rc.Disconnect(sessionId);
 
             if (App.alternative != null && App.alternative.Visibility != Visibility.Visible)
                 Environment.Exit(0);
@@ -102,12 +103,12 @@ namespace KLC_Finch {
             this.Title = title;
         }
 
-        /*
-        public void SetRemoteControl(RemoteControl rc) {
-            this.rc = rc;
-            reachedFirstConnect = socketAlive = true;
+        public void SetSessionID(string sessionId) {
+            this.sessionId = sessionId;
+
+            if(sessionId != null)
+                reachedFirstConnect = socketAlive = true;
         }
-        */
 
         public void SetVirtual(int virtualWidth, int virtualHeight) {
             this.virtualWidth = virtualWidth;
@@ -187,7 +188,10 @@ namespace KLC_Finch {
             //BuildOverlay2dKeyboard(true);
         }
 
-        public void NotifySocketClosed() {
+        public void NotifySocketClosed(string sessionId) {
+            if (this.sessionId != sessionId)
+                return;
+
             socketAlive = false;
             rc = null;
             Dispatcher.Invoke((Action)delegate {
@@ -576,11 +580,6 @@ namespace KLC_Finch {
         private void toolReconnect_Click(object sender, RoutedEventArgs e) {
             if(rc != null)
                 rc.Reconnect();
-            else {
-                //Hack
-                if (App.alternative.session.ModuleRemoteControl != null)
-                    rc = App.alternative.session.ModuleRemoteControl;
-            }
         }
 
         KeycodeV2 keyshift = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.ShiftKey);
