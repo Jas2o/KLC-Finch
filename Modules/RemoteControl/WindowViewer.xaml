@@ -33,8 +33,11 @@
                 <MenuItem x:Name="toolPanicRelease" Header="Attempt mod key releases (Pause)" Click="toolPanicRelease_Click" />
                 <MenuItem x:Name="toolScreenshotToClipboard" Header="Native Res Screenshot to Clipboard" Click="toolScreenshotToClipboard_Click" />
                 <Separator/>
-                <MenuItem x:Name="toolDebugKeyboard" Header="Show Key/Click Events" Click="toolDebugKeyboard_Click" />
+                <MenuItem x:Name="toolDebugKeyboardMod" Header="Show Modifier Key Events" Click="toolDebugKeyboardMod_Click" />
+                <MenuItem x:Name="toolDebugKeyboardOther" Header="Show Other Key/Click Events" Click="toolDebugKeyboardOther_Click" />
                 <MenuItem x:Name="toolDebugMouse" Header="Show Mouse Move Events" Click="toolDebugMouse_Click" />
+                <Separator/>
+                <MenuItem x:Name="toolSaveSettings" Header="Save Settings" Click="toolSaveSettings_Click" />
                 <Separator/>
                 <MenuItem x:Name="toolShowAlternative" Header="Show Alternative" Click="toolShowAlternative_Click" />
                 <MenuItem x:Name="toolReconnect" Header="Reconnect Remote Control" Click="toolReconnect_Click" />

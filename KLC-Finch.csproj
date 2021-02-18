@@ -50,6 +50,9 @@
     <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="nucs.JsonSettings, Version=1.0.7.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\nucs.JsonSettings.1.0.7\lib\net47\nucs.JsonSettings.dll</HintPath>
+    </Reference>
     <Reference Include="OpenTK, Version=3.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
       <HintPath>..\packages\OpenTK.3.1.0\lib\net20\OpenTK.dll</HintPath>
     </Reference>
@@ -136,6 +139,7 @@
     <Compile Include="Modules\RemoteControl\OTK\FPSCounter.cs" />
     <Compile Include="Modules\RemoteControl\OTK\QueueTexture.cs" />
     <Compile Include="Modules\RemoteControl\OTK\RCScreen.cs" />
+    <Compile Include="Settings.cs" />
     <Compile Include="WebSockets\LiveConnectSessionV1.cs" />
     <Compile Include="WebSockets\WsM.cs" />
     <Compile Include="WebSockets\WsA.cs" />

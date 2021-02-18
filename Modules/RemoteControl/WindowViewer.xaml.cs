@@ -1,6 +1,7 @@
 ﻿using KLC;
 using LibKaseya;
 using NTR;
+using nucs.JsonSettings;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using System;
@@ -8,6 +9,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -30,9 +32,11 @@ namespace KLC_Finch {
     /// </summary>
     public partial class WindowViewer : Window {
 
+        public Settings Settings;
+
         private bool virtualRequireViewportUpdate = false;
         private bool controlEnabled = false;
-        private bool clipboardSyncEnabled = false;
+        
         private string clipboard = "";
         private KLC.ClipBoardMonitor clipboardMon;
         private bool socketAlive = false;
@@ -47,11 +51,7 @@ namespace KLC_Finch {
         float targetAspectRatio;
         double scaleX, scaleY;
 
-        bool displayOverlayMouse;
-        bool displayOverlayKeyboard;
         private static Font arial = new Font("Arial", 42);
-        //bool displayFPS;
-        //FPSCounter fps;
         Bitmap overlay2dMouse;
         Bitmap overlay2dKeyboard;
         byte[] textureOverlayDataMouse;
@@ -79,6 +79,21 @@ namespace KLC_Finch {
 
         public WindowViewer(RemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080) {
             InitializeComponent();
+
+            string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
+            if (File.Exists(pathSettings))
+                Settings = JsonSettings.Load<Settings>(pathSettings);
+            else
+                Settings = JsonSettings.Construct<Settings>(pathSettings);
+
+            toolDebugKeyboardMod.IsChecked = Settings.DisplayOverlayKeyboardMod;
+            toolDebugKeyboardOther.IsChecked = Settings.DisplayOverlayKeyboardOther;
+            toolDebugMouse.IsChecked = Settings.DisplayOverlayMouse;
+            // This repetition needs to be fixed
+            if (Settings.ClipboardSyncEnabled)
+                toolClipboardSync.Header = "Clipboard (Synced)";
+            else
+                toolClipboardSync.Header = "Clipboard (Receive Only)";
 
             this.rc = rc;
             reachedFirstConnect = socketAlive = false;
@@ -229,7 +244,7 @@ namespace KLC_Finch {
                 textureNew = false;
             }
 
-            if (displayOverlayMouse && overlayNewMouse) {
+            if (Settings.DisplayOverlayMouse && overlayNewMouse) {
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
 
                 GL.TexImage2D(
@@ -246,7 +261,7 @@ namespace KLC_Finch {
                 overlayNewMouse = false;
             }
 
-            if (displayOverlayKeyboard && overlayNewKeyboard) {
+            if ((Settings.DisplayOverlayKeyboardOther || Settings.DisplayOverlayKeyboardMod) && overlayNewKeyboard) {
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
 
                 GL.TexImage2D(
@@ -278,7 +293,7 @@ namespace KLC_Finch {
 
             //--
 
-            if (displayOverlayMouse) {
+            if (Settings.DisplayOverlayMouse) {
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOmouse);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
@@ -286,7 +301,7 @@ namespace KLC_Finch {
                 GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferMouse.Length / 2);
             }
 
-            if (displayOverlayKeyboard) {
+            if (Settings.DisplayOverlayKeyboardOther || Settings.DisplayOverlayKeyboardMod) {
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOkeyboard);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
@@ -344,11 +359,6 @@ namespace KLC_Finch {
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
             //GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha); //NTR org
-
-            //--
-
-            //displayFPS = false;
-            //fps = new FPSCounter();
 
             //--
 
@@ -487,20 +497,20 @@ namespace KLC_Finch {
 
         private void SyncClipboard(object sender, EventArgs e) {
             try {
-                Console.WriteLine("Attempting clipboard sync");
-                if (clipboardSyncEnabled) {
+                if (Settings.ClipboardSyncEnabled) {
                     this.toolClipboardSend_Click(sender, e);
-                    Console.WriteLine("Worked?");
+                    Console.WriteLine("[Clipboard sync] Success?");
                 }
             } catch (Exception) {
+                Console.WriteLine("[Clipboard sync] Fail");
             }
         }
 
-        private void toolClipboardSync_Click(object sender, EventArgs e) {
-            clipboardSyncEnabled = !clipboardSyncEnabled;
+        private void toolClipboardSync_Click(object sender, RoutedEventArgs e) {
+            Settings.ClipboardSyncEnabled = !Settings.ClipboardSyncEnabled;
             //toolClipboardSync.Overflow = (clipboardSyncEnabled ? ToolStripItemOverflow.AsNeeded : ToolStripItemOverflow.Always);
 
-            if (clipboardSyncEnabled)
+            if (Settings.ClipboardSyncEnabled)
                 toolClipboardSync.Header = "Clipboard (Synced)";
             else
                 toolClipboardSync.Header = "Clipboard (Receive Only)";
@@ -515,7 +525,7 @@ namespace KLC_Finch {
                 toolClipboardSend.Header = "Send to Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(5);
                 rc.SendClipboard(clipboard);
 
-                if (clipboardSyncEnabled)
+                if (Settings.ClipboardSyncEnabled)
                     toolClipboardGet.Header = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(5);
             });
         }
@@ -563,18 +573,23 @@ namespace KLC_Finch {
             });
         }
 
-        private List<KeycodeV2> listHeldKeys = new List<KeycodeV2>();
+        private List<KeycodeV2> listHeldKeysMod = new List<KeycodeV2>();
+        private List<KeycodeV2> listHeldKeysOther = new List<KeycodeV2>();
 
         private void toolKeyWin_Click(object sender, RoutedEventArgs e) {
             KeyWinSet(!keyDownWin);
         }
 
-        private void toolDebugKeyboard_Click(object sender, RoutedEventArgs e) {
-            toolDebugKeyboard.IsChecked = displayOverlayKeyboard = !displayOverlayKeyboard;
+        private void toolDebugKeyboardMod_Click(object sender, RoutedEventArgs e) {
+            toolDebugKeyboardMod.IsChecked = Settings.DisplayOverlayKeyboardMod = !Settings.DisplayOverlayKeyboardMod;
+        }
+
+        private void toolDebugKeyboardOther_Click(object sender, RoutedEventArgs e) {
+            toolDebugKeyboardOther.IsChecked = Settings.DisplayOverlayKeyboardOther = !Settings.DisplayOverlayKeyboardOther;
         }
 
         private void toolDebugMouse_Click(object sender, RoutedEventArgs e) {
-            toolDebugMouse.IsChecked = displayOverlayMouse = !displayOverlayMouse;
+            toolDebugMouse.IsChecked = Settings.DisplayOverlayMouse = !Settings.DisplayOverlayMouse;
         }
 
         private void toolReconnect_Click(object sender, RoutedEventArgs e) {
@@ -631,7 +646,7 @@ namespace KLC_Finch {
                 return;
 
             rc.SendPanicKeyRelease();
-            listHeldKeys.Clear();
+            listHeldKeysMod.Clear();
             KeyWinSet(false);
 
             DebugKeyboard();
@@ -678,6 +693,10 @@ namespace KLC_Finch {
                 return;
 
             windowActivatedMouseMove = true;
+        }
+
+        private void toolSaveSettings_Click(object sender, RoutedEventArgs e) {
+            Settings.Save();
         }
 
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
@@ -760,8 +779,14 @@ namespace KLC_Finch {
                         KeyWinSet(true);
                     }
 
-                    if (!listHeldKeys.Contains(keykaseya))
-                        listHeldKeys.Add(keykaseya);
+                    if(keykaseya.IsMod) {
+                        if (!listHeldKeysMod.Contains(keykaseya))
+                            listHeldKeysMod.Add(keykaseya);
+                    } else {
+                        if (!listHeldKeysOther.Contains(keykaseya))
+                            listHeldKeysOther.Add(keykaseya);
+                    }
+
                     //Still allow holding it down
                     rc.SendKeyDown(keykaseya.JavascriptKeyCode, keykaseya.USBKeyCode);
                 } catch {
@@ -783,7 +808,7 @@ namespace KLC_Finch {
                 //Do nothing
             } else if (e2.KeyCode == System.Windows.Forms.Keys.Pause) {
                 rc.SendPanicKeyRelease();
-                listHeldKeys.Clear();
+                listHeldKeysMod.Clear();
                 KeyWinSet(false);
             } else {
                 KeycodeV2 keykaseyaUN = KeycodeV2.ListUnhandled.Find(x => x.Key == e2.KeyCode);
@@ -796,13 +821,17 @@ namespace KLC_Finch {
                     if (keykaseya == null)
                         throw new KeyNotFoundException(e2.KeyCode.ToString());
 
-                    bool removed = listHeldKeys.Remove(keykaseya);
+                    bool removed = (keykaseya.IsMod ? listHeldKeysMod.Remove(keykaseya) : listHeldKeysOther.Remove(keykaseya));
+
                     rc.SendKeyUp(keykaseya.JavascriptKeyCode, keykaseya.USBKeyCode);
 
                     if (keyDownWin) {
-                        foreach (KeycodeV2 k in listHeldKeys)
+                        foreach (KeycodeV2 k in listHeldKeysOther)
                             rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
-                        listHeldKeys.Clear();
+                        listHeldKeysOther.Clear();
+                        foreach (KeycodeV2 k in listHeldKeysMod)
+                            rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
+                        listHeldKeysMod.Clear();
 
                         KeyWinSet(false);
                     }
@@ -832,13 +861,13 @@ namespace KLC_Finch {
             keyDownWin = set;
 
             if (keyDownWin) {
-                if (!listHeldKeys.Contains(keywin)) {
-                    listHeldKeys.Add(keywin);
+                if (!listHeldKeysMod.Contains(keywin)) {
+                    listHeldKeysMod.Add(keywin);
                     rc.SendKeyDown(keywin.JavascriptKeyCode, keywin.USBKeyCode);
                 }
             } else {
-                if (listHeldKeys.Contains(keywin)) {
-                    listHeldKeys.Remove(keywin);
+                if (listHeldKeysMod.Contains(keywin)) {
+                    listHeldKeysMod.Remove(keywin);
                     rc.SendKeyUp(keywin.JavascriptKeyCode, keywin.USBKeyCode);
                 }
             }
@@ -876,15 +905,32 @@ namespace KLC_Finch {
         }
 
         private void DebugKeyboard() {
-            string[] keys = new string[listHeldKeys.Count];
-            for (int i = 0; i < keys.Length; i++) {
-                keys[i] = listHeldKeys[i].Display;
+            string strKeyboard = "";
+
+            if (Settings.DisplayOverlayKeyboardMod) {
+                string[] keysMod = new string[listHeldKeysMod.Count];
+                for (int i = 0; i < keysMod.Length; i++) {
+                    keysMod[i] = listHeldKeysMod[i].Display;
+                }
+
+                strKeyboard += String.Join(", ", keysMod);
             }
-            string strKeyboard = String.Join(", ", keys);
-            if (mouseHeldRight)
-                strKeyboard = "MouseRight" + (strKeyboard == "" ? "" : " | " + strKeyboard);
-            if (mouseHeldLeft)
-                strKeyboard = "MouseLeft" + (strKeyboard == "" ? "" : " | " + strKeyboard);
+
+            if (Settings.DisplayOverlayKeyboardOther) {
+                string[] keysOther = new string[listHeldKeysOther.Count];
+                for (int i = 0; i < keysOther.Length; i++) {
+                    keysOther[i] = listHeldKeysOther[i].Display;
+                }
+
+                if (strKeyboard.Length > 0 && keysOther.Length > 0)
+                    strKeyboard += " | ";
+                strKeyboard += String.Join(", ", keysOther);
+
+                if (mouseHeldRight)
+                    strKeyboard = "MouseRight" + (strKeyboard == "" ? "" : " | " + strKeyboard);
+                if (mouseHeldLeft)
+                    strKeyboard = "MouseLeft" + (strKeyboard == "" ? "" : " | " + strKeyboard);
+            }
 
             using (Graphics gfx = Graphics.FromImage(overlay2dKeyboard)) {
                 gfx.Clear(System.Drawing.Color.Transparent);
