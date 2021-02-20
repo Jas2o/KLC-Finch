@@ -706,6 +706,22 @@ namespace KLC_Finch {
             windowActivatedMouseMove = true;
         }
 
+        private void Window_Deactivated(object sender, EventArgs e) {
+            if (!controlEnabled || currentScreen == null || rc == null)
+                return;
+
+            //Release modifier keys because the remote control window lost focus
+            if (listHeldKeysMod.Count > 0) {
+                foreach (KeycodeV2 k in listHeldKeysMod)
+                    rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
+                listHeldKeysMod.Clear();
+
+                KeyWinSet(false);
+
+                DebugKeyboard();
+            }
+        }
+
         private void toolSaveSettings_Click(object sender, RoutedEventArgs e) {
             Settings.Save();
         }
