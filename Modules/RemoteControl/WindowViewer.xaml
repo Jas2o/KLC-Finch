@@ -12,7 +12,7 @@
         Closing="Window_Closing"
         PreviewKeyDown="OpenTkControl_PreviewKeyDown"
         KeyUp="OpenTkControl_KeyUp"
-        KeyboardNavigation.TabNavigation="None" Activated="Window_Activated">
+        KeyboardNavigation.TabNavigation="None" Activated="Window_Activated" WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

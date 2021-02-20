@@ -86,6 +86,9 @@ namespace KLC_Finch {
             else
                 Settings = JsonSettings.Construct<Settings>(pathSettings);
 
+            this.Width = Settings.RemoteControlWidth;
+            this.Height = Settings.RemoteControlHeight;
+
             toolDebugKeyboardMod.IsChecked = Settings.DisplayOverlayKeyboardMod;
             toolDebugKeyboardOther.IsChecked = Settings.DisplayOverlayKeyboardOther;
             toolDebugMouse.IsChecked = Settings.DisplayOverlayMouse;
@@ -686,6 +689,14 @@ namespace KLC_Finch {
 
             App.alternative.Visibility = Visibility.Visible;
             App.alternative.Focus();
+
+            foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens) {
+                if(screen.Bounds.IntersectsWith(new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height))) {
+                    App.alternative.Left = screen.Bounds.X + ((screen.Bounds.Width - App.alternative.Width) / 2);
+                    App.alternative.Top = screen.Bounds.Y + ((screen.Bounds.Height - App.alternative.Height) / 2);
+                    break;
+                }
+            }
         }
 
         private void Window_Activated(object sender, EventArgs e) {
