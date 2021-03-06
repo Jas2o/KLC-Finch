@@ -22,6 +22,10 @@ namespace KLC_Finch {
             Console.WriteLine("File download start: " + fileName);
         }
 
+        public long GetCurrentSize() {
+            return filestream.Length;
+        }
+
         public void WriteData(byte[] data) {
             filestream.Write(data, 0, data.Length);
             bytesWritten += data.Length;

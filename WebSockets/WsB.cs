@@ -102,7 +102,11 @@ namespace KLC {
             if (socket.ConnectionInfo.Path == "/app/files/download") {
                 if (Session.ModuleFileExplorer != null)
                     Session.ModuleFileExplorer.HandleDownload(data);
-            } else if (socket.ConnectionInfo.Path == "/app/staticimage") {
+            } else if (socket.ConnectionInfo.Path == "/app/files/upload") {
+                if (Session.ModuleFileExplorer != null)
+                    Session.ModuleFileExplorer.HandleUpload(data);
+            }
+            else if(socket.ConnectionInfo.Path == "/app/staticimage") {
                 if (Session.ModuleStaticImage != null)
                     Session.ModuleStaticImage.HandleBytes(data);
             } else if (socket.ConnectionInfo.ClientPort == clientPortRemoteControl) {
@@ -173,6 +177,10 @@ namespace KLC {
 
                 case "/app/files/download":
                     Session.ModuleFileExplorer.SetDownloadSocket(socket);
+                    break;
+
+                case "/app/files/upload":
+                    Session.ModuleFileExplorer.SetUploadSocket(socket);
                     break;
 
                 case "/app/registryeditor":

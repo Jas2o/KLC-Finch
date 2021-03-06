@@ -39,6 +39,11 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5,5,0">
             <Button x:Name="btnFilesStart" Content="Start" Margin="0,0,5,0" Height="20" VerticalAlignment="Bottom" Width="75" Click="btnFilesStart_Click"/>
             <Button x:Name="btnFilesDownload" Content="Download" Margin="0,0,5,0" Height="20" VerticalAlignment="Bottom" Width="75" Click="btnFilesDownload_Click"/>
+            <Button x:Name="btnFilesUpload" Content="Upload" Margin="0,0,5,0" Height="20" VerticalAlignment="Bottom" Width="75" Click="btnFilesUpload_Click"/>
+            <Grid Width="400">
+                <ProgressBar x:Name="progressBar" Minimum="0" Maximum="100" Value="0" />
+                <TextBlock x:Name="progressText" Text="" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
         </StackPanel>
     </Grid>
 </UserControl>

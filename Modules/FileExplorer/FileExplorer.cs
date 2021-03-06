@@ -14,22 +14,31 @@ namespace KLC_Finch {
     public class FileExplorer {
 
         private static string modulename = "files";
-        private IWebSocketConnection serverB, serverBdownload;
+        private IWebSocketConnection serverB, serverBdownload, serverBupload;
 
         private bool IsMac;
         private ListBox listExplorerFolders;
         private ListBox listExplorerFiles;
         private TextBox txtExplorerPath;
         private TextBox txtBox;
+        private ProgressBar progressBar;
+        private TextBlock progressText;
+        private Button btnDownload;
+        private Button btnUpload;
 
         private List<string> selectedPath;
         private Download queuedDownload;
+        private Upload queuedUpload;
 
-        public FileExplorer(KLC.LiveConnectSession session, ListBox listExplorerFolders, ListBox listExplorerFiles, TextBox txtExplorerPath, TextBox txtBox = null) {
+        public FileExplorer(KLC.LiveConnectSession session, ListBox listExplorerFolders, ListBox listExplorerFiles, TextBox txtExplorerPath, TextBox txtBox = null, ProgressBar progressBar = null, TextBlock progressText = null, Button btnDownload = null, Button btnUpload = null) {
             this.listExplorerFolders = listExplorerFolders;
             this.listExplorerFiles = listExplorerFiles;
             this.txtExplorerPath = txtExplorerPath;
             this.txtBox = txtBox;
+            this.progressBar = progressBar;
+            this.progressText = progressText;
+            this.btnDownload = btnDownload;
+            this.btnUpload = btnUpload;
 
             selectedPath = new List<string>();
 
@@ -45,6 +54,10 @@ namespace KLC_Finch {
 
         public void SetDownloadSocket(IWebSocketConnection ServerBsocket) {
             this.serverBdownload = ServerBsocket;
+        }
+
+        public void SetUploadSocket(IWebSocketConnection ServerBsocket) {
+            this.serverBupload = ServerBsocket;
         }
 
         public void Receive(string message) {
@@ -126,6 +139,12 @@ namespace KLC_Finch {
                 case "Ready":
                     //queuedDownload
 
+                    txtBox.Dispatcher.Invoke(new Action(() => {
+                        txtBox.Text = "Downloading " + queuedDownload.fileName;
+                        progressBar.Value = 0;
+                        progressText.Text = "";
+                    }));
+
                     JObject jDown = new JObject();
 
                     jDown["action"] = "Begin";
@@ -163,7 +182,17 @@ namespace KLC_Finch {
 
                 case "Data":
                     //{"action":"Data","fileSize":663,"requiresAck":true}[Data]
+                    Console.WriteLine(jsonstr);
                     queuedDownload.WriteData(remaining);
+
+                    long total = (long)json["fileSize"];
+
+                    int percentage = (int)((queuedDownload.GetCurrentSize() / (double) total) * 100);
+
+                    txtBox.Dispatcher.Invoke(new Action(() => {
+                        progressBar.Value = percentage;
+                        progressText.Text = "Download: " + queuedDownload.fileName + " " + percentage + "%";
+                    }));
 
                     if (json["requiresAck"] != null) {
                         if ((bool)json["requiresAck"] == true) {
@@ -193,11 +222,17 @@ namespace KLC_Finch {
 
                 case "End":
                     //{"action":"End","permissions":{"isReadOnly":false,"execPerms":{"owner":0,"group":0,"others":0}},"date":"2020-12-22T06:23:42.000Z"}
+                    Console.WriteLine(jsonstr);
                     queuedDownload.Close();
                     serverBdownload.Close();
 
                     txtBox.Dispatcher.Invoke(new Action(() => {
+                        progressBar.Value = 0;
+                        progressText.Text = queuedDownload.fileName + " downloaded!";
                         txtBox.AppendText("\r\nDownload complete.");
+
+                        btnDownload.IsEnabled = true;
+                        btnUpload.IsEnabled = true;
                     }));
                     break;
 
@@ -211,6 +246,88 @@ namespace KLC_Finch {
                     Console.WriteLine();
                     break;
             }
+        }
+
+        public void HandleUpload(byte[] data) {
+            int jsonLength = BitConverter.ToInt32(data, 0).SwapEndianness();
+            string jsonstr = Encoding.UTF8.GetString(data, 4, jsonLength);
+            dynamic json = JsonConvert.DeserializeObject(jsonstr);
+
+            int remStart = 4 + jsonLength;
+            int remLength = data.Length - remStart;
+            byte[] remaining = new byte[remLength];
+            if (remLength > 0)
+                Array.Copy(data, remStart, remaining, 0, remLength);
+
+            switch (json["action"].ToString()) {
+                case "UploadReady":
+                    txtBox.Dispatcher.Invoke(new Action(() => {
+                        txtBox.Text = "Uploading " + queuedUpload.fileName;
+                        progressBar.Value = 0;
+                        progressText.Text = "";
+                    }));
+                    //{"action":"UploadReady","filename":"000095 - Mission-Vision-Values Wallpapers_FA_v3_1920x1080.jpg"}
+                    UploadBlock();
+                    break;
+
+                case "UploadStatus":
+                    //{"action":"UploadStatus","filename":"BASETechConsole-7.00.21-20201218.exe","bytesWritten":131072,"fileID":1614998595945}
+                    Console.WriteLine(jsonstr);
+                    long written = (long)json["bytesWritten"];
+
+                    int percentage = (int)((written / (double)queuedUpload.GetFileSize()) * 100);
+
+                    txtBox.Dispatcher.Invoke(new Action(() => {
+                        progressBar.Value = percentage;
+                        progressText.Text = "Upload: " + queuedUpload.fileName + " " + percentage + "%";
+                    }));
+
+                    if (written < queuedUpload.GetFileSize())
+                        UploadBlock();
+                    break;
+
+                case "UploadComplete":
+                    Console.WriteLine(jsonstr);
+                    queuedUpload.Close();
+                    serverBupload.Close();
+
+                    txtBox.Dispatcher.Invoke(new Action(() => {
+                        progressBar.Value = 0;
+                        progressText.Text = queuedUpload.fileName + " uploaded!";
+                        txtBox.AppendText("\r\nUpload complete.");
+
+                        btnDownload.IsEnabled = true;
+                        btnUpload.IsEnabled = true;
+                    }));
+                    break;
+
+                default:
+                    Console.WriteLine(jsonstr);
+                    break;
+            }
+        }
+
+        private void UploadBlock() {
+            JObject jUpload = new JObject();
+            jUpload["action"] = "Data";
+            jUpload["fileId"] = queuedUpload.fileID;
+
+            //--
+
+            byte[] content = queuedUpload.ReadBlock();
+
+            string sendjson = jUpload.ToString();
+            int jsonLen = sendjson.Length;
+            int totalLen = jsonLen + content.Length;
+            byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
+
+            byte[] tosend = new byte[totalLen + 4];
+            tosend[3] = (byte)jsonLen;
+            Array.Copy(jsonBuffer, 0, tosend, 4, jsonLen);
+            Array.Copy(content, 0, tosend, 4 + jsonLen, content.Length);
+
+            if (serverB != null)
+                serverBupload.Send(tosend);
         }
 
         public void Download(string selectedFile, string saveFile) {
@@ -239,6 +356,47 @@ namespace KLC_Finch {
             serverB.Send(jDown.ToString());
 
             txtBox.Text = "Starting download: " + saveFile;
+        }
+
+        public void Upload(string openFile) {
+            string selectedFile = System.IO.Path.GetFileName(openFile);
+            long fileID = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            queuedUpload = new Upload(selectedPath, selectedFile, openFile, fileID, "file");
+
+            JObject jUpload = new JObject();
+
+            jUpload["action"] = "Upload";
+            jUpload["fileId"] = fileID;
+            JArray jUploadPath = new JArray();
+            for (int i = 0; i < selectedPath.Count; i++) {
+                if (i == 0) {
+                    if (IsMac)
+                        jUploadPath.Add("/");
+                    else
+                        jUploadPath.Add(selectedPath[i] + "\\");
+                } else
+                    jUploadPath.Add(selectedPath[i]);
+            }
+            jUpload["sourcePath"] = jUploadPath;
+            jUpload["file"] = selectedFile;
+            jUpload["size"] = queuedUpload.GetFileSize();
+            jUpload["type"] = "file";
+
+            JObject jPerm = new JObject();
+            JObject jPermExec = new JObject();
+            jPermExec["owner"] = 0;
+            jPermExec["group"] = 0;
+            jPermExec["others"] = 0;
+            jPerm["isReadOnly"] = false;
+            jPerm["execPerms"] = jPermExec;
+            jUpload["permissions"] = jPerm;
+
+            jUpload["date"] = DateTimeOffset.UtcNow.ToString("s") + "Z";
+            jUpload["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            serverB.Send(jUpload.ToString());
+
+            txtBox.Text = "Starting upload: " + openFile;
         }
 
         /*

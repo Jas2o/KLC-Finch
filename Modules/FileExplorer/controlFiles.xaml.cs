@@ -41,7 +41,7 @@ namespace KLC_Finch {
 
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
-                moduleFileExplorer = new FileExplorer(session, listFilesFolders, listFilesFiles, txtFilesPath, txtFiles);
+                moduleFileExplorer = new FileExplorer(session, listFilesFolders, listFilesFiles, txtFilesPath, txtFiles, progressBar, progressText, btnFilesDownload, btnFilesUpload);
                 session.ModuleFileExplorer = moduleFileExplorer;
             }
         }
@@ -61,8 +61,19 @@ namespace KLC_Finch {
                 SaveFileDialog saveFileDialog = new SaveFileDialog();
                 saveFileDialog.FileName = selectedFile;
                 if (saveFileDialog.ShowDialog() == true) {
+                    btnFilesDownload.IsEnabled = false;
+                    btnFilesUpload.IsEnabled = false;
                     moduleFileExplorer.Download(selectedFile, saveFileDialog.FileName);
                 }
+            }
+        }
+
+        private void btnFilesUpload_Click(object sender, RoutedEventArgs e) {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            if(openFileDialog.ShowDialog() == true) {
+                btnFilesDownload.IsEnabled = false;
+                btnFilesUpload.IsEnabled = false;
+                moduleFileExplorer.Upload(openFileDialog.FileName);
             }
         }
     }
