@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -18,7 +19,7 @@ namespace KLC_Finch {
 
         private bool IsMac;
         private ListBox listExplorerFolders;
-        private ListBox listExplorerFiles;
+        private DataGrid dgvExplorerFiles;
         private TextBox txtExplorerPath;
         private TextBox txtBox;
         private ProgressBar progressBar;
@@ -27,12 +28,14 @@ namespace KLC_Finch {
         private Button btnUpload;
 
         private List<string> selectedPath;
+        private List<KLCFile> viewFiles;
+        private List<KLCFile> viewFolders;
         private Download queuedDownload;
         private Upload queuedUpload;
 
-        public FileExplorer(KLC.LiveConnectSession session, ListBox listExplorerFolders, ListBox listExplorerFiles, TextBox txtExplorerPath, TextBox txtBox = null, ProgressBar progressBar = null, TextBlock progressText = null, Button btnDownload = null, Button btnUpload = null) {
+        public FileExplorer(KLC.LiveConnectSession session, ListBox listExplorerFolders, DataGrid dgvExplorerFiles, TextBox txtExplorerPath, TextBox txtBox = null, ProgressBar progressBar = null, TextBlock progressText = null, Button btnDownload = null, Button btnUpload = null) {
             this.listExplorerFolders = listExplorerFolders;
-            this.listExplorerFiles = listExplorerFiles;
+            this.dgvExplorerFiles = dgvExplorerFiles;
             this.txtExplorerPath = txtExplorerPath;
             this.txtBox = txtBox;
             this.progressBar = progressBar;
@@ -41,6 +44,8 @@ namespace KLC_Finch {
             this.btnUpload = btnUpload;
 
             selectedPath = new List<string>();
+            viewFiles = new List<KLCFile>();
+            viewFolders = new List<KLCFile>();
 
             if (session != null) {
                 IsMac = session.agent.IsMac;
@@ -69,7 +74,8 @@ namespace KLC_Finch {
                         break;
                     case "GetDrives":
                         listExplorerFolders.Items.Clear();
-                        listExplorerFiles.Items.Clear();
+                        //dgvExplorerFiles.Items.Clear();
+                        viewFiles.Clear();
 
                         txtBox.Clear();
                         txtBox.AppendText(message + "\r\n");
@@ -80,10 +86,17 @@ namespace KLC_Finch {
 
                             //foreach pathArray
                         }
+
+                        UpdateDisplayFiles();
                         break;
+                    case "CreateFolder":
+                    case "RenameItem":
+                    case "DeleteItem":
                     case "GetFolderContents":
                         listExplorerFolders.Items.Clear();
-                        listExplorerFiles.Items.Clear();
+                        //dgvExplorerFiles.Items.Clear();
+                        viewFiles.Clear();
+                        viewFolders.Clear();
 
                         txtBox.Clear();
                         txtBox.AppendText(message + "\r\n");
@@ -91,13 +104,13 @@ namespace KLC_Finch {
                             foreach (dynamic key in temp["contentsList"].Children()) {
 
                                 if ((string)key["type"] == "file") {
-                                    listExplorerFiles.Items.Add((string)key["name"]);
-                                    // + " - Size: " + key["size"] + " - Date: " + key["date"]
+                                    viewFiles.Add(new KLCFile((string)key["name"], (long)key["size"], (DateTime)key["date"]));
                                 } else if ((string)key["type"] == "folder") {
+                                    viewFolders.Add(new KLCFile((string)key["name"], -1, (DateTime)key["date"]));
                                     listExplorerFolders.Items.Add((string)key["name"]);
-                                    // + " - Date: " + key["date"]
                                 } else {
-                                    listExplorerFiles.Items.Add("??? - " + (string)key["name"]);
+                                    Console.WriteLine("The hell?");
+                                    //dgvExplorerFiles.Items.Add("??? - " + (string)key["name"]);
                                     // + " - Type: " + key["type"] + " - Size: " + key["size"] + " - Date: " + key["date"]
                                 }
                             }
@@ -116,12 +129,163 @@ namespace KLC_Finch {
 
                             //temp["id"] is the time the response was generated
                         }
+
+                        UpdateDisplayFiles();
                         break;
                     default:
-                        txtBox.AppendText("FileExplorer message received: " + message + "\r\n");
+                        Console.WriteLine("FileExplorer message received: " + message);
+                        txtBox.Text = "FileExplorer message received: " + message;
                         break;
                 }
             }));
+        }
+
+        public void DeleteFolder(KLCFile klcFolder) {
+            JObject jDelete = new JObject();
+            jDelete["action"] = "DeleteItem";
+
+            JArray jItems = new JArray();
+            JObject jItemsObject = new JObject();
+            jItemsObject["name"] = klcFolder.Name;
+            jItemsObject["type"] = "folder";
+            jItemsObject["size"] = -1;
+            jItemsObject["date"] = klcFolder.Date;
+            jItemsObject["rowSelected"] = true;
+            jItems.Add(jItemsObject);
+            jDelete["items"] = jItems;
+
+            JArray jGetPath = new JArray();
+            for (int i = 0; i < selectedPath.Count; i++) {
+                if (i == 0) {
+                    if (IsMac)
+                        jGetPath.Add("/");
+                    else
+                        jGetPath.Add(selectedPath[i] + "\\");
+                } else
+                    jGetPath.Add(selectedPath[i]);
+            }
+            jDelete["path"] = jGetPath;
+            jDelete["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            serverB.Send(jDelete.ToString());
+        }
+
+        public void DeleteFile(KLCFile klcFile) {
+            JObject jDelete = new JObject();
+            jDelete["action"] = "DeleteItem";
+
+            JArray jItems = new JArray();
+            JObject jItemsObject = new JObject();
+            jItemsObject["name"] = klcFile.Name;
+            jItemsObject["type"] = "file";
+            jItemsObject["size"] = klcFile.Size;
+            jItemsObject["date"] = klcFile.Date;
+            jItemsObject["rowSelected"] = true;
+            jItems.Add(jItemsObject);
+            jDelete["items"] = jItems;
+
+            JArray jGetPath = new JArray();
+            for (int i = 0; i < selectedPath.Count; i++) {
+                if (i == 0) {
+                    if (IsMac)
+                        jGetPath.Add("/");
+                    else
+                        jGetPath.Add(selectedPath[i] + "\\");
+                } else
+                    jGetPath.Add(selectedPath[i]);
+            }
+            jDelete["path"] = jGetPath;
+            jDelete["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            serverB.Send(jDelete.ToString());
+        }
+
+        public KLCFile GetKLCFile(string valueName) {
+            return viewFiles.FirstOrDefault(x => x.Name == valueName);
+        }
+
+        internal KLCFile GetKLCFolder(string valueName) {
+            return viewFolders.FirstOrDefault(x => x.Name == valueName);
+        }
+
+        public void RenameFileOrFolder(string oldName, string newName) {
+            //{ "action": "RenameItem", "sourcePath": [ "C:\\", "temp", "TestFolder4" ], "destinationPath": [ "C:\\", "temp", "TestFolder4a" ], "id": 1615086691458 }
+
+            if (selectedPath.Count < 2)
+                return;
+
+            JObject jRename = new JObject();
+            jRename["action"] = "RenameItem";
+            JArray jSourcePath = new JArray();
+            JArray jDestinationPath = new JArray();
+            for (int i = 0; i < selectedPath.Count; i++) {
+                if (i == 0) {
+                    if (IsMac) {
+                        jSourcePath.Add("/");
+                        jDestinationPath.Add("/");
+                    } else {
+                        jSourcePath.Add(selectedPath[i] + "\\");
+                        jDestinationPath.Add(selectedPath[i] + "\\");
+                    }
+                } else {
+                    jSourcePath.Add(selectedPath[i]);
+                    jDestinationPath.Add(selectedPath[i]);
+                }
+            }
+            jSourcePath.Add(oldName);
+            jDestinationPath.Add(newName);
+
+            jRename["sourcePath"] = jSourcePath;
+            jRename["destinationPath"] = jDestinationPath;
+            jRename["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            serverB.Send(jRename.ToString());
+        }
+
+        public void CreateFolder(string newFolder) {
+            if (selectedPath.Count == 0)
+                return;
+
+            //{ "action": "CreateFolder", "path": [ "C:\\", "temp", "TestFolder" ], "id": 1615078749826 }
+
+            JObject jCreate = new JObject();
+            jCreate["action"] = "CreateFolder";
+            JArray jGetPath = new JArray();
+            for (int i = 0; i < selectedPath.Count; i++) {
+                if (i == 0) {
+                    if (IsMac)
+                        jGetPath.Add("/");
+                    else
+                        jGetPath.Add(selectedPath[i] + "\\");
+                } else
+                    jGetPath.Add(selectedPath[i]);
+            }
+            jGetPath.Add(newFolder);
+            jCreate["path"] = jGetPath;
+            jCreate["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            serverB.Send(jCreate.ToString());
+        }
+
+        private void UpdateDisplayFiles() {
+            dgvExplorerFiles.DataContext = null;
+
+            DataTable dt = new DataTable();
+            dt.Columns.Add("Name", typeof(string));
+            dt.Columns.Add("Size", typeof(long));
+            dt.Columns.Add("Modified", typeof(DateTime));
+
+            foreach (KLCFile value in viewFiles) {
+                DataRow row = dt.NewRow();
+                row[0] = value.Name;
+                row[1] = value.Size;
+                row[2] = value.Date;
+                dt.Rows.Add(row);
+            }
+
+            dgvExplorerFiles.DataContext = dt;
+            //dgvRegistryValues.AutoResizeColumns();
+            //dgvRegistryValues.Sort(dgvRegistryValues.Columns[0], System.ComponentModel.ListSortDirection.Ascending);
         }
 
         public void HandleDownload(byte[] data) {
@@ -399,41 +563,6 @@ namespace KLC_Finch {
             txtBox.Text = "Starting upload: " + openFile;
         }
 
-        /*
-        private WebSocket WS_EdgeRelay(string authPayloadjsonWebToken, string sessionId) {
-
-            string pathModule = Util.EncodeToBase64("/app/" + modulename);
-
-            WebSocket websocket = new WebSocket("wss://vsa-web.company.com.au:443/kaseya/edge/relay?auth=" + authPayloadjsonWebToken + "&relayId=" + sessionId + "|" + pathModule);
-
-            websocket.AutoSendPingInterval = 5;
-            websocket.EnableAutoSendPing = true;
-            if (txtBox != null) {
-                websocket.Opened += (sender, e) => txtBox.Invoke(new Action(() => {
-                    txtBox.AppendText("FileExplorer Socket opened: " + sessionId + "\r\n");
-                }));
-                websocket.Closed += (sender, e) => txtBox.Invoke(new Action(() => {
-                    txtBox.AppendText("FileExplorer Socket closed: " + sessionId + " - " + e.ToString() + "\r\n");
-                }));
-                websocket.MessageReceived += (sender, e) => 
-                }));
-                websocket.Error += (sender, e) => txtBox.Invoke(new Action(() => {
-                    txtBox.AppendText("FileExplorer Socket error: " + sessionId + " - " + e.Exception.ToString() + "\r\n");
-                }));
-            } else {
-                websocket.Opened += (sender, e) => Console.WriteLine("FileExplorer Socket opened: " + sessionId);
-                websocket.Closed += (sender, e) => Console.WriteLine("FileExplorer Socket closed: " + sessionId + " - " + e.ToString());
-                websocket.MessageReceived += (sender, e) => Console.WriteLine("FileExplorer message received: " + sessionId + " - " + e.Message);
-                websocket.Error += (sender, e) => Console.WriteLine("FileExplorer Socket error: " + sessionId + " - " + e.Exception.ToString());
-            }
-
-            Util.ConfigureProxy(websocket);
-
-            websocket.Open();
-            return websocket;
-        }
-        */
-
         private void Update() {
             if (serverB == null)
                 return;
@@ -578,5 +707,5 @@ namespace KLC_Finch {
                 this._downloads.channel.close().then(this._downloadCompleteForActiveFile.bind(this, !0)))
             }
         */
+        }
     }
-}

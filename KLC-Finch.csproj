@@ -113,6 +113,7 @@
     </Compile>
     <Compile Include="Modules\FileExplorer\Download.cs" />
     <Compile Include="Modules\FileExplorer\FileExplorer.cs" />
+    <Compile Include="Modules\FileExplorer\KLCFile.cs" />
     <Compile Include="Modules\FileExplorer\Upload.cs" />
     <Compile Include="Modules\Registry\controlRegistry.xaml.cs">
       <DependentUpon>controlRegistry.xaml</DependentUpon>

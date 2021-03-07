@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using KLC_Finch.Modules.Registry;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,7 @@ namespace KLC_Finch {
     /// </summary>
     public partial class controlFiles : UserControl {
 
+        private WindowAlternative window;
         private FileExplorer moduleFileExplorer;
 
         public controlFiles() {
@@ -38,10 +40,13 @@ namespace KLC_Finch {
 
         private void btnFilesStart_Click(object sender, RoutedEventArgs e) {
             btnFilesStart.IsEnabled = false;
+            btnFilesFolderDelete.IsEnabled = false;
+            btnFilesFileDelete.IsEnabled = false;
 
+            window = ((WindowAlternative)Window.GetWindow(this));
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
-                moduleFileExplorer = new FileExplorer(session, listFilesFolders, listFilesFiles, txtFilesPath, txtFiles, progressBar, progressText, btnFilesDownload, btnFilesUpload);
+                moduleFileExplorer = new FileExplorer(session, listFilesFolders, dgvFilesFiles, txtFilesPath, txtFiles, progressBar, progressText, btnFilesDownload, btnFilesUpload);
                 session.ModuleFileExplorer = moduleFileExplorer;
             }
         }
@@ -55,9 +60,9 @@ namespace KLC_Finch {
         }
 
         private void btnFilesDownload_Click(object sender, RoutedEventArgs e) {
-            if(listFilesFiles.SelectedIndex > -1) {
-                string selectedFile = listFilesFiles.SelectedItem.ToString();
+            string selectedFile = ((System.Data.DataRowView)dgvFilesFiles.SelectedItem).Row.ItemArray[0].ToString();
 
+            if (selectedFile != null && selectedFile.Length > 0) {
                 SaveFileDialog saveFileDialog = new SaveFileDialog();
                 saveFileDialog.FileName = selectedFile;
                 if (saveFileDialog.ShowDialog() == true) {
@@ -75,6 +80,94 @@ namespace KLC_Finch {
                 btnFilesUpload.IsEnabled = false;
                 moduleFileExplorer.Upload(openFileDialog.FileName);
             }
+        }
+
+        private void btnFilesFolderCreate_Click(object sender, RoutedEventArgs e) {
+            if (moduleFileExplorer == null)
+                return;
+
+            WindowRegistryKey wrk = new WindowRegistryKey();
+            wrk.Owner = window;
+            bool accept = (bool)wrk.ShowDialog();
+            if (accept) {
+                moduleFileExplorer.CreateFolder(wrk.ReturnName);
+            }
+        }
+
+        private void btnFilesFolderRename_Click(object sender, RoutedEventArgs e) {
+            if (moduleFileExplorer == null)
+                return;
+            if (listFilesFolders.SelectedIndex > -1) {
+                string selectedkey = listFilesFolders.SelectedItem.ToString();
+
+                WindowRegistryKey wrk = new WindowRegistryKey(selectedkey);
+                wrk.Owner = window;
+                bool accepted = (bool)wrk.ShowDialog();
+                if (accepted) {
+                    moduleFileExplorer.RenameFileOrFolder(selectedkey, wrk.ReturnName);
+                }
+            }
+        }
+
+        private void btnFilesFolderDelete_Click(object sender, RoutedEventArgs e) {
+            if (moduleFileExplorer == null || !(bool)chkFilesEnableDelete.IsChecked)
+                return;
+
+            chkFilesEnableDelete.IsChecked = false;
+
+            string selectedkey = listFilesFolders.SelectedItem.ToString();
+
+            MessageBox.Show("To delete key '" + selectedkey + "' you must type it exactly in the next window.");
+
+            WindowRegistryKey wrk = new WindowRegistryKey();
+            wrk.Owner = window;
+            bool accepted = (bool)wrk.ShowDialog();
+            if (accepted) {
+                if (wrk.ReturnName == selectedkey) {
+                    KLCFile lookup = moduleFileExplorer.GetKLCFolder(selectedkey);
+                    moduleFileExplorer.DeleteFolder(lookup);
+                } else
+                    MessageBox.Show("Did not delete key '" + selectedkey + "'.");
+            }
+        }
+
+        private void btnFilesFileRename_Click(object sender, RoutedEventArgs e) {
+            if (moduleFileExplorer == null)
+                return;
+
+            string valueNameOld = ((System.Data.DataRowView)dgvFilesFiles.SelectedItem).Row.ItemArray[0].ToString();
+
+            if (valueNameOld != null && valueNameOld.Length > 0) {
+                WindowRegistryKey wrk = new WindowRegistryKey(valueNameOld);
+                wrk.Owner = window;
+                bool accepted = (bool)wrk.ShowDialog();
+                if (accepted)
+                    moduleFileExplorer.RenameFileOrFolder(valueNameOld, wrk.ReturnName);
+            }
+        }
+
+        private void btnFilesFileDelete_Click(object sender, RoutedEventArgs e) {
+            if (moduleFileExplorer == null || !(bool)chkFilesEnableDelete.IsChecked)
+                return;
+
+            chkFilesEnableDelete.IsChecked = false;
+
+            string selectedFile = ((System.Data.DataRowView)dgvFilesFiles.SelectedItem).Row.ItemArray[0].ToString();
+            KLCFile lookup = moduleFileExplorer.GetKLCFile(selectedFile);
+
+            MessageBoxResult result = MessageBox.Show(lookup.Name, "Delete file?", MessageBoxButton.YesNo);
+            if(result == MessageBoxResult.Yes)
+                moduleFileExplorer.DeleteFile(lookup);
+        }
+
+        private void chkFilesEnableDelete_Checked(object sender, RoutedEventArgs e) {
+            btnFilesFolderDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
+            btnFilesFileDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
+        }
+
+        private void chkFilesEnableDelete_Unchecked(object sender, RoutedEventArgs e) {
+            btnFilesFolderDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
+            btnFilesFileDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
         }
     }
 }

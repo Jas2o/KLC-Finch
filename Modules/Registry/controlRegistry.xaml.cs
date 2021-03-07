@@ -105,8 +105,6 @@ namespace KLC_Finch {
             if (moduleRegistry == null || !(bool)chkRegistryEnableDelete.IsChecked)
                 return;
 
-            var thing = dgvRegistryValues;
-
             chkRegistryEnableDelete.IsChecked = false;
 
             string lookup = ((System.Data.DataRowView)dgvRegistryValues.SelectedItem).Row.ItemArray[0].ToString();
