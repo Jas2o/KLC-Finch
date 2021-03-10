@@ -63,5 +63,8 @@ namespace KLC_Finch {
             moduleStaticImage.RequestRefresh();
         }
 
+        private void btnStaticImageRefreshFull_Click(object sender, RoutedEventArgs e) {
+            moduleStaticImage.RequestRefreshFull();
+        }
     }
 }

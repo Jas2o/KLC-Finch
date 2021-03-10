@@ -141,6 +141,10 @@ namespace KLC_Finch {
             SendThumbnailRequest(requestWidth, requestHeight);
         }
 
+        public void RequestRefreshFull() {
+            SendThumbnailRequest(currentScreen.screen_width, currentScreen.screen_height);
+        }
+
         public void ClearScreens() {
             listScreen.Clear();
             currentScreen = null;

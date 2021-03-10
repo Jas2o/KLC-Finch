@@ -65,6 +65,10 @@ namespace KLC_Finch {
             this.serverBupload = ServerBsocket;
         }
 
+        public int GetSelectedPathLength() {
+            return selectedPath.Count;
+        }
+
         public void Receive(string message) {
             txtBox.Dispatcher.Invoke(new Action(() => {
                 dynamic temp = JsonConvert.DeserializeObject(message);
@@ -431,6 +435,7 @@ namespace KLC_Finch {
                         progressText.Text = "";
                     }));
                     //{"action":"UploadReady","filename":"000095 - Mission-Vision-Values Wallpapers_FA_v3_1920x1080.jpg"}
+                    queuedUpload.Open();
                     UploadBlock();
                     break;
 
@@ -522,7 +527,10 @@ namespace KLC_Finch {
             txtBox.Text = "Starting download: " + saveFile;
         }
 
-        public void Upload(string openFile) {
+        public bool Upload(string openFile) {
+            if (selectedPath.Count == 0)
+                return false;
+
             string selectedFile = System.IO.Path.GetFileName(openFile);
             long fileID = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             queuedUpload = new Upload(selectedPath, selectedFile, openFile, fileID, "file");
@@ -559,8 +567,8 @@ namespace KLC_Finch {
             jUpload["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             serverB.Send(jUpload.ToString());
-
             txtBox.Text = "Starting upload: " + openFile;
+            return true;
         }
 
         private void Update() {

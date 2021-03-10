@@ -726,6 +726,13 @@ namespace KLC_Finch {
             Settings.Save();
         }
 
+        private void Window_Drop(object sender, DragEventArgs e) {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                //Console.WriteLine(files[0]);
+            }
+        }
+
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
             if (!controlEnabled || rc == null)
                 return;

@@ -19,6 +19,7 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal">
             <Button x:Name="btnStaticImageStart" Content="StartStaticImage" Margin="0,0,5,0" Click="btnStaticImageStart_Click"/>
             <Button x:Name="btnStaticImageRefresh" Content="Refresh" Margin="0,0,5,0" Click="btnStaticImageRefresh_Click"/>
+            <Button x:Name="btnStaticImageRefreshFull" Content="Get full res. frame" Margin="0,0,5,0" Click="btnStaticImageRefreshFull_Click"/>
         </StackPanel>
         <StackPanel Grid.Row="2" Orientation="Horizontal" Grid.Column="1">
             <Button x:Name="btnDashboardStartData" Content="StartDashboardData" Margin="0,0,5,0" Click="btnDashboardStartData_Click"/>

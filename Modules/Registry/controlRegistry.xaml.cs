@@ -61,7 +61,7 @@ namespace KLC_Finch {
         }
 
         private void btnRegistryRenameValue_Click(object sender, RoutedEventArgs e) {
-            if (moduleRegistry == null)
+            if (moduleRegistry == null || dgvRegistryValues.SelectedItem == null)
                 return;
 
             string lookup = ((System.Data.DataRowView)dgvRegistryValues.SelectedItem).Row.ItemArray[0].ToString();
@@ -102,7 +102,7 @@ namespace KLC_Finch {
         }
 
         private void btnRegistryDeleteValue_Click(object sender, RoutedEventArgs e) {
-            if (moduleRegistry == null || !(bool)chkRegistryEnableDelete.IsChecked)
+            if (moduleRegistry == null || !(bool)chkRegistryEnableDelete.IsChecked || dgvRegistryValues.SelectedItem == null)
                 return;
 
             chkRegistryEnableDelete.IsChecked = false;

@@ -9,6 +9,7 @@ namespace KLC_Finch {
         public long fileID;
         public string type;
 
+        private string readLocation;
         private FileStream filestream;
         private long bytesRead;
 
@@ -17,13 +18,18 @@ namespace KLC_Finch {
             this.fileName = fileName;
             this.fileID = fileID;
             this.type = type;
+            this.readLocation = readLocation;
 
-            filestream = new FileStream(readLocation, FileMode.Open);
+            //filestream = new FileStream(readLocation, FileMode.Open);
             Console.WriteLine("File upload start: " + fileName);
         }
 
+        public void Open() {
+            filestream = new FileStream(readLocation, FileMode.Open);
+        }
+
         public long GetFileSize() {
-            return filestream.Length;
+            return new FileInfo(readLocation).Length;
         }
 
         public byte[] ReadBlock() {

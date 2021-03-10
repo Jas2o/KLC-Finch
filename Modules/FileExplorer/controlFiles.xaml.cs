@@ -60,6 +60,9 @@ namespace KLC_Finch {
         }
 
         private void btnFilesDownload_Click(object sender, RoutedEventArgs e) {
+            if (moduleFileExplorer == null || dgvFilesFiles.SelectedItem == null)
+                return;
+
             string selectedFile = ((System.Data.DataRowView)dgvFilesFiles.SelectedItem).Row.ItemArray[0].ToString();
 
             if (selectedFile != null && selectedFile.Length > 0) {
@@ -74,11 +77,15 @@ namespace KLC_Finch {
         }
 
         private void btnFilesUpload_Click(object sender, RoutedEventArgs e) {
+            if (moduleFileExplorer == null || moduleFileExplorer.GetSelectedPathLength() == 0)
+                return;
+
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if(openFileDialog.ShowDialog() == true) {
-                btnFilesDownload.IsEnabled = false;
-                btnFilesUpload.IsEnabled = false;
-                moduleFileExplorer.Upload(openFileDialog.FileName);
+                bool isValid = moduleFileExplorer.Upload(openFileDialog.FileName);
+
+                btnFilesDownload.IsEnabled = !isValid;
+                btnFilesUpload.IsEnabled = !isValid;
             }
         }
 
@@ -132,7 +139,7 @@ namespace KLC_Finch {
         }
 
         private void btnFilesFileRename_Click(object sender, RoutedEventArgs e) {
-            if (moduleFileExplorer == null)
+            if (moduleFileExplorer == null || dgvFilesFiles.SelectedItem == null)
                 return;
 
             string valueNameOld = ((System.Data.DataRowView)dgvFilesFiles.SelectedItem).Row.ItemArray[0].ToString();
@@ -147,7 +154,7 @@ namespace KLC_Finch {
         }
 
         private void btnFilesFileDelete_Click(object sender, RoutedEventArgs e) {
-            if (moduleFileExplorer == null || !(bool)chkFilesEnableDelete.IsChecked)
+            if (moduleFileExplorer == null || !(bool)chkFilesEnableDelete.IsChecked || dgvFilesFiles.SelectedItem == null)
                 return;
 
             chkFilesEnableDelete.IsChecked = false;
