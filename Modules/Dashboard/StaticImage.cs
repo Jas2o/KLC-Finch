@@ -83,7 +83,7 @@ namespace KLC_Finch {
                     ClearScreens();
 
                     foreach (dynamic screen in json["screens"]) {
-                        int screen_id = (int)screen["screen_id"];
+                        string screen_id = screen["screen_id"].ToString(); //int or BigInteger
                         string screen_name = (string)screen["screen_name"];
                         int screen_height = (int)screen["screen_height"];
                         int screen_width = (int)screen["screen_width"];
@@ -93,7 +93,7 @@ namespace KLC_Finch {
                         AddScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
                         Console.WriteLine("StaticImage - Add Screen: " + screen_id);
 
-                        if((int)screen["screen_id"] == (int)json["default_screen"]) {
+                        if(screen["screen_id"].ToString() == json["default_screen"].ToString()) { //int or BigInteger
                             //Same as how it's done in Kaseya's rc-screenshot.html
                             requestWidth = (int)Math.Ceiling(screen_width / 3.0);
                             requestHeight = (int)Math.Ceiling(screen_height / 3.0);
@@ -142,7 +142,8 @@ namespace KLC_Finch {
         }
 
         public void RequestRefreshFull() {
-            SendThumbnailRequest(currentScreen.screen_width, currentScreen.screen_height);
+            if(currentScreen != null)
+                SendThumbnailRequest(currentScreen.screen_width, currentScreen.screen_height);
         }
 
         public void ClearScreens() {
@@ -150,7 +151,7 @@ namespace KLC_Finch {
             currentScreen = null;
         }
 
-        public void AddScreen(int screen_id, string screen_name, int screen_height, int screen_width, int screen_x, int screen_y) {
+        public void AddScreen(string screen_id, string screen_name, int screen_height, int screen_width, int screen_x, int screen_y) {
             RCScreen newScreen = new RCScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
             listScreen.Add(newScreen);
             if (currentScreen == null) {

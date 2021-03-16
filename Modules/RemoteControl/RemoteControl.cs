@@ -170,7 +170,7 @@ namespace KLC_Finch {
                     Viewer.ClearScreens();
                     foreach (dynamic screen in json["screens"]) {
 
-                        int screen_id = (int)screen["screen_id"];
+                        string screen_id = screen["screen_id"].ToString(); //int or BigInteger
                         string screen_name = (string)screen["screen_name"];
                         int screen_height = (int)screen["screen_height"];
                         int screen_width = (int)screen["screen_width"];
@@ -356,8 +356,8 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.SecureAttentionSequence, "{}");
         }
 
-        public void ChangeScreen(int screen_id) {
-            string sendjson = "{\"monitorId\":" + screen_id + "}";
+        public void ChangeScreen(string screen_id) {
+            string sendjson = "{\"monitorId\":" + screen_id + "}"; //Intentionally using a string as int/biginteger
             SendJson(Enums.KaseyaMessageTypes.UpdateMonitorId, sendjson);
         }
 
@@ -416,6 +416,29 @@ namespace KLC_Finch {
 
         public void CaptureNextScreen() {
             captureScreen = true;
+        }
+
+        public void UploadDrop(string file) {
+            Console.WriteLine("Upload dropped file: " + file);
+            if (session.ModuleFileExplorer == null) {
+                Console.WriteLine("Spinning up no-UI module");
+                session.ModuleFileExplorer = new FileExplorer(session);
+            }
+
+            bool proceed = session.ModuleFileExplorer.IsUsable();
+            if(!proceed) {
+                //Terrible timeout
+                for (int i = 0; i < 10; i++) {
+                    Thread.Sleep(1000);
+                    proceed = session.ModuleFileExplorer.IsUsable();
+                    if (proceed)
+                        break;
+                }
+            }
+
+            if (proceed) {
+                session.ModuleFileExplorer.Upload(file);
+            }
         }
     }
 }

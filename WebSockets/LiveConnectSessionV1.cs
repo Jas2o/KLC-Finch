@@ -14,7 +14,6 @@ namespace KLC {
 
         public WsA WebsocketA;
         public WsB WebsocketB;
-        public List<WsB> listBsocket = new List<WsB>();
 
         private string shorttoken; //This should be moved to LibKaseya.Kaseya
         public string agentGuid;
@@ -72,6 +71,13 @@ namespace KLC {
                 WebsocketB.Close();
             if(WebsocketA != null)
                 WebsocketA.Close();
+        }
+
+        public string GetWiresharkFilter() {
+            string filter = string.Format("(tcp.srcport == {0}) || (tcp.dstport == {0})", WebsocketA.PortA);
+            filter += string.Format(" || (tcp.srcport == {0}) || (tcp.dstport == {0})", WebsocketB.PortB);
+
+            return filter;
         }
     }
 }

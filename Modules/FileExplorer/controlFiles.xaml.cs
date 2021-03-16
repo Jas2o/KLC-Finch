@@ -46,7 +46,8 @@ namespace KLC_Finch {
             window = ((WindowAlternative)Window.GetWindow(this));
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
-                moduleFileExplorer = new FileExplorer(session, listFilesFolders, dgvFilesFiles, txtFilesPath, txtFiles, progressBar, progressText, btnFilesDownload, btnFilesUpload);
+                moduleFileExplorer = new FileExplorer(session);
+                moduleFileExplorer.LinkToUI(listFilesFolders, dgvFilesFiles, txtFilesPath, txtFiles, progressBar, progressText, btnFilesDownload, btnFilesUpload);
                 session.ModuleFileExplorer = moduleFileExplorer;
             }
         }
@@ -83,9 +84,10 @@ namespace KLC_Finch {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if(openFileDialog.ShowDialog() == true) {
                 bool isValid = moduleFileExplorer.Upload(openFileDialog.FileName);
-
                 btnFilesDownload.IsEnabled = !isValid;
                 btnFilesUpload.IsEnabled = !isValid;
+                if (isValid)
+                    txtFiles.Text = "Starting upload: " + openFileDialog.FileName;
             }
         }
 

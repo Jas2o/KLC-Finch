@@ -103,8 +103,9 @@ namespace KLC {
                 if (Session.ModuleFileExplorer != null)
                     Session.ModuleFileExplorer.HandleDownload(data);
             } else if (socket.ConnectionInfo.Path == "/app/files/upload") {
-                if (Session.ModuleFileExplorer != null)
+                if (Session.ModuleFileExplorer != null) {
                     Session.ModuleFileExplorer.HandleUpload(data);
+                }
             }
             else if(socket.ConnectionInfo.Path == "/app/staticimage") {
                 if (Session.ModuleStaticImage != null)
@@ -131,7 +132,7 @@ namespace KLC {
         }
 
         private void ServerB_ClientDisconnected(IWebSocketConnection socket) {
-            Console.WriteLine("B Close");
+            Console.WriteLine("B Close " + socket.ConnectionInfo.Path);
 
             if (Session.ModuleRemoteControl != null) {
                 string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "");

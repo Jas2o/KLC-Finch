@@ -8,6 +8,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
 using System.Windows.Controls;
 
@@ -33,16 +34,7 @@ namespace KLC_Finch {
         private Download queuedDownload;
         private Upload queuedUpload;
 
-        public FileExplorer(KLC.LiveConnectSession session, ListBox listExplorerFolders, DataGrid dgvExplorerFiles, TextBox txtExplorerPath, TextBox txtBox = null, ProgressBar progressBar = null, TextBlock progressText = null, Button btnDownload = null, Button btnUpload = null) {
-            this.listExplorerFolders = listExplorerFolders;
-            this.dgvExplorerFiles = dgvExplorerFiles;
-            this.txtExplorerPath = txtExplorerPath;
-            this.txtBox = txtBox;
-            this.progressBar = progressBar;
-            this.progressText = progressText;
-            this.btnDownload = btnDownload;
-            this.btnUpload = btnUpload;
-
+        public FileExplorer(KLC.LiveConnectSession session) {
             selectedPath = new List<string>();
             viewFiles = new List<KLCFile>();
             viewFolders = new List<KLCFile>();
@@ -51,6 +43,21 @@ namespace KLC_Finch {
                 IsMac = session.agent.IsMac;
                 session.WebsocketB.ControlAgentSendTask(modulename);
             }
+        }
+
+        public void LinkToUI(ListBox listExplorerFolders, DataGrid dgvExplorerFiles, TextBox txtExplorerPath, TextBox txtBox = null, ProgressBar progressBar = null, TextBlock progressText = null, Button btnDownload = null, Button btnUpload = null) {
+            this.listExplorerFolders = listExplorerFolders;
+            this.dgvExplorerFiles = dgvExplorerFiles;
+            this.txtExplorerPath = txtExplorerPath;
+            this.txtBox = txtBox;
+            this.progressBar = progressBar;
+            this.progressText = progressText;
+            this.btnDownload = btnDownload;
+            this.btnUpload = btnUpload;
+        }
+
+        public bool IsUsable () {
+            return (serverB != null && serverB.IsAvailable);
         }
 
         public void SetSocket(IWebSocketConnection ServerBsocket) {
@@ -70,78 +77,96 @@ namespace KLC_Finch {
         }
 
         public void Receive(string message) {
-            txtBox.Dispatcher.Invoke(new Action(() => {
-                dynamic temp = JsonConvert.DeserializeObject(message);
-                switch ((string)temp["action"]) {
-                    case "ScriptReady":
-                        Update();
-                        break;
-                    case "GetDrives":
-                        listExplorerFolders.Items.Clear();
-                        //dgvExplorerFiles.Items.Clear();
-                        viewFiles.Clear();
+            //txtBox.Dispatcher.Invoke(new Action(() => {
+            dynamic temp = JsonConvert.DeserializeObject(message);
+            switch ((string)temp["action"]) {
+                case "ScriptReady":
+                    if (txtBox != null) {
+                        txtBox.Dispatcher.Invoke(new Action(() => {
+                            Update();
+                        }));
+                    }
+                    break;
+                case "GetDrives":
+                    if (txtBox != null) {
+                        txtBox.Dispatcher.Invoke(new Action(() => {
+                            listExplorerFolders.Items.Clear();
+                            //dgvExplorerFiles.Items.Clear();
+                            viewFiles.Clear();
+                            txtBox.Clear();
+                            txtBox.AppendText(message + "\r\n");
+                            if ((bool)temp["success"]) {
+                                foreach (dynamic key in temp["contentsList"].Children())
+                                    listExplorerFolders.Items.Add(key["name"]);
+                                // + " - Type: " + key["type"] + " - Size: " + key["size"] + " - Date: " + key["date"]
 
-                        txtBox.Clear();
-                        txtBox.AppendText(message + "\r\n");
-                        if ((bool)temp["success"]) {
-                            foreach (dynamic key in temp["contentsList"].Children())
-                                listExplorerFolders.Items.Add(key["name"]);
-                            // + " - Type: " + key["type"] + " - Size: " + key["size"] + " - Date: " + key["date"]
-
-                            //foreach pathArray
-                        }
-
-                        UpdateDisplayFiles();
-                        break;
-                    case "CreateFolder":
-                    case "RenameItem":
-                    case "DeleteItem":
-                    case "GetFolderContents":
-                        listExplorerFolders.Items.Clear();
-                        //dgvExplorerFiles.Items.Clear();
-                        viewFiles.Clear();
-                        viewFolders.Clear();
-
-                        txtBox.Clear();
-                        txtBox.AppendText(message + "\r\n");
-                        if ((bool)temp["success"]) {
-                            foreach (dynamic key in temp["contentsList"].Children()) {
-
-                                if ((string)key["type"] == "file") {
-                                    viewFiles.Add(new KLCFile((string)key["name"], (long)key["size"], (DateTime)key["date"]));
-                                } else if ((string)key["type"] == "folder") {
-                                    viewFolders.Add(new KLCFile((string)key["name"], -1, (DateTime)key["date"]));
-                                    listExplorerFolders.Items.Add((string)key["name"]);
-                                } else {
-                                    Console.WriteLine("The hell?");
-                                    //dgvExplorerFiles.Items.Add("??? - " + (string)key["name"]);
-                                    // + " - Type: " + key["type"] + " - Size: " + key["size"] + " - Date: " + key["date"]
-                                }
+                                //foreach pathArray
                             }
 
-                            selectedPath.Clear();
-                            if (IsMac) {
-                                foreach (dynamic key in temp["pathArray"].Children()) {
-                                    selectedPath.Add(key.ToString());
-                                }
-                            } else {
-                                foreach (dynamic key in temp["pathArray"].Children()) {
-                                    selectedPath.Add(key.ToString().Replace("\\", "").Replace("/", ""));
-                                }
+                            UpdateDisplayFiles();
+                        }));
+                    }
+                    break;
+                case "CreateFolder":
+                case "RenameItem":
+                case "DeleteItem":
+                case "GetFolderContents":
+                    if (txtBox != null) {
+                        txtBox.Dispatcher.Invoke(new Action(() => {
+                            listExplorerFolders.Items.Clear();
+                            //dgvExplorerFiles.Items.Clear();
+                            viewFiles.Clear();
+                            viewFolders.Clear();
 
-                            }
-
-                            //temp["id"] is the time the response was generated
+                            txtBox.Clear();
+                            txtBox.AppendText(message + "\r\n");
+                        }));
+                    }
+                    if ((bool)temp["success"]) {
+                        if (txtBox != null) {
+                            txtBox.Dispatcher.Invoke(new Action(() => {
+                                foreach (dynamic key in temp["contentsList"].Children()) {
+                                    if ((string)key["type"] == "file") {
+                                        viewFiles.Add(new KLCFile((string)key["name"], (long)key["size"], (DateTime)key["date"]));
+                                    } else if ((string)key["type"] == "folder") {
+                                        viewFolders.Add(new KLCFile((string)key["name"], -1, (DateTime)key["date"]));
+                                        listExplorerFolders.Items.Add((string)key["name"]);
+                                    } else {
+                                        Console.WriteLine("The hell?");
+                                        //dgvExplorerFiles.Items.Add("??? - " + (string)key["name"]);
+                                        // + " - Type: " + key["type"] + " - Size: " + key["size"] + " - Date: " + key["date"]
+                                    }
+                                }
+                            }));
                         }
 
-                        UpdateDisplayFiles();
-                        break;
-                    default:
-                        Console.WriteLine("FileExplorer message received: " + message);
-                        txtBox.Text = "FileExplorer message received: " + message;
-                        break;
-                }
-            }));
+                        selectedPath.Clear();
+                        if (IsMac) {
+                            foreach (dynamic key in temp["pathArray"].Children()) {
+                                selectedPath.Add(key.ToString());
+                            }
+                        } else {
+                            foreach (dynamic key in temp["pathArray"].Children()) {
+                                selectedPath.Add(key.ToString().Replace("\\", "").Replace("/", ""));
+                            }
+
+                        }
+
+                        //temp["id"] is the time the response was generated
+                    }
+
+                    if (txtBox != null) {
+                        txtBox.Dispatcher.Invoke(new Action(() => {
+                            UpdateDisplayFiles();
+                        }));
+                    }
+                    break;
+                default:
+                    Console.WriteLine("FileExplorer message received: " + message);
+                    txtBox.Text = "FileExplorer message received: " + message;
+                    break;
+            }
+            //}));
         }
 
         public void DeleteFolder(KLCFile klcFolder) {
@@ -329,7 +354,7 @@ namespace KLC_Finch {
                     jDown["path"] = jDownPath;
                     jDown["filename"] = queuedDownload.fileName;
                     jDown["type"] = "file";
-                    jDown["fileId"] = queuedDownload.fileID;
+                    jDown["fileID"] = queuedDownload.fileID;
 
                     //--
 
@@ -392,7 +417,7 @@ namespace KLC_Finch {
                     //{"action":"End","permissions":{"isReadOnly":false,"execPerms":{"owner":0,"group":0,"others":0}},"date":"2020-12-22T06:23:42.000Z"}
                     Console.WriteLine(jsonstr);
                     queuedDownload.Close();
-                    serverBdownload.Close();
+                    serverBdownload.Close(); //Causes RC to die
 
                     txtBox.Dispatcher.Invoke(new Action(() => {
                         progressBar.Value = 0;
@@ -429,11 +454,13 @@ namespace KLC_Finch {
 
             switch (json["action"].ToString()) {
                 case "UploadReady":
-                    txtBox.Dispatcher.Invoke(new Action(() => {
-                        txtBox.Text = "Uploading " + queuedUpload.fileName;
-                        progressBar.Value = 0;
-                        progressText.Text = "";
-                    }));
+                    if (txtBox != null) {
+                        txtBox.Dispatcher.Invoke(new Action(() => {
+                            txtBox.Text = "Uploading " + queuedUpload.fileName;
+                            progressBar.Value = 0;
+                            progressText.Text = "";
+                        }));
+                    }
                     //{"action":"UploadReady","filename":"000095 - Mission-Vision-Values Wallpapers_FA_v3_1920x1080.jpg"}
                     queuedUpload.Open();
                     UploadBlock();
@@ -444,12 +471,14 @@ namespace KLC_Finch {
                     Console.WriteLine(jsonstr);
                     long written = (long)json["bytesWritten"];
 
-                    int percentage = (int)((written / (double)queuedUpload.GetFileSize()) * 100);
+                    if (txtBox != null) {
+                        int percentage = (int)((written / (double)queuedUpload.GetFileSize()) * 100);
 
-                    txtBox.Dispatcher.Invoke(new Action(() => {
-                        progressBar.Value = percentage;
-                        progressText.Text = "Upload: " + queuedUpload.fileName + " " + percentage + "%";
-                    }));
+                        txtBox.Dispatcher.Invoke(new Action(() => {
+                            progressBar.Value = percentage;
+                            progressText.Text = "Upload: " + queuedUpload.fileName + " " + percentage + "%";
+                        }));
+                    }
 
                     if (written < queuedUpload.GetFileSize())
                         UploadBlock();
@@ -458,16 +487,18 @@ namespace KLC_Finch {
                 case "UploadComplete":
                     Console.WriteLine(jsonstr);
                     queuedUpload.Close();
-                    serverBupload.Close();
+                    serverBupload.Close(); //This causes RC to die
 
-                    txtBox.Dispatcher.Invoke(new Action(() => {
-                        progressBar.Value = 0;
-                        progressText.Text = queuedUpload.fileName + " uploaded!";
-                        txtBox.AppendText("\r\nUpload complete.");
+                    if (txtBox != null) {
+                        txtBox.Dispatcher.Invoke(new Action(() => {
+                            progressBar.Value = 0;
+                            progressText.Text = queuedUpload.fileName + " uploaded!";
+                            txtBox.AppendText("\r\nUpload complete.");
 
-                        btnDownload.IsEnabled = true;
-                        btnUpload.IsEnabled = true;
-                    }));
+                            btnDownload.IsEnabled = true;
+                            btnUpload.IsEnabled = true;
+                        }));
+                    }
                     break;
 
                 default:
@@ -479,7 +510,7 @@ namespace KLC_Finch {
         private void UploadBlock() {
             JObject jUpload = new JObject();
             jUpload["action"] = "Data";
-            jUpload["fileId"] = queuedUpload.fileID;
+            jUpload["fileID"] = queuedUpload.fileID;
 
             //--
 
@@ -528,26 +559,37 @@ namespace KLC_Finch {
         }
 
         public bool Upload(string openFile) {
-            if (selectedPath.Count == 0)
-                return false;
+            List<string> usePath = selectedPath;
+
+            if (selectedPath.Count == 0) {
+                if (txtBox == null) {
+                    if(IsMac) {
+                        return false;
+                    } else {
+                        usePath.Add("C:");
+                        usePath.Add("temp");
+                    }
+                } else
+                    return false;
+            };
 
             string selectedFile = System.IO.Path.GetFileName(openFile);
             long fileID = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            queuedUpload = new Upload(selectedPath, selectedFile, openFile, fileID, "file");
+            queuedUpload = new Upload(usePath, selectedFile, openFile, fileID, "file");
 
             JObject jUpload = new JObject();
 
             jUpload["action"] = "Upload";
-            jUpload["fileId"] = fileID;
+            jUpload["fileID"] = fileID;
             JArray jUploadPath = new JArray();
-            for (int i = 0; i < selectedPath.Count; i++) {
+            for (int i = 0; i < usePath.Count; i++) {
                 if (i == 0) {
                     if (IsMac)
                         jUploadPath.Add("/");
                     else
-                        jUploadPath.Add(selectedPath[i] + "\\");
+                        jUploadPath.Add(usePath[i] + "\\");
                 } else
-                    jUploadPath.Add(selectedPath[i]);
+                    jUploadPath.Add(usePath[i]);
             }
             jUpload["sourcePath"] = jUploadPath;
             jUpload["file"] = selectedFile;
@@ -567,7 +609,6 @@ namespace KLC_Finch {
             jUpload["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             serverB.Send(jUpload.ToString());
-            txtBox.Text = "Starting upload: " + openFile;
             return true;
         }
 
@@ -578,20 +619,22 @@ namespace KLC_Finch {
             //{"action":"GetFolderContents","path":["C:\\","temp"],"id":1582283274052}
             JObject jGet = new JObject();
 
-            if (IsMac) {
-                if (selectedPath.Count == 0) {
-                    txtExplorerPath.Text = "";
-                } else if (selectedPath.Count == 1) {
-                    if (selectedPath[0] == "")
-                        selectedPath[0] = "/";
-                    txtExplorerPath.Text = selectedPath[0];
+            if (txtExplorerPath != null) {
+                if (IsMac) {
+                    if (selectedPath.Count == 0) {
+                        txtExplorerPath.Text = "";
+                    } else if (selectedPath.Count == 1) {
+                        if (selectedPath[0] == "")
+                            selectedPath[0] = "/";
+                        txtExplorerPath.Text = selectedPath[0];
+                    } else {
+                        txtExplorerPath.Text = (string.Join("/", selectedPath) + "/").Replace("//", "/");
+                    }
                 } else {
-                    txtExplorerPath.Text = (string.Join("/", selectedPath) + "/").Replace("//", "/");
+                    if (selectedPath.Count > 0 && !selectedPath[0].Any(Char.IsLetter))
+                        selectedPath.Clear();
+                    txtExplorerPath.Text = string.Join("\\", selectedPath) + "\\";
                 }
-            } else {
-                if (selectedPath.Count > 0 && !selectedPath[0].Any(Char.IsLetter))
-                    selectedPath.Clear();
-                txtExplorerPath.Text = string.Join("\\", selectedPath) + "\\";
             }
 
             if (selectedPath.Count == 0) {

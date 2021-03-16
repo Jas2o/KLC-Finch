@@ -114,5 +114,14 @@ namespace KLC_Finch {
         private void ctrlDashboard_Loaded(object sender, RoutedEventArgs e) {
             ctrlDashboard.btnStaticImageStart_Click(sender, e);
         }
+
+        private void btnWiresharkFilter_Click(object sender, RoutedEventArgs e) {
+            if (session == null)
+                return;
+
+            string filter = session.GetWiresharkFilter();
+            if (filter != "")
+                Clipboard.SetText(filter);
+        }
     }
 }

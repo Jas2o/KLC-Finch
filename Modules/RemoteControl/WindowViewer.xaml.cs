@@ -404,7 +404,7 @@ namespace KLC_Finch {
             });
         }
 
-        public void AddScreen(int screen_id, string screen_name, int screen_height, int screen_width, int screen_x, int screen_y) {
+        public void AddScreen(string screen_id, string screen_name, int screen_height, int screen_width, int screen_x, int screen_y) {
             RCScreen newScreen = new RCScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
             listScreen.Add(newScreen);
             if (currentScreen == null) {
@@ -730,6 +730,7 @@ namespace KLC_Finch {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
                 //Console.WriteLine(files[0]);
+                rc.UploadDrop(files[0]);
             }
         }
 

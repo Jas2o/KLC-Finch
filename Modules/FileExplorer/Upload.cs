@@ -47,7 +47,6 @@ namespace KLC_Finch {
         }
 
         public void Close() {
-            filestream.Flush();
             filestream.Close();
 
             Console.WriteLine("File upload complete: " + fileName + "(" + bytesRead + " bytes)");
