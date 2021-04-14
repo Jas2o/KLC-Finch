@@ -1,4 +1,5 @@
 ﻿using LibKaseya;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -40,11 +41,6 @@ namespace KLC_Finch {
                 App.alternative = new WindowAlternative(txtAgentGuid.Text.Trim(), txtAuthToken.Text);
                 App.alternative.Show();
             }
-        }
-
-        private void btnLaunchWinJason_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative("429424626294329", txtAuthToken.Text);
-            App.alternative.Show();
         }
 
         private void btnLaunchWinTeamviewer_Click(object sender, RoutedEventArgs e) {
@@ -98,6 +94,22 @@ namespace KLC_Finch {
         private void btnLaunchNull_Click(object sender, RoutedEventArgs e) {
             App.alternative = new WindowAlternative(null, null);
             App.alternative.Show();
+        }
+
+        private void btnLaunchThisComputer_Click(object sender, RoutedEventArgs e) {
+            string val = "";
+
+            using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) {
+                RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
+                if (subkey != null)
+                    val = subkey.GetValue("AgentGUID").ToString();
+                subkey.Close();
+            }
+
+            if (val.Length > 0) {
+                App.alternative = new WindowAlternative(val, txtAuthToken.Text);
+                App.alternative.Show();
+            }
         }
     }
 }
