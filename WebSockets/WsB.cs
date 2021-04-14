@@ -93,6 +93,14 @@ namespace KLC {
                     Session.ModuleEvents.Receive(message);
                     break;
 
+                case "/app/services":
+                    Session.ModuleServices.Receive(message);
+                    break;
+
+                case "/app/processes":
+                    Session.ModuleProcesses.Receive(message);
+                    break;
+
                 default:
                     Console.WriteLine("ServerB Message Unhandled: " + socket.ConnectionInfo.Path);
                     break;
@@ -194,6 +202,14 @@ namespace KLC {
 
                 case "/app/events":
                     Session.ModuleEvents.SetSocket(socket);
+                    break;
+
+                case "/app/services":
+                    Session.ModuleServices.SetSocket(socket);
+                    break;
+
+                case "/app/processes":
+                    Session.ModuleProcesses.SetSocket(socket);
                     break;
 
                 default:

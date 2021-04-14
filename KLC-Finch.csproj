@@ -121,6 +121,11 @@
     <Compile Include="Modules\FileExplorer\FileExplorer.cs" />
     <Compile Include="Modules\FileExplorer\KLCFile.cs" />
     <Compile Include="Modules\FileExplorer\Upload.cs" />
+    <Compile Include="Modules\Processes\controlProcesses.xaml.cs">
+      <DependentUpon>controlProcesses.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Processes\Processes.cs" />
+    <Compile Include="Modules\Processes\ProcessValue.cs" />
     <Compile Include="Modules\Registry\controlRegistry.xaml.cs">
       <DependentUpon>controlRegistry.xaml</DependentUpon>
     </Compile>
@@ -147,6 +152,11 @@
     <Compile Include="Modules\RemoteControl\OTK\FPSCounter.cs" />
     <Compile Include="Modules\RemoteControl\OTK\QueueTexture.cs" />
     <Compile Include="Modules\RemoteControl\OTK\RCScreen.cs" />
+    <Compile Include="Modules\Services\controlServices.xaml.cs">
+      <DependentUpon>controlServices.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Services\Services.cs" />
+    <Compile Include="Modules\Services\ServiceValue.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="WebSockets\LiveConnectSessionV1.cs" />
     <Compile Include="WebSockets\WsM.cs" />
@@ -185,6 +195,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Modules\Processes\controlProcesses.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Modules\Registry\controlRegistry.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -206,6 +220,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Modules\Registry\WindowRegistryString.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\Services\controlServices.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -42,6 +42,12 @@
             <TabItem x:Name="tabEvents" Header="Events">
                 <command:controlEvents />
             </TabItem>
+            <TabItem x:Name="tabServices" Header="Services">
+                <command:controlServices />
+            </TabItem>
+            <TabItem x:Name="tabProcesses" Header="Processes">
+                <command:controlProcesses />
+            </TabItem>
         </TabControl>
 
     </Grid>
