@@ -89,6 +89,10 @@ namespace KLC {
                     Session.ModuleRegistryEditor.Receive(message);
                     break;
 
+                case "/app/events":
+                    Session.ModuleEvents.Receive(message);
+                    break;
+
                 default:
                     Console.WriteLine("ServerB Message Unhandled: " + socket.ConnectionInfo.Path);
                     break;
@@ -186,6 +190,10 @@ namespace KLC {
 
                 case "/app/registryeditor":
                     Session.ModuleRegistryEditor.SetSocket(socket);
+                    break;
+
+                case "/app/events":
+                    Session.ModuleEvents.SetSocket(socket);
                     break;
 
                 default:

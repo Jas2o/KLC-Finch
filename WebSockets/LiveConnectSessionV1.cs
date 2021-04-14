@@ -31,6 +31,7 @@ namespace KLC {
         public CommandPowershell ModuleCommandPowershell;
         public FileExplorer ModuleFileExplorer;
         public RegistryEditor ModuleRegistryEditor;
+        public KLC_Finch.Modules.Events ModuleEvents;
 
         public WindowAlternative.HasConnected Callback;
 

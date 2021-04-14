@@ -39,6 +39,9 @@
             <TabItem x:Name="tabRegistry" Header="Registry">
                 <command:controlRegistry />
             </TabItem>
+            <TabItem x:Name="tabEvents" Header="Events">
+                <command:controlEvents />
+            </TabItem>
         </TabControl>
 
     </Grid>

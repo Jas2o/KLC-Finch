@@ -107,6 +107,12 @@
     </Compile>
     <Compile Include="Modules\Dashboard\Dashboard.cs" />
     <Compile Include="Modules\Dashboard\StaticImage.cs" />
+    <Compile Include="Modules\Events\controlEvents.xaml.cs">
+      <DependentUpon>controlEvents.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Events\Events.cs" />
+    <Compile Include="Modules\Events\EventsExtendedList.cs" />
+    <Compile Include="Modules\Events\EventValue.cs" />
     <Compile Include="Modules\Extensions.cs" />
     <Compile Include="Modules\FileExplorer\controlFiles.xaml.cs">
       <DependentUpon>controlFiles.xaml</DependentUpon>
@@ -170,6 +176,10 @@
     <Page Include="Modules\Dashboard\controlDashboard.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\Events\controlEvents.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="Modules\FileExplorer\controlFiles.xaml">
       <SubType>Designer</SubType>
