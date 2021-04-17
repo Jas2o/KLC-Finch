@@ -12,16 +12,9 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 //To look into regarding the changes to Key/Keys
 //https://stackoverflow.com/questions/1153009/how-can-i-convert-system-windows-input-key-to-system-windows-forms-keys
@@ -30,54 +23,65 @@ namespace KLC_Finch {
     /// <summary>
     /// Interaction logic for WindowViewer.xaml
     /// </summary>
-    public partial class WindowViewer : Window {
+    public partial class WindowViewerV2 : Window {
 
         public Settings Settings;
 
         private bool virtualRequireViewportUpdate = false;
         private bool controlEnabled = false;
-        
+
         private string clipboard = "";
         private KLC.ClipBoardMonitor clipboardMon;
         private bool socketAlive = false;
-        private bool reachedFirstConnect = false;
+        //private bool reachedFirstConnect = false;
         private List<RCScreen> listScreen = new List<RCScreen>();
         private RCScreen currentScreen = null;
 
         private string sessionId;
         private RemoteControl rc;
-        #region Copy
-        int screenWidth = 0, screenHeight = 0, virtualWidth, virtualHeight, vpX, vpY;
-        float targetAspectRatio;
+
+        private Rectangle virtualCanvas, virtualViewWant, virtualViewNeed;
+        int vpX, vpY;
         double scaleX, scaleY;
 
-        private static Font arial = new Font("Arial", 42);
+        private Camera MainCamera;
+
+        //private string sessionId;
+
+        private static Font arial = new Font("Arial", 32);
         Bitmap overlay2dMouse;
         Bitmap overlay2dKeyboard;
+        Bitmap overlay2dDisconnected;
         byte[] textureOverlayDataMouse;
         byte[] textureOverlayDataKeyboard;
+        byte[] textureOverlayDataDisconnected;
         bool overlayNewMouse;
         bool overlayNewKeyboard;
         int textureOverlay2dMouse;
         int textureOverlay2dKeyboard;
-        private static int overlayWidth = 1000;
-        private static int overlayHeight = 100;
+        int textureOverlay2dDisconnected;
+        private const int overlayWidth = 400;
+        private const int overlayHeight = 100;
 
-        Vector2[] vertBufferScreen, vertBufferMouse, vertBufferKeyboard;
-        int VBOScreen, VBOmouse, VBOkeyboard;
-
-        private int textureWidth;
-        private int textureHeight;
-        private byte[] textureData;
-        private bool textureNew;
-        int textureBottom;
-        #endregion
+        Vector2[] vertBufferScreen;
+        Vector2[] vertBufferMouse, vertBufferKeyboard, vertBufferDisconnected;
+        int VBOScreen;
+        int VBOmouse, VBOkeyboard, VBOdisconnected;
 
         private bool keyDownWin;
         private bool autotypeAlwaysConfirmed;
         private bool windowActivatedMouseMove;
 
-        public WindowViewer(RemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080) {
+        enum ConnectionStatus {
+            FirstConnectionAttempt,
+            Connected,
+            Disconnected
+        }
+        ConnectionStatus connectionStatus;
+
+        //--
+
+        public WindowViewerV2(RemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080) {
             InitializeComponent();
 
             string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
@@ -89,6 +93,7 @@ namespace KLC_Finch {
             this.Width = Settings.RemoteControlWidth;
             this.Height = Settings.RemoteControlHeight;
 
+            toolSettingStartControlEnabled.IsChecked = Settings.StartControlEnabled;
             toolDebugKeyboardMod.IsChecked = Settings.DisplayOverlayKeyboardMod;
             toolDebugKeyboardOther.IsChecked = Settings.DisplayOverlayKeyboardOther;
             toolDebugMouse.IsChecked = Settings.DisplayOverlayMouse;
@@ -99,9 +104,10 @@ namespace KLC_Finch {
                 toolClipboardSync.Header = "Clipboard (Receive Only)";
 
             this.rc = rc;
-            reachedFirstConnect = socketAlive = false;
+            socketAlive = false;
+            connectionStatus = ConnectionStatus.FirstConnectionAttempt;
 
-            SetVirtual(virtualWidth, virtualHeight);
+            MainCamera = new Camera(Vector2.Zero);
 
             clipboardMon = new ClipBoardMonitor();
             clipboardMon.OnUpdate += SyncClipboard;
@@ -124,93 +130,80 @@ namespace KLC_Finch {
         public void SetSessionID(string sessionId) {
             this.sessionId = sessionId;
 
-            if(sessionId != null)
-                reachedFirstConnect = socketAlive = true;
+            if (sessionId != null) {
+                socketAlive = true;
+                connectionStatus = ConnectionStatus.Connected;
+            }
         }
 
-        public void SetVirtual(int virtualWidth, int virtualHeight) {
-            this.virtualWidth = virtualWidth;
-            this.virtualHeight = virtualHeight;
+        public void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight)
+        {
+            virtualCanvas = new Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
+            SetVirtual(virtualX, virtualY, virtualCanvas.Width, virtualCanvas.Height);
+        }
 
+        public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight)
+        {
+            virtualViewWant = new Rectangle(virtualX, virtualY, virtualWidth, virtualHeight);
             virtualRequireViewportUpdate = true;
         }
 
         private void RefreshVirtual() {
             vertBufferScreen = new Vector2[8] {
-                new Vector2(0,virtualHeight), new Vector2(0, 1),
-                new Vector2(virtualWidth,virtualHeight), new Vector2(1, 1),
-                new Vector2(virtualWidth,0), new Vector2(1, 0),
-                new Vector2(0,0), new Vector2(0, 0)
-            };
-
-            vertBufferMouse = new Vector2[8] {
-                new Vector2(virtualWidth - overlayWidth,overlayHeight), new Vector2(0, 1),
-                new Vector2(virtualWidth,overlayHeight), new Vector2(1, 1),
-                new Vector2(virtualWidth,0), new Vector2(1, 0),
-                new Vector2(virtualWidth - overlayWidth,0), new Vector2(0, 0)
+                new Vector2(virtualCanvas.Left, virtualCanvas.Top), new Vector2(0, 1),
+                new Vector2(virtualCanvas.Right, virtualCanvas.Top), new Vector2(1, 1),
+                new Vector2(virtualCanvas.Right, virtualCanvas.Bottom), new Vector2(1, 0),
+                new Vector2(virtualCanvas.Left, virtualCanvas.Bottom), new Vector2(0, 0)
             };
 
             VBOScreen = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
             GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
 
+            vertBufferMouse = new Vector2[8] {
+                new Vector2(glControl.Width - overlayWidth,overlayHeight), new Vector2(0, 1),
+                new Vector2(glControl.Width,overlayHeight), new Vector2(1, 1),
+                new Vector2(glControl.Width,0), new Vector2(1, 0),
+                new Vector2(glControl.Width - overlayWidth,0), new Vector2(0, 0)
+            };
+
             VBOmouse = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOmouse);
             GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferMouse.Length), vertBufferMouse, BufferUsageHint.StaticDraw);
-        }
 
-        private void SetupViewport() {
-            //OpenTkControl.MakeCurrent();
+            vertBufferKeyboard = new Vector2[8] {
+                new Vector2(0,overlayHeight), new Vector2(0, 1),
+                new Vector2(overlayWidth,overlayHeight), new Vector2(1, 1),
+                new Vector2(overlayWidth,0), new Vector2(1, 0),
+                new Vector2(0,0), new Vector2(0, 0)
+            };
 
-            screenWidth = glControl.Width;
-            screenHeight = glControl.Height;
+            VBOkeyboard = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOkeyboard);
+            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferKeyboard.Length), vertBufferKeyboard, BufferUsageHint.StaticDraw);
 
-            targetAspectRatio = (float)virtualWidth / (float)virtualHeight;
+            int leftDisconnected = (glControl.Width - 400) / 2;
+            int topDisconnected = (glControl.Height - overlayHeight) / 2;
+            vertBufferDisconnected = new Vector2[8] {
+                new Vector2(leftDisconnected, topDisconnected + overlayHeight), new Vector2(0, 1),
+                new Vector2(leftDisconnected + 400, topDisconnected + overlayHeight), new Vector2(1, 1),
+                new Vector2(leftDisconnected + 400, topDisconnected), new Vector2(1, 0),
+                new Vector2(leftDisconnected, topDisconnected), new Vector2(0, 0)
+            };
 
-            int width = screenWidth;
-            int height = (int)((float)width / targetAspectRatio/* + 0.5f*/);
-
-            if (height > screenHeight) {
-                //Pillarbox
-                //It doesn't fit our height, we must switch to pillarbox then
-                height = screenHeight;
-                width = (int)((float)height * targetAspectRatio/* + 0.5f*/);
-            }
-
-            // set up the new viewport centered in the backbuffer
-            vpX = (screenWidth / 2) - (width / 2);
-            vpY = (screenHeight / 2) - (height / 2);
-
-            GL.Viewport(vpX, vpY, width, height);
-            //GL.Viewport(0, 0, width, height);
-
-            GL.MatrixMode(MatrixMode.Projection);
-            //GL.PushMatrix();
-            GL.LoadIdentity();
-            GL.Ortho(0, virtualWidth, virtualHeight, 0, -1, 1); // Should be 2D
-
-            GL.MatrixMode(MatrixMode.Modelview);
-            //GL.PushMatrix();
-
-            //Now to calculate the scale considering the screen size and virtual size
-            scaleX = (double)screenWidth / (double)virtualWidth;
-            scaleY = (double)screenHeight / (double)virtualHeight;
-            GL.Scale(scaleX, scaleY, 1.0f);
-
-            GL.LoadIdentity();
-            // From now on, instead of using -1 < 0 < 1 co-ordinates, use pixel ones starting from 0,0 top left
-
-            GL.Disable(EnableCap.DepthTest);
-
-            //BuildOverlay2dMouse(true);
-            //BuildOverlay2dKeyboard(true);
+            VBOdisconnected = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOdisconnected);
+            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferDisconnected.Length), vertBufferDisconnected, BufferUsageHint.StaticDraw);
         }
 
         public void NotifySocketClosed(string sessionId) {
-            if (this.sessionId != sessionId)
+            if (sessionId == "/control/agent") {
+            } else if (this.sessionId != sessionId)
                 return;
 
             socketAlive = false;
+            connectionStatus = ConnectionStatus.Disconnected;
+
             rc = null;
             Dispatcher.Invoke((Action)delegate {
                 toolLatency.Header = "N/C";
@@ -223,15 +216,55 @@ namespace KLC_Finch {
             glControl.MakeCurrent();
 
             if (virtualRequireViewportUpdate) {
-                RefreshVirtual();
+                float currentAspectRatio = (float)glControl.Width / (float)glControl.Height;
+                float targetAspectRatio = (float)virtualViewWant.Width / (float)virtualViewWant.Height;
+                int width = virtualViewWant.Width;
+                int height = virtualViewWant.Height;
+                vpX = 0;
+                vpY = 0;
+
+                if (currentAspectRatio > targetAspectRatio) {
+                    //Pillarbox
+                    width = (int)((float)height * currentAspectRatio);
+                    vpX = (width - virtualViewWant.Width) / 2;
+                } else {
+                    //Letterbox
+                    height = (int)((float)width / currentAspectRatio);
+                    vpY = (height - virtualViewWant.Height) / 2;
+                }
+
+                scaleX = (double)glControl.Width / (double)width;
+                scaleY = (double)glControl.Height / (double)height;
+
+                virtualViewNeed = new Rectangle(virtualViewWant.X - vpX, virtualViewWant.Y - vpY, width, height);
+
                 virtualRequireViewportUpdate = false;
             }
-            SetupViewport(); //Different to KLCAlt
+
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(virtualViewNeed.Left, virtualViewNeed.Right, virtualViewNeed.Bottom, virtualViewNeed.Top, MainCamera.ZNear, MainCamera.ZFar);
+            GL.Viewport(0, 0, glControl.Width, glControl.Height);
+            MainCamera.ApplyTransform();
+            GL.MatrixMode(MatrixMode.Modelview);
+            //GL.LoadIdentity();
+            //GL.Disable(EnableCap.DepthTest);
+
+            //BuildOverlay2dMouse(true);
+            //BuildOverlay2dKeyboard(true);
 
             //--
 
+            foreach(RCScreen screen in listScreen) {
+                if (screen.Texture == null) {
+                    screen.Texture = new TextureScreen();
+                } else
+                    screen.Texture.RenderNew();
+            }
+
+            /*
             if (textureNew) {
-                GL.BindTexture(TextureTarget.Texture2D, textureBottom);
+                GL.BindTexture(TextureTarget.Texture2D, textureID);
 
                 GL.TexImage2D(
                     TextureTarget.Texture2D,
@@ -246,8 +279,10 @@ namespace KLC_Finch {
 
                 textureNew = false;
             }
+            */
 
-            if (Settings.DisplayOverlayMouse && overlayNewMouse) {
+            #region Overlay
+            if (overlayNewMouse) {
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
 
                 GL.TexImage2D(
@@ -264,7 +299,7 @@ namespace KLC_Finch {
                 overlayNewMouse = false;
             }
 
-            if ((Settings.DisplayOverlayKeyboardOther || Settings.DisplayOverlayKeyboardMod) && overlayNewKeyboard) {
+            if (overlayNewKeyboard) {
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
 
                 GL.TexImage2D(
@@ -280,45 +315,122 @@ namespace KLC_Finch {
 
                 overlayNewKeyboard = false;
             }
+            #endregion
 
-            if (socketAlive)
-                GL.ClearColor((controlEnabled ? System.Drawing.Color.Black : System.Drawing.Color.MidnightBlue));
-            else
-                GL.ClearColor((reachedFirstConnect ? System.Drawing.Color.Maroon : System.Drawing.Color.SlateGray));
+            switch (connectionStatus) {
+                case ConnectionStatus.FirstConnectionAttempt:
+                    GL.ClearColor(System.Drawing.Color.SlateGray);
+                    break;
+                case ConnectionStatus.Connected:
+                    if (controlEnabled)
+                        GL.ClearColor(System.Drawing.Color.Black);
+                    else
+                        GL.ClearColor(System.Drawing.Color.MidnightBlue);
+                    break;
+                case ConnectionStatus.Disconnected:
+                    GL.ClearColor(System.Drawing.Color.Maroon);
+                    break;
+            }
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            GL.BindTexture(TextureTarget.Texture2D, textureBottom);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-            GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
-            GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-            GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
+            //GL.BindTexture(TextureTarget.Texture2D, textureScreenLegacy.ID);
+            //GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+            //GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
+            //GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
+            //GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
+
+            //GL.Disable(EnableCap.Texture2D);
+            int screenNum = 0;
+
+            
+
+            foreach (RCScreen screen in listScreen)
+            {
+                if (false) {
+                    GL.Disable(EnableCap.Texture2D);
+                    //Test
+                    if (screenNum == 0)
+                        GL.Color3(Color.FromArgb(251, 218, 3)); //Yellow
+                    else if (screenNum == 1)
+                        GL.Color3(Color.FromArgb(255, 165, 50)); //Orrange
+                    else if (screenNum == 2)
+                        GL.Color3(Color.FromArgb(53, 166, 170)); //Teal
+                    else if (screenNum == 3)
+                        GL.Color3(Color.FromArgb(220, 108, 167)); //Pink
+                    else if (screenNum == 4)
+                        GL.Color3(Color.FromArgb(57, 54, 122)); //Purple
+                    else
+                        GL.Color3(Color.White);
+
+                    //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                    GL.Begin(PrimitiveType.Polygon);
+                    GL.PointSize(5f);
+                    GL.LineWidth(5f);
+
+                    GL.Vertex2(screen.rect.Left, screen.rect.Bottom);
+                    GL.Vertex2(screen.rect.Left, screen.rect.Top);
+                    GL.Vertex2(screen.rect.Right, screen.rect.Top);
+                    GL.Vertex2(screen.rect.Right, screen.rect.Bottom);
+
+                    //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
+
+                    GL.End();
+
+                    screenNum++;
+                }
+
+                if (screen.Texture != null) {
+                    GL.Enable(EnableCap.Texture2D);
+                    screen.Texture.Render();
+                }
+            }
 
             //--
 
-            if (Settings.DisplayOverlayMouse) {
+            GL.Enable(EnableCap.Texture2D);
+
+            #region Overlay
+
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(0, glControl.Width, glControl.Height, 0, MainCamera.ZNear, MainCamera.ZFar); //Test
+
+            if (true) {
+                //if (Settings.DisplayOverlayMouse) {
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
+                GL.Color3(Color.White);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOmouse);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
                 GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
                 GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferMouse.Length / 2);
-            }
+                //}
 
-            if (Settings.DisplayOverlayKeyboardOther || Settings.DisplayOverlayKeyboardMod) {
+                //if (Settings.DisplayOverlayKeyboardOther || Settings.DisplayOverlayKeyboardMod) {
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
+                //GL.Color3(Color.Green);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOkeyboard);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
                 GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
                 GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferKeyboard.Length / 2);
+                //}
+
+                if (connectionStatus == ConnectionStatus.FirstConnectionAttempt || connectionStatus == ConnectionStatus.Disconnected) {
+                    GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dDisconnected);
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, VBOdisconnected);
+                    GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
+                    GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
+                    GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferDisconnected.Length / 2);
+                }
             }
+            #endregion
 
             //--
 
             glControl.SwapBuffers();
         }
-
-        private void InitOverlayTexture(ref Bitmap overlay2d, ref int textureOverlay2d) {
-            overlay2d = new Bitmap(overlayWidth, overlayHeight);
+        private void InitOverlayTexture(ref Bitmap overlay2d, ref int textureOverlay2d, int overlayW = overlayWidth, int overlayH = overlayHeight) {
+            overlay2d = new Bitmap(overlayW, overlayH);
             textureOverlay2d = GL.GenTexture();
 
             GL.BindTexture(TextureTarget.Texture2D, textureOverlay2d);
@@ -330,14 +442,14 @@ namespace KLC_Finch {
                 OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero); // just allocate memory, so we can update efficiently using TexSubImage2D
         }
 
-        private void InitScreenTexture() {
+        private void InitScreenTexture(ref int textureID) {
             GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
+            textureID = GL.GenTexture();
 
-            textureBottom = GL.GenTexture();
-            GL.BindTexture(TextureTarget.Texture2D, textureBottom);
+            GL.BindTexture(TextureTarget.Texture2D, textureID);
             GL.TexImage2D(TextureTarget.Texture2D, 0,
                 PixelInternalFormat.Rgb,
-                virtualWidth, virtualHeight, 0, //W, H, Border
+                virtualCanvas.Width, virtualCanvas.Height, 0, //W, H, Border (!! this is probably wrong since the virtualCanvas was added)
                 OpenTK.Graphics.OpenGL.PixelFormat.Bgr,
                 PixelType.UnsignedByte, IntPtr.Zero);
 
@@ -352,8 +464,52 @@ namespace KLC_Finch {
             //FPS/Mouse/Keyboard
             InitOverlayTexture(ref overlay2dMouse, ref textureOverlay2dMouse);
             InitOverlayTexture(ref overlay2dKeyboard, ref textureOverlay2dKeyboard);
+            InitOverlayTexture(ref overlay2dDisconnected, ref textureOverlay2dDisconnected, 400);
 
-            InitScreenTexture();
+            using (Graphics gfx = Graphics.FromImage(overlay2dDisconnected)) {
+                //gfx.Clear(System.Drawing.Color.Transparent);
+                gfx.Clear(System.Drawing.Color.FromArgb(128, 0, 0, 0));
+
+                using (GraphicsPath gp = new GraphicsPath())
+                using (System.Drawing.Pen outline = new System.Drawing.Pen(System.Drawing.Color.Black, 4) { LineJoin = LineJoin.Round }) //outline width=1
+                using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                using (System.Drawing.Brush foreBrush = new SolidBrush(System.Drawing.Color.Lime)) {
+                    gp.AddString("Disconnected", arial.FontFamily, (int)arial.Style, arial.Size, gfx.VisibleClipBounds, sf);
+                    gfx.DrawPath(outline, gp);
+                    gfx.FillPath(foreBrush, gp);
+                }
+
+                BitmapData data2 = overlay2dDisconnected.LockBits(new System.Drawing.Rectangle(0, 0, overlay2dDisconnected.Width, overlay2dDisconnected.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                if (textureOverlayDataDisconnected == null)
+                    textureOverlayDataDisconnected = new byte[Math.Abs(data2.Stride * data2.Height)];
+                Marshal.Copy(data2.Scan0, textureOverlayDataDisconnected, 0, textureOverlayDataDisconnected.Length);
+
+                overlay2dDisconnected.UnlockBits(data2);
+            }
+
+            GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dDisconnected);
+
+            GL.TexImage2D(
+                TextureTarget.Texture2D,
+                0, //Level
+                PixelInternalFormat.Rgba,
+                overlay2dDisconnected.Width,
+                overlay2dDisconnected.Height,
+                0, //Border
+                OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
+                PixelType.UnsignedByte,
+                textureOverlayDataDisconnected);
+
+            //--
+
+            /*
+            textureScreens = new TextureScreen[4];
+            for (int i = 0; i < textureScreens.Length; i++) {
+                textureScreens[i] = new TextureScreen();
+                InitScreenTexture(ref textureScreens[i].ID);
+            }
+            textureScreenLegacy = textureScreens[0];
+            */
 
             GL.EnableClientState(ArrayCap.VertexArray);
             GL.EnableClientState(ArrayCap.TextureCoordArray);
@@ -362,31 +518,6 @@ namespace KLC_Finch {
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
             //GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha); //NTR org
-
-            //--
-
-            //Warning! Mouse debug position is changed to the right when the virtual screen size is changed!
-            vertBufferMouse = new Vector2[8] {
-                new Vector2(0,overlayHeight), new Vector2(0, 1),
-                new Vector2(overlayWidth,overlayHeight), new Vector2(1, 1),
-                new Vector2(overlayWidth,0), new Vector2(1, 0),
-                new Vector2(0,0), new Vector2(0, 0)
-            };
-
-            vertBufferKeyboard = new Vector2[8] {
-                new Vector2(0,overlayHeight), new Vector2(0, 1),
-                new Vector2(overlayWidth,overlayHeight), new Vector2(1, 1),
-                new Vector2(overlayWidth,0), new Vector2(1, 0),
-                new Vector2(0,0), new Vector2(0, 0)
-            };
-
-            VBOmouse = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOmouse);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferMouse.Length), vertBufferMouse, BufferUsageHint.StaticDraw);
-
-            VBOkeyboard = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOkeyboard);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferKeyboard.Length), vertBufferKeyboard, BufferUsageHint.StaticDraw);
         }
 
         public void UpdateLatency(long ms) {
@@ -410,9 +541,7 @@ namespace KLC_Finch {
             if (currentScreen == null) {
                 currentScreen = newScreen;
 
-                virtualHeight = currentScreen.screen_height;
-                virtualWidth = currentScreen.screen_width;
-                virtualRequireViewportUpdate = true;
+                //SetVirtual(screen_x, screen_y, screen_width, screen_height);
             }
 
             Dispatcher.Invoke((Action)delegate {
@@ -428,29 +557,49 @@ namespace KLC_Finch {
         }
 
         private void toolScreen_ItemClicked(object sender, RoutedEventArgs e) {
-            if (rc == null)
-                return;
-
             MenuItem source = (MenuItem)e.Source;
             string[] screen_selected = source.Header.ToString().Split(':');
 
             currentScreen = listScreen.First(x => x.screen_name == screen_selected[0]);
             rc.ChangeScreen(currentScreen.screen_id);
+
+            //MainCamera.Rotation = 0f;
+            MainCamera.Position = Vector2.Zero;
+            MainCamera.Scale = new Vector2(1f, 1f);
+            DebugKeyboard();
+
+            SetVirtual(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
+            glControl.Invalidate();
         }
 
+        private void toolScreenOverview_Click(object sender, RoutedEventArgs e)
+        {
+            //MainCamera.Rotation = 0f;
+            MainCamera.Position = Vector2.Zero;
+            MainCamera.Scale = new Vector2(1f, 1f);
+            DebugKeyboard();
+
+            virtualViewWant = virtualCanvas;
+            virtualRequireViewportUpdate = true;
+            glControl.Invalidate();
+        }
+
+        /*
         public void LoadTexture(int width, int height, Bitmap decomp) {
-            if (virtualWidth != width || virtualHeight != height) {
-                Console.WriteLine("Virtual resolution did not match texture received.");
-                SetVirtual(width, height);
+            if (currentScreen.rect.Width != width || currentScreen.rect.Height != height) {
+                Console.WriteLine("Current screen resolution did not match texture received.");
 
                 try {
-                    currentScreen.screen_width = width;
-                    currentScreen.screen_height = height;
+                    currentScreen.rect.Width = width;
+                    currentScreen.rect.Height = height;
+
                     //This is a sad attempt a fixing a problem when changing left monitor's size.
                     //However if changing a middle monitor, the right monitor will break.
                     //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                    if (currentScreen.screen_x < 0)
-                        currentScreen.screen_x = width * -1;
+                    if (currentScreen.rect.X < 0)
+                        currentScreen.rect.X = width * -1;
+
+                    SetVirtual(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
                 } catch(Exception ex) {
                     Console.WriteLine("[LoadTexture] " + ex.ToString());
                 }
@@ -460,37 +609,44 @@ namespace KLC_Finch {
                 //return;
             }
 
-            //qt.v = textureBottom;
-            //qtBottom = qt;
+            textureScreenLegacy.Load(width, height, decomp, virtualRequireViewportUpdate);
+            socketAlive = true;
 
-            textureWidth = width;
-            textureHeight = height;
+            glControl.Invalidate();
+        }
+        */
 
-            BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-            if (textureData == null || virtualRequireViewportUpdate)
-                textureData = new byte[Math.Abs(data.Stride * data.Height)];
-            Marshal.Copy(data.Scan0, textureData, 0, textureData.Length); //This can fail with re-taking over private remote control
-            decomp.UnlockBits(data);
+        public void LoadTexture(int width, int height, Bitmap decomp, string screenID) {
+            RCScreen scr = listScreen.FirstOrDefault(x => x.screen_id == screenID);
+            if(scr == null) {
+                Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
+                throw new NotImplementedException();
+                return;
+            }
 
-            textureNew = true;
+            if(scr.rect.Width != width || scr.rect.Height != height){
+                Console.WriteLine("Virtual resolution did not match texture received.");
+                return;
+                //SetVirtual(width, height);
+
+                try {
+                    scr.rect.Width = width;
+                    scr.rect.Height = height;
+                    if (scr.rect.X < 0)
+                        scr.rect.X = width * -1;
+                } catch (Exception ex) {
+                    Console.WriteLine("[LoadTexture] " + ex.ToString());
+                }
+            }
+
+            if(scr.Texture != null)
+                scr.Texture.Load(scr.rect, decomp, virtualRequireViewportUpdate);
             socketAlive = true;
 
             glControl.Invalidate();
         }
 
         #region Handle
-        /*
-        private void HandleKeyPress(object sender, System.Windows.Forms.KeyPressEventArgs e) {
-            if (!controlEnabled || rc == null)
-                return;
-
-            Console.WriteLine("This shouldn't be used");
-            //rc.SendKeyDown((int)e.KeyChar);
-            //rc.SendKeyUp((int)e.KeyChar);
-            //Console.WriteLine(e.KeyChar + " - " + (byte)e.KeyChar);
-        }
-        */
-
         private void toolSendCtrlAltDel_Click(object sender, RoutedEventArgs e) {
             if (!controlEnabled || rc == null)
                 return;
@@ -534,22 +690,25 @@ namespace KLC_Finch {
         }
 
         public void ReceiveClipboard(string content) {
+            if (clipboard == content)
+                return;
+
             clipboard = content;
             Dispatcher.Invoke((Action)delegate {
                 //try {
-                    toolClipboardGet.Header = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(5);
+                toolClipboardGet.Header = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(5);
 
-                    //if (clipboardSyncEnabled) { //Commented out now that we use Receive-Only mode
-                    //this.BeginInvoke(new Action(() => {
-                    if (clipboard.Length > 0)
-                        Clipboard.SetDataObject(clipboard);
-                        //Clipboard.SetText(clipboard); //Apparently this doesn't work
-                    else
-                        Clipboard.Clear();
-                    //}));
-                    //}
+                //if (clipboardSyncEnabled) { //Commented out now that we use Receive-Only mode
+                //this.BeginInvoke(new Action(() => {
+                if (clipboard.Length > 0)
+                    Clipboard.SetDataObject(clipboard);
+                //Clipboard.SetText(clipboard); //Apparently this doesn't work
+                else
+                    Clipboard.Clear();
+                //}));
+                //}
                 //} catch(Exception ex) {
-                    //new WindowException(ex, ex.GetType().ToString()).Show();
+                //new WindowException(ex, ex.GetType().ToString()).Show();
                 //}
             });
         }
@@ -563,7 +722,10 @@ namespace KLC_Finch {
             SetControlEnabled(!controlEnabled);
         }
 
-        public void SetControlEnabled(bool value) {
+        public void SetControlEnabled(bool value, bool isStart = false) {
+            if (isStart && !Settings.StartControlEnabled)
+                return;
+
             controlEnabled = value;
 
             Dispatcher.Invoke((Action)delegate {
@@ -596,7 +758,7 @@ namespace KLC_Finch {
         }
 
         private void toolReconnect_Click(object sender, RoutedEventArgs e) {
-            if(rc != null)
+            if (rc != null)
                 rc.Reconnect();
         }
 
@@ -607,7 +769,7 @@ namespace KLC_Finch {
             if (!controlEnabled || rc == null)
                 return;
 
-            if(e.Button == System.Windows.Forms.MouseButtons.Middle) {
+            if (e.Button == System.Windows.Forms.MouseButtons.Middle) {
                 string text = Clipboard.GetText().Trim();
 
                 if (!text.Contains('\n') && !text.Contains('\r')) {
@@ -622,14 +784,14 @@ namespace KLC_Finch {
                         if (confirmed && (bool)winConfirm.chkDoNotAsk.IsChecked)
                             autotypeAlwaysConfirmed = true;
                     }
-                    if(confirmed)
+                    if (confirmed)
                         rc.SendAutotype(text);
 
                 } else {
                     Console.WriteLine("Autotype blocked: too long or had a new line character");
                 }
             } else {
-                if(windowActivatedMouseMove)
+                if (windowActivatedMouseMove)
                     HandleMouseMove(sender, e);
 
                 rc.SendMouseDown(e.Button);
@@ -663,6 +825,7 @@ namespace KLC_Finch {
         }
 
         private void glControl_Resize(object sender, EventArgs e) {
+            RefreshVirtual();
             virtualRequireViewportUpdate = true;
         }
 
@@ -671,12 +834,78 @@ namespace KLC_Finch {
             Render();
         }
 
+        /*
+        private void OpenTkControl_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
+
+            switch (e2.KeyData)
+            {
+                case System.Windows.Forms.Keys.W:
+                    MainCamera.Move(new Vector2(0f, -10f));
+                    break;
+                case System.Windows.Forms.Keys.A:
+                    MainCamera.Move(new Vector2(-10f, 0f));
+                    break;
+                case System.Windows.Forms.Keys.S:
+                    MainCamera.Move(new Vector2(0f, 10f));
+                    break;
+                case System.Windows.Forms.Keys.D:
+                    MainCamera.Move(new Vector2(10f, 0f));
+                    break;
+
+                case System.Windows.Forms.Keys.X:
+                    MainCamera.Position = Vector2.Zero;
+                    break;
+
+                case System.Windows.Forms.Keys.T:
+                    MainCamera.Scale = Vector2.Add(MainCamera.Scale, new Vector2(0.1f, 0.1f));
+                    break;
+                case System.Windows.Forms.Keys.G:
+                    if (MainCamera.Scale.X > 0.2f && MainCamera.Scale.Y > 0.2f) {
+                        //MainCamera.Move(new Vector2(-90f, 0f));
+                        //MainCamera.Move(new Vector2(0f, -40f));
+
+                        MainCamera.Scale = Vector2.Subtract(MainCamera.Scale, new Vector2(0.1f, 0.1f));
+                    }
+                    break;
+                case System.Windows.Forms.Keys.Y:
+                    MainCamera.Scale = new Vector2(1f, 1f);
+                    break;
+
+                default:
+                    Console.WriteLine("KeyDown: " + e2.KeyData);
+                    break;
+            }
+
+            DebugKeyboard();
+            glControl.Invalidate();
+        }
+        */
+
+        private void toolZoomIn_Click(object sender, RoutedEventArgs e) {
+            if (virtualViewWant.Width - 200 < 0 || virtualViewWant.Height - 200 < 0)
+                return;
+
+            virtualViewWant = new Rectangle(virtualViewWant.X + 100, virtualViewWant.Y + 100, virtualViewWant.Width - 200, virtualViewWant.Height - 200);
+            virtualRequireViewportUpdate = true;
+
+            DebugKeyboard();
+            glControl.Invalidate();
+        }
+
+        private void toolZoomOut_Click(object sender, RoutedEventArgs e) {
+            virtualViewWant = new Rectangle(virtualViewWant.X - 100, virtualViewWant.Y - 100, virtualViewWant.Width + 200, virtualViewWant.Height + 200);
+            virtualRequireViewportUpdate = true;
+
+            DebugKeyboard();
+            glControl.Invalidate();
+        }
+
         private void glControl_Load(object sender, EventArgs e) {
             InitTextures();
             RefreshVirtual();
 
-            //glControl.PreviewKeyDown += HandlePreviewKeyDown;
-            //glControl.KeyUp += HandleKeyUp;
             glControl.MouseMove += HandleMouseMove;
             glControl.MouseDown += HandleMouseDown;
             glControl.MouseUp += HandleMouseUp;
@@ -691,7 +920,7 @@ namespace KLC_Finch {
             App.alternative.Focus();
 
             foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens) {
-                if(screen.Bounds.IntersectsWith(new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height))) {
+                if (screen.Bounds.IntersectsWith(new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height))) {
                     App.alternative.Left = screen.Bounds.X + ((screen.Bounds.Width - App.alternative.Width) / 2);
                     App.alternative.Top = screen.Bounds.Y + ((screen.Bounds.Height - App.alternative.Height) / 2);
                     break;
@@ -734,8 +963,12 @@ namespace KLC_Finch {
             }
         }
 
+        private void toolSettingStartControlEnabled_Click(object sender, RoutedEventArgs e) {
+            toolSettingStartControlEnabled.IsChecked = Settings.StartControlEnabled = !Settings.StartControlEnabled;
+        }
+
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!controlEnabled || rc == null)
+            if (!controlEnabled)
                 return;
 
             if (glControl.ClientRectangle.Contains(e.Location)) {
@@ -751,37 +984,39 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!controlEnabled || currentScreen == null || rc == null || !this.IsActive)
+            if (currentScreen == null)
                 return;
 
             windowActivatedMouseMove = false;
 
-            System.Drawing.Point point = new System.Drawing.Point(e.X - vpX, e.Y - vpY);
-            if (point.X < 0 || point.Y < 0)
-                if (point.X < 0 || point.Y < 0)
-                return;
+            Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), virtualViewNeed.X, virtualViewNeed.Y);
 
-            if (vpX > 0) {
-                point.X = (int)(point.X / scaleY);
-                point.Y = (int)(point.Y / scaleY);
-            } else {
-                point.X = (int)(point.X / scaleX);
-                point.Y = (int)(point.Y / scaleX);
+            DebugMouseEvent((int)point.X, (int)point.Y);
+
+            //!! Need to check if the position is valid before sending
+
+            bool valid = false;
+            foreach(RCScreen screen in listScreen) {
+                if(screen.rect.Contains((int)point.X, (int)point.Y)) {
+                    valid = true;
+
+                    if (currentScreen != screen) {
+                        currentScreen = screen;
+                        rc.ChangeScreen(screen.screen_id);
+                    }
+
+                    break;
+                }
             }
 
-            if (point.X > virtualWidth || point.Y > virtualHeight)
+            if (!controlEnabled || !valid || !this.IsActive)
                 return;
 
-            point.X = point.X + currentScreen.screen_x;
-            point.Y = point.Y + currentScreen.screen_y;
-
-            DebugMouseEvent(point.X, point.Y);
-
-            rc.SendMousePosition(point.X, point.Y);
+            rc.SendMousePosition((int)point.X, (int)point.Y);
         }
 
         private void HandleMouseWheel(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!controlEnabled || rc == null)
+            if (!controlEnabled)
                 return;
 
             rc.SendMouseWheel(e.Delta);
@@ -814,7 +1049,7 @@ namespace KLC_Finch {
                         KeyWinSet(true);
                     }
 
-                    if(keykaseya.IsMod) {
+                    if (keykaseya.IsMod) {
                         if (!listHeldKeysMod.Contains(keykaseya))
                             listHeldKeysMod.Add(keykaseya);
                     } else {
@@ -835,6 +1070,9 @@ namespace KLC_Finch {
         }
 
         private void OpenTkControl_KeyUp(object sender, KeyEventArgs e) {
+            if (rc == null)
+                return;
+
             System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
 
             if (e2.KeyCode == System.Windows.Forms.Keys.PrintScreen) {
@@ -880,12 +1118,6 @@ namespace KLC_Finch {
             e.Handled = true;
         }
 
-        /*
-        private void HandlePreviewKeyDown(object sender, System.Windows.Forms.PreviewKeyDownEventArgs e) {
-            HandleKeyDown(sender, new System.Windows.Forms.KeyEventArgs(e.KeyData));
-        }
-        */
-
         private bool mouseHeldLeft = false;
         private bool mouseHeldRight = false;
 
@@ -911,9 +1143,7 @@ namespace KLC_Finch {
         }
 
         private void DebugMouseEvent(int X, int Y) {
-            //Console.WriteLine("vp(" + vpX + "," + vpY + ") - aspect:" + targetAspectRatio + " - scale(" + scaleX + ", " + scaleY + ") black(" + pointBlack.ToString() + ") // " + point.ToString() + " - (" + X + ", " + Y + ")");
-
-            string strMousePos = string.Format("X: {0} - Y: {1}", X, Y);
+            string strMousePos = string.Format("X: {0}, Y: {1}", X, Y);
 
             using (Graphics gfx = Graphics.FromImage(overlay2dMouse)) {
                 gfx.Clear(System.Drawing.Color.Transparent);
@@ -937,6 +1167,8 @@ namespace KLC_Finch {
 
                 overlayNewMouse = true;
             }
+
+            glControl.Invalidate();
         }
 
         private void DebugKeyboard() {
@@ -967,6 +1199,15 @@ namespace KLC_Finch {
                     strKeyboard = "MouseLeft" + (strKeyboard == "" ? "" : " | " + strKeyboard);
             }
 
+            // !! TEST
+            float currentAspectRatio = (float)glControl.Width / (float)glControl.Height;
+            float targetAspectRatio = (float)virtualViewWant.Width / (float)virtualViewWant.Height;
+
+            strKeyboard = string.Format("Need: {0}\r\nWant: {1}\r\nScale: {2:0.###}, {3:0.###}\r\nCam Trans: {4}\r\nCam Scale: {5}\r\nRatio: {6}\r\nor {7}",
+                virtualViewNeed.ToString(), virtualViewWant.ToString(),
+                scaleX, scaleY, MainCamera.Position.ToString(), MainCamera.Scale.X, currentAspectRatio, targetAspectRatio);
+            // !! TEST
+
             using (Graphics gfx = Graphics.FromImage(overlay2dKeyboard)) {
                 gfx.Clear(System.Drawing.Color.Transparent);
 
@@ -974,7 +1215,7 @@ namespace KLC_Finch {
                 using (System.Drawing.Pen outline = new System.Drawing.Pen(System.Drawing.Color.Black, 4) { LineJoin = LineJoin.Round }) //outline width=1
                 using (StringFormat sf = new StringFormat())
                 using (System.Drawing.Brush foreBrush = new SolidBrush(System.Drawing.Color.Lime)) {
-                    gp.AddString(strKeyboard, arial.FontFamily, (int)arial.Style, arial.Size, new PointF(0, 0), sf);
+                    gp.AddString(strKeyboard, arial.FontFamily, (int)arial.Style, 12, new PointF(0, 0), sf); //12=arial.Size
                     gfx.DrawPath(outline, gp);
                     gfx.FillPath(foreBrush, gp);
                 }

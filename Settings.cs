@@ -14,6 +14,7 @@ namespace KLC_Finch {
 
         //--
 
+        public bool StartControlEnabled { get; set; } = true;
         public bool ClipboardSyncEnabled { get; set; } = false;
         public bool DisplayOverlayMouse { get; set; } = false;
         public bool DisplayOverlayKeyboardMod { get; set; } = false;

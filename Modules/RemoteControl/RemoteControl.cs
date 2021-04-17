@@ -21,11 +21,14 @@ using System.Windows.Media.Imaging;
 namespace KLC_Finch {
     public class RemoteControl {
 
-        public WindowViewer Viewer;
+        public WindowViewerV2 Viewer;
+
         private KLC.LiveConnectSession session;
         private string rcSessionId;
         System.Timers.Timer timerHeartbeat;
         private bool modePrivate;
+
+        private string activeScreenID;
         private VP8.Decoder decoder;
 
         private IWebSocketConnection serverB;
@@ -47,7 +50,7 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
 
-            Viewer = App.viewer = new WindowViewer(this, 1920, 1080);
+            Viewer = App.viewer = new WindowViewerV2(this, 1920, 1080);
             Viewer.SetTitle(session.agent.Name + "::" + (modePrivate ? "Private" : "Shared"));
             Viewer.Show();
 
@@ -106,10 +109,10 @@ namespace KLC_Finch {
         }
 
         private void SendHeartbeat(object sender, ElapsedEventArgs e) {
-            if (!serverB.IsAvailable)
+            if (serverB == null || !serverB.IsAvailable)
                 return;
 
-                string sendjson = "{\"timestamp\":" + DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() + "}";
+            string sendjson = "{\"timestamp\":" + DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() + "}";
             SendJson(Enums.KaseyaMessageTypes.Ping, sendjson);
         }
 
@@ -165,7 +168,13 @@ namespace KLC_Finch {
                     //Private
                     //{"default_screen":65537,"screens":[{"screen_height":1080,"screen_id":65537,"screen_name":"\\\\.\\DISPLAY1","screen_width":1440,"screen_x":0,"screen_y":0}]}
 
-                    int default_screen = (int)json["default_screen"];
+                    int lowestX = 0;
+                    int lowestY = 0;
+                    int highestX = 0;
+                    int highestY = 0;
+
+                    string default_screen = json["default_screen"].ToString();
+                    activeScreenID = default_screen;
                     Console.WriteLine("Clear Screens");
                     Viewer.ClearScreens();
                     foreach (dynamic screen in json["screens"]) {
@@ -179,6 +188,11 @@ namespace KLC_Finch {
 
                         Viewer.AddScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
                         Console.WriteLine("Add Screen: " + screen_id);
+
+                        lowestX = Math.Min(screen_x, lowestX);
+                        lowestY = Math.Min(screen_y, lowestY);
+                        highestX = Math.Max(screen_x + screen_width, highestX);
+                        highestY = Math.Max(screen_y + screen_height, highestY);
 
                         /*
                         if (screen_x == 0 && threadOpenTK == null) {
@@ -195,7 +209,8 @@ namespace KLC_Finch {
                         */
                     }
 
-                    Viewer.SetControlEnabled(true);
+                    Viewer.SetCanvas(lowestX, lowestY, highestX, highestY);
+                    Viewer.SetControlEnabled(true, !modePrivate);
                 } else if (type == (byte)Enums.KaseyaMessageTypes.CursorImage) {
                 } else if (type == (byte)Enums.KaseyaMessageTypes.Ping) {
                     long receivedEpoch = (long)json["timestamp"];
@@ -205,14 +220,12 @@ namespace KLC_Finch {
                     //Just send it anyway, otherwise Kaseya gets sad and stops sending frames
                     postFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
 
-                    /*
                     bool isKeyframe = false;
                     if (remaining[3] == 0x9D && remaining[4] == 0x01 && remaining[5] == 0x2A) {
                         isKeyframe = true;
+                        Console.Write("#");
                     }
-                    //int width = json["width"];
-                    //int height = json["height"];
-                    */
+
                     Bitmap b1 = null;
                     try {
                         b1 = decoder.Decode(remaining);
@@ -220,7 +233,7 @@ namespace KLC_Finch {
                         Console.WriteLine("RC VP8 decode error: " + ex.ToString());
                     } finally {
                         if (b1 != null) {
-                            Viewer.LoadTexture(b1.Width, b1.Height, b1);
+                            Viewer.LoadTexture(b1.Width, b1.Height, b1, activeScreenID);
 
                             if (captureScreen) {
                                 captureScreen = false;
@@ -359,6 +372,7 @@ namespace KLC_Finch {
         public void ChangeScreen(string screen_id) {
             string sendjson = "{\"monitorId\":" + screen_id + "}"; //Intentionally using a string as int/biginteger
             SendJson(Enums.KaseyaMessageTypes.UpdateMonitorId, sendjson);
+            activeScreenID = screen_id;
         }
 
         private void SendJson(Enums.KaseyaMessageTypes messageType, string sendjson) {

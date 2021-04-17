@@ -21,6 +21,10 @@
                             <TextBlock TextWrapping="Wrap" TextAlignment="Center">Wireshark Filter</TextBlock>
                         </Button>
 
+                        <Button x:Name="btnLaunchKLC" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="0,20,0,0" Click="btnLaunchKLC_Click">
+                            <TextBlock TextWrapping="Wrap" TextAlignment="Center">Launch Live Connect</TextBlock>
+                        </Button>
+                        
                         <Button x:Name="btnReconnect" Content="Reconnect" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="0,20,0,0" Click="btnReconnect_Click" />
                     </StackPanel>
                     

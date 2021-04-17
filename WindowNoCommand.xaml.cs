@@ -66,7 +66,7 @@ namespace KLC_Finch {
                 App.viewer.Close();
                 App.viewer = null;
             }
-            WindowViewer myViewer = App.viewer = new WindowViewer(null, width, height);
+            WindowViewerV2 myViewer = App.viewer = new WindowViewerV2(null, width, height);
 
             myViewer.Show();
 
@@ -82,7 +82,8 @@ namespace KLC_Finch {
                 while (myViewer.IsVisible) {
                     foreach (System.Drawing.Color c in colors) {
                         using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(c); }
-                        myViewer.LoadTexture(bTest.Width, bTest.Height, bTest);
+                        throw new NotImplementedException();
+                        //myViewer.LoadTexture(bTest.Width, bTest.Height, bTest);
 
                         Thread.Sleep(1500);
                     }

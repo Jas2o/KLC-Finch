@@ -123,5 +123,11 @@ namespace KLC_Finch {
             if (filter != "")
                 Clipboard.SetText(filter);
         }
+
+        private void btnLaunchKLC_Click(object sender, RoutedEventArgs e) {
+            LibKaseya.KLCCommand command = LibKaseya.KLCCommand.Example(agentID, shortToken);
+            command.SetForLiveConnect();
+            command.Launch(false, false);
+        }
     }
 }

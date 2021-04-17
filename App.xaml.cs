@@ -15,7 +15,7 @@ namespace KLC_Finch {
     public partial class App : Application {
 
         public static WindowAlternative alternative;
-        public static WindowViewer viewer;
+        public static WindowViewerV2 viewer;
 
         public App() : base() {
             if (!Debugger.IsAttached) {

@@ -1,4 +1,4 @@
-﻿<Window x:Class="KLC_Finch.WindowViewer"
+﻿<Window x:Class="KLC_Finch.WindowViewerV1"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:KLC_Finch"
         xmlns:opentk="clr-namespace:OpenTK;assembly=OpenTK.GLControl"
         mc:Ignorable="d"
-        Title="WindowViewer"
+        Title="WindowViewer V1"
         Height="600"
         Width="1000"
         Closing="Window_Closing"
@@ -33,6 +33,7 @@
                 <MenuItem x:Name="toolPanicRelease" Header="Attempt mod key releases (Pause)" Click="toolPanicRelease_Click" />
                 <MenuItem x:Name="toolScreenshotToClipboard" Header="Native Res Screenshot to Clipboard" Click="toolScreenshotToClipboard_Click" />
                 <Separator/>
+                <MenuItem x:Name="toolSettingStartControlEnabled" Header="Start Shared with Control Enabled" Click="toolSettingStartControlEnabled_Click" />
                 <MenuItem x:Name="toolDebugKeyboardMod" Header="Show Modifier Key Events" Click="toolDebugKeyboardMod_Click" />
                 <MenuItem x:Name="toolDebugKeyboardOther" Header="Show Other Key/Click Events" Click="toolDebugKeyboardOther_Click" />
                 <MenuItem x:Name="toolDebugMouse" Header="Show Mouse Move Events" Click="toolDebugMouse_Click" />

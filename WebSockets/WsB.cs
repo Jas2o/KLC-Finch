@@ -247,6 +247,8 @@ namespace KLC {
             string guidGenId = Guid.NewGuid().ToString();
             string guidGenP2pConnectionId = Guid.NewGuid().ToString();
 
+            //I don't think rcPolicy actually matters
+
             string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
 
             if (ServerBsocketControlAgent == null)
