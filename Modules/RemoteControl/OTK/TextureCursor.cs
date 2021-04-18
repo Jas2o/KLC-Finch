@@ -10,7 +10,7 @@ using OpenTK;
 using OpenTK.Graphics.OpenGL;
 
 namespace NTR {
-    public class TextureScreen {
+    public class TextureCursor {
 
         public byte[] Data;
         public bool IsNew;
@@ -24,21 +24,19 @@ namespace NTR {
         /// <summary>
         /// Only call this from GL Render
         /// </summary>
-        public TextureScreen() {
+        public TextureCursor() {
             ID = GL.GenTexture();
         }
 
-        public void Load(Rectangle rect, Bitmap decomp) {
+        public void Load(Rectangle rect, byte[] Data) {
             this.rect = rect;
 
-            BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-            
-            //if (Data == null || virtualRequireViewportUpdate)
-            byte[] Data = new byte[Math.Abs(data.Stride * data.Height)];
-            Marshal.Copy(data.Scan0, Data, 0, Data.Length); //This can fail with re-taking over private remote control
+            //BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            //byte[] Data = new byte[Math.Abs(data.Stride * data.Height)];
+            //Marshal.Copy(data.Scan0, Data, 0, Data.Length); //This can fail with re-taking over private remote control
             this.Data = Data; //Seems more stable replacing the array rather than writing into it
 
-            decomp.UnlockBits(data);
+            //decomp.UnlockBits(data);
 
             IsNew = true;
         }
@@ -52,11 +50,11 @@ namespace NTR {
             GL.TexImage2D(
                 TextureTarget.Texture2D,
                 0, //Level
-                PixelInternalFormat.Rgb,
+                PixelInternalFormat.Rgba,
                 rect.Width,
                 rect.Height,
                 0, //Border
-                OpenTK.Graphics.OpenGL.PixelFormat.Bgr,
+                OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
                 PixelType.UnsignedByte,
                 Data); //bmpData.Scan0
 
@@ -73,18 +71,20 @@ namespace NTR {
             if (ID == -1 || Data == null || rect == null)
                 return false;
 
-            if(vertBufferScreen == null) {
-                vertBufferScreen = new Vector2[8] {
-                    new Vector2(rect.Left, rect.Bottom), new Vector2(0, 1),
-                    new Vector2(rect.Right, rect.Bottom), new Vector2(1, 1),
-                    new Vector2(rect.Right, rect.Top), new Vector2(1, 0),
-                    new Vector2(rect.Left, rect.Top), new Vector2(0, 0)
-                };
-
+            if (vertBufferScreen == null)
                 VBOScreen = GL.GenBuffer();
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-                GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
-            }
+
+            vertBufferScreen = new Vector2[8] {
+                new Vector2(rect.Left, rect.Bottom), new Vector2(0, 1),
+                new Vector2(rect.Right, rect.Bottom), new Vector2(1, 1),
+                new Vector2(rect.Right, rect.Top), new Vector2(1, 0),
+                new Vector2(rect.Left, rect.Top), new Vector2(0, 0)
+            };
+    
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
+
+            //--
 
             GL.Enable(EnableCap.Texture2D);
             GL.BindTexture(TextureTarget.Texture2D, ID);
@@ -96,6 +96,5 @@ namespace NTR {
 
             return true;
         }
-
     }
 }

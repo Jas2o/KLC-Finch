@@ -148,11 +148,11 @@
     </Compile>
     <Compile Include="Modules\RemoteControl\OTK\Camera.cs" />
     <Compile Include="Modules\RemoteControl\MITM.cs" />
+    <Compile Include="Modules\RemoteControl\OTK\TextureCursor.cs" />
     <Compile Include="Modules\RemoteControl\OTK\TextureScreen.cs" />
     <Compile Include="Modules\RemoteControl\RCClipboardMonitor.cs" />
     <Compile Include="Modules\RemoteControl\RemoteControl.cs" />
     <Compile Include="Modules\RemoteControl\OTK\FPSCounter.cs" />
-    <Compile Include="Modules\RemoteControl\OTK\QueueTextureV0.cs" />
     <Compile Include="Modules\RemoteControl\OTK\RCScreen.cs" />
     <Compile Include="Modules\RemoteControl\WindowViewerV1.xaml.cs">
       <DependentUpon>WindowViewerV1.xaml</DependentUpon>
