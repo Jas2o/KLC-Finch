@@ -77,6 +77,7 @@ namespace KLC_Finch {
 
                 if (type == (byte)Enums.KaseyaMessageTypes.HostDesktopConfiguration) {
                     Console.WriteLine("StaticImage - HostDesktopConfiguration");
+                    //Console.WriteLine(jsonstr);
 
                     int default_screen = (int)json["default_screen"];
                     //Console.WriteLine("StaticImage - Clear Screens");

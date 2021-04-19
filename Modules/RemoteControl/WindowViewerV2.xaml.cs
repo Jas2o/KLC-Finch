@@ -342,7 +342,7 @@ namespace KLC_Finch {
                     break;
                 case ConnectionStatus.Connected:
                     if (controlEnabled)
-                        GL.ClearColor(Color.FromArgb(255, 50, 50, 50));
+                        GL.ClearColor(Color.FromArgb(255, 20, 20, 20));
                     else
                         GL.ClearColor(System.Drawing.Color.MidnightBlue);
                     break;
@@ -503,7 +503,7 @@ namespace KLC_Finch {
             glControl.SwapBuffers();
         }
 
-        Rectangle rectCursor;
+        //Rectangle rectCursor;
         public void LoadCursor(int cursorX, int cursorY, int cursorWidth, int cursorHeight, int cursorHotspotX, int cursorHotspotY, byte[] remaining) {
             if (textureCursor != null)
                 textureCursor.Load(new Rectangle(cursorX, cursorY, cursorWidth, cursorHeight), remaining);
@@ -761,14 +761,16 @@ namespace KLC_Finch {
             */
 
             RCScreen scr = null;
-            if (currentScreen.rect.Width == width && currentScreen.rect.Height == height)
+            if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
                 scr = currentScreen;
-            else if (previousScreen.rect.Width == width && previousScreen.rect.Height == height)
+            else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
                 scr = previousScreen;
             else {
                 //If this happens, we should probably kick back to legacy
                 //Will result in the old "Virtual resolution did not match texture received."
-                return;
+
+                scr = currentScreen;
+                //return;
             }
 
             if (scr == null) {
@@ -881,16 +883,22 @@ namespace KLC_Finch {
         }
 
         public void SetControlEnabled(bool value, bool isStart = false) {
-            if (isStart && !Settings.StartControlEnabled)
-                return;
-
-            controlEnabled = value;
+            if (isStart) {
+                if(Settings.StartControlEnabled) {
+                    controlEnabled = value;
+                    PositionCameraToCurrentScreen();
+                }
+            } else
+                controlEnabled = value;
 
             Dispatcher.Invoke((Action)delegate {
                 if (controlEnabled)
                     toolToggleControl.Header = "Control Enabled";
                 else
                     toolToggleControl.Header = "Control Disabled";
+                toolToggleControl.FontWeight = (controlEnabled ? FontWeights.Normal : FontWeights.Bold);
+
+                toolSendCtrlAltDel.IsEnabled = controlEnabled;
 
                 glControl.Invalidate();
             });
@@ -1153,7 +1161,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!controlEnabled)
+            if (!controlEnabled || rc == null)
                 return;
 
             if (glControl.ClientRectangle.Contains(e.Location)) {
@@ -1169,7 +1177,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (currentScreen == null)
+            if (currentScreen == null || rc == null)
                 return;
 
             windowActivatedMouseMove = false;
@@ -1204,7 +1212,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseWheel(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!controlEnabled)
+            if (!controlEnabled || rc == null)
                 return;
 
             rc.SendMouseWheel(e.Delta);
