@@ -116,6 +116,9 @@ namespace KLC_Finch {
             clipboardMon.OnUpdate += SyncClipboard;
         }
 
+        private void Window_Loaded(object sender, RoutedEventArgs e) {
+        }
+
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
             clipboardMon.OnUpdate -= SyncClipboard;
 
@@ -665,7 +668,7 @@ namespace KLC_Finch {
 
             Dispatcher.Invoke((Action)delegate {
                 MenuItem item = new MenuItem();
-                item.Header = screen_name + ":" + screen_x + "," + screen_y;
+                item.Header = screen_name + ": (" + screen_width + " x " + screen_height + " at " + screen_x + ", " + screen_y + ")";
                 item.Click += new RoutedEventHandler(toolScreen_ItemClicked);
 
                 toolScreen.Items.Add(item);
