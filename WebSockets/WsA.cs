@@ -24,6 +24,9 @@ namespace KLC {
 
         public bool HasCompleted { get; private set; }
 
+        private static bool useInternalMITM = false; //Hawk
+        private static bool useExternalMITM = false; //Port M
+
         public WsA(LiveConnectSession session, int portA, int portB) {
             Session = session;
             Module = "A";
@@ -77,7 +80,10 @@ namespace KLC {
             //A - Run AdminEndpoint (my port A)
             string file1 = @"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.org.exe";
             string file2 = @"C:\Program Files\Kaseya Live Connect\Kaseya.AdminEndpoint.exe";
-            if (WsM.CertificateExists()) {
+            if(useInternalMITM) {
+                file1 = @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.exe";
+                file2 = @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe";
+            } else if (WsM.CertificateExists()) {
                 file1 = @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe";
                 file2 = @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.exe";
             }
@@ -110,7 +116,6 @@ namespace KLC {
             }
         }
 
-        private static bool useExternalMITM = false;
         private void ServerOnOpen(IWebSocketConnection socket) {
             if (useExternalMITM) {
                 int newPort = Session.WebsocketM.PortM;

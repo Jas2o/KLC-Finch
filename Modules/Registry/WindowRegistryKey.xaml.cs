@@ -21,7 +21,10 @@ namespace KLC_Finch.Modules.Registry {
             InitializeComponent();
             btnSave.IsEnabled = false;
 
-            txtName.Text = keyName; //We can't change to (Default) as that's a valid name for another value.
+            lblLabel.Content = txtName.Text = keyName; //We can't change to (Default) as that's a valid name for another value.
+
+            if (keyName == "")
+                lblLabel.Visibility = Visibility.Collapsed;
         }
 
         private void txtName_TextChanged(object sender, TextChangedEventArgs e) {

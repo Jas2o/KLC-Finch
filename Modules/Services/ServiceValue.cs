@@ -1,12 +1,24 @@
 ﻿namespace KLC_Finch.Modules {
     public class ServiceValue {
 
-        public int ServiceStatus;
-        public string DisplayName;
-        public string ServiceName;
-        public string Description;
-        public string StartupType;
-        public string StartName;
+        public int ServiceStatus { get; private set; }
+        public string DisplayName { get; private set; }
+        public string ServiceName { get; private set; }
+        public string Description { get; private set; }
+        public string StartupType { get; private set; }
+        public string StartName { get; private set; }
+
+        public string StatusDisplay {
+            get {
+                switch (ServiceStatus) {
+                    case 1:
+                        return "";
+                    case 4:
+                        return "Running";
+                }
+                return ServiceStatus.ToString();
+            }
+        }
 
         public ServiceValue(dynamic s) {
             ServiceStatus = (int)s["ServiceStatus"];

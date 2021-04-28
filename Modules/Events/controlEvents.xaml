@@ -9,18 +9,47 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
             <RowDefinition/>
-            <RowDefinition Height="20"/>
+            <RowDefinition Height="5"/>
+            <RowDefinition Height="120"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-            <Button x:Name="btnEventsStart" Content="Start Events" Margin="0,0,5,0" Click="btnEventsStart_Click"/>
-            <Button x:Name="btnEventsRefresh" Content="Refresh" Margin="0,0,5,0" Click="btnEventsRefresh_Click" />
-            <Button x:Name="btnEventsMore" Content="More" Margin="0,0,5,0" Click="btnEventsMore_Click" />
+            <Button x:Name="btnEventsStart" Content="Start" Width="50" Margin="0,0,5,0" Click="btnEventsStart_Click"/>
+            <Button x:Name="btnEventsRefresh" Content="Refresh" Margin="0,0,5,0" Click="btnEventsRefresh_Click" Width="50" />
+            <Button x:Name="btnEventsMore" Content="More" Width="50" Margin="0,0,5,0" Click="btnEventsMore_Click" />
+            <Button x:Name="btnEventsFilter" Content="Filter" Width="50" Margin="0,0,5,0" IsEnabled="False" />
             <Label Content="Get Log:" />
-            <ComboBox x:Name="cmbLogType" Width="120" SelectionChanged="cmbLogType_SelectionChanged"/>
-            <Label Content="Extended:" />
-            <ComboBox x:Name="cmbLogTypeExtended" Width="350" SelectionChanged="cmbLogType_SelectionChanged"/>
+            <ComboBox x:Name="cmbLogType" Width="120" DropDownClosed="cmbLogType_DropDownClosed"/>
+            <Label x:Name="lblExtended" Content="Extended" Margin="0,0,5,0" />
+            <!--<ComboBox x:Name="cmbLogTypeExtended" Width="350" ItemsSource="{Binding ListTypeExtended, Mode=OneWay}" SelectionChanged="cmbLogType_SelectionChanged"/>-->
         </StackPanel>
-        <DataGrid x:Name="dgvEventsValues" Grid.Row="1" ItemsSource="{Binding}" IsReadOnly="True" />
-        <TextBox x:Name="txtEvents" Grid.Row="2" Margin="0" FontFamily="Consolas" IsReadOnly="true" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" />
+        <DataGrid x:Name="dgvEventsValues" Grid.Row="1" ItemsSource="{Binding ListEvent, Mode=Oneway}" IsReadOnly="True" AutoGenerateColumns="False" SelectionChanged="dgvEventsValues_SelectionChanged" SelectionMode="Single">
+            <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding EventTypeDisplay}" Header="Level"/>
+                <DataGridTextColumn Binding="{Binding EventGeneratedTime}" Header="Date/Time"/>
+                <DataGridTextColumn Binding="{Binding SourceName}" Header="Source"/>
+                <DataGridTextColumn Binding="{Binding EventId}" Header="Event ID"/>
+                <!--<DataGridTextColumn Binding="{Binding User}" Header="User"/>
+                <DataGridTextColumn Binding="{Binding Computer}" Header="Computer"/>-->
+            </DataGrid.Columns>
+        </DataGrid>
+        <GridSplitter HorizontalAlignment="Stretch" Grid.Row="2"/>
+        <TextBox x:Name="txtEventDescription" Grid.Row="3" Margin="0" FontFamily="Consolas" IsReadOnly="true" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" />
+        <StackPanel Grid.Row="4" Orientation="Horizontal">
+            <Label x:Name="lblEventNumber" Content="Record No:" />
+            <Label x:Name="txtEventNumber" Content="N/A" />
+
+            <Label x:Name="lblEventUser" Content="User:" Margin="10,0,0,0" />
+            <Label x:Name="txtEventUser" Content="N/A" />
+            
+            <Label x:Name="lblEventComputer" Content="Computer:" Margin="10,0,0,0" />
+            <Label x:Name="txtEventComputer" Content="N/A" />
+
+            <Label x:Name="lblEventQualifiers" Content="Qualifiers:" Margin="10,0,0,0" />
+            <Label x:Name="txtEventQualifiers" Content="N/A" />
+
+            <Label x:Name="lblEventCategory" Content="Category:" Margin="10,0,0,0" />
+            <Label x:Name="txtEventCategory" Content="N/A" />
+        </StackPanel>
     </Grid>
 </UserControl>

@@ -72,6 +72,9 @@ namespace KLC_Finch {
                 tabPowershell.Visibility = Visibility.Collapsed;
                 tabRegistry.Visibility = Visibility.Collapsed;
             }
+
+            if (!System.IO.File.Exists(@"C:\Program Files\Wireshark\Wireshark.exe"))
+                btnWiresharkFilter.Visibility = Visibility.Collapsed;
         }
 
         private void Window_Closing(object sender, CancelEventArgs e) {
@@ -121,10 +124,14 @@ namespace KLC_Finch {
 
             string filter = session.GetWiresharkFilter();
             if (filter != "")
-                Clipboard.SetText(filter);
+                Clipboard.SetDataObject(filter);
+            //Clipboard.SetText(filter); //Apparently WPF clipboard has issues
         }
 
         private void btnLaunchKLC_Click(object sender, RoutedEventArgs e) {
+            if (session == null)
+                return;
+
             LibKaseya.KLCCommand command = LibKaseya.KLCCommand.Example(agentID, shortToken);
             command.SetForLiveConnect();
             command.Launch(false, false);

@@ -38,6 +38,18 @@ namespace KLC_Finch {
             //btnContinue.Visibility = (allowContinue ? Visibility.Visible : Visibility.Collapsed);
         }
 
+        public WindowException(string error, string source) { //, bool allowContinue
+            Exception = new Exception(source);
+            ExceptionSource = source;
+            DetailsText = error;
+            this.DataContext = this;
+
+            InitializeComponent();
+
+            this.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + " Exception";
+            //btnContinue.Visibility = (allowContinue ? Visibility.Visible : Visibility.Collapsed);
+        }
+
         private void OnExitAppClick(object sender, RoutedEventArgs e) {
             Environment.Exit(0);
         }

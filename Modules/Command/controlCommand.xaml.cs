@@ -26,12 +26,15 @@ namespace KLC_Finch {
         }
 
         private void btnCommandStart_Click(object sender, RoutedEventArgs e) {
-            btnCommandStart.IsEnabled = false;
-
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
-            moduleCommand = new CommandTerminal(session, richCommand);
-            if(session != null)
+            if (session != null) {
+                btnCommandStart.IsEnabled = false;
+
+                moduleCommand = new CommandTerminal(session, richCommand);
                 session.ModuleCommandTerminal = moduleCommand;
+
+                txtCommandInput.Focus();
+            }
         }
 
         private void btnCommandKill_Click(object sender, RoutedEventArgs e) {
@@ -46,20 +49,44 @@ namespace KLC_Finch {
         private void btnCommandMacKillKRCH_Click(object sender, RoutedEventArgs e) {
             if (moduleCommand != null)
                 moduleCommand.Send("killall KaseyaRemoteControlHost");
-            }
-
-        private void txtCommandInput_KeyDown(object sender, KeyEventArgs e) {
-            if(e.Key == Key.Enter) {
-                moduleCommand.Send(txtCommandInput.Text);
-                txtCommandInput.Clear();
-
-                e.Handled = true;
-            }
         }
-
+    
         private void btnCommandLineMode_Click(object sender, RoutedEventArgs e) {
 
         }
 
+        private void txtCommandInput_KeyDown(object sender, KeyEventArgs e) {
+        }
+
+        private void txtCommandInput_PreviewKeyDown(object sender, KeyEventArgs e) {
+            if (moduleCommand == null)
+                return;
+
+            switch (e.Key) {
+                case Key.Enter:
+                    moduleCommand.Send(txtCommandInput.Text);
+                    txtCommandInput.Clear();
+
+                    e.Handled = true;
+                    break;
+
+                case Key.C:
+                    if (Keyboard.IsKeyDown(Key.LeftCtrl) && txtCommandInput.SelectionLength == 0) {
+                        moduleCommand.SendKillCommand();
+                        e.Handled = true;
+                    }
+                    break;
+
+                case Key.Up:
+                    Console.WriteLine("CMD Up");
+                    e.Handled = true;
+                    break;
+
+                case Key.Down:
+                    Console.WriteLine("Down");
+                    e.Handled = true;
+                    break;
+            }
+        }
     }
 }

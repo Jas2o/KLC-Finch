@@ -92,6 +92,7 @@
     <Compile Include="AddToLib\Api15.cs" />
     <Compile Include="AddToLib\EAL.cs" />
     <Compile Include="AddToLib\EIRC.cs" />
+    <Compile Include="AddToLib\FormatKbSizeConverter.cs" />
     <Compile Include="AddToLib\Util.cs" />
     <Compile Include="Modules\Command\BaseTerm.cs" />
     <Compile Include="Modules\Command\CommandPowershell.cs" />
@@ -111,8 +112,12 @@
       <DependentUpon>controlEvents.xaml</DependentUpon>
     </Compile>
     <Compile Include="Modules\Events\Events.cs" />
+    <Compile Include="Modules\Events\EventsData.cs" />
     <Compile Include="Modules\Events\EventsExtendedList.cs" />
     <Compile Include="Modules\Events\EventValue.cs" />
+    <Compile Include="Modules\Events\WindowEventsExtended.xaml.cs">
+      <DependentUpon>WindowEventsExtended.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Modules\Extensions.cs" />
     <Compile Include="Modules\FileExplorer\controlFiles.xaml.cs">
       <DependentUpon>controlFiles.xaml</DependentUpon>
@@ -125,6 +130,7 @@
       <DependentUpon>controlProcesses.xaml</DependentUpon>
     </Compile>
     <Compile Include="Modules\Processes\Processes.cs" />
+    <Compile Include="Modules\Processes\ProcessesData.cs" />
     <Compile Include="Modules\Processes\ProcessValue.cs" />
     <Compile Include="Modules\Registry\controlRegistry.xaml.cs">
       <DependentUpon>controlRegistry.xaml</DependentUpon>
@@ -164,6 +170,7 @@
       <DependentUpon>controlServices.xaml</DependentUpon>
     </Compile>
     <Compile Include="Modules\Services\Services.cs" />
+    <Compile Include="Modules\Services\ServicesData.cs" />
     <Compile Include="Modules\Services\ServiceValue.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="WebSockets\LiveConnectSessionV1.cs" />
@@ -193,6 +200,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Modules\Events\controlEvents.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Modules\Events\WindowEventsExtended.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -298,9 +309,12 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaLiveConnect\LibKaseyaLiveConnect.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaAuth\LibKaseyaAuth.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+  </PropertyGroup>
 </Project>

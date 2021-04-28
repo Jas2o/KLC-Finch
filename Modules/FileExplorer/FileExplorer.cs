@@ -417,7 +417,7 @@ namespace KLC_Finch {
                     //{"action":"End","permissions":{"isReadOnly":false,"execPerms":{"owner":0,"group":0,"others":0}},"date":"2020-12-22T06:23:42.000Z"}
                     Console.WriteLine(jsonstr);
                     queuedDownload.Close();
-                    serverBdownload.Close(); //Causes RC to die
+                    serverBdownload.Close();
 
                     txtBox.Dispatcher.Invoke(new Action(() => {
                         progressBar.Value = 0;
@@ -487,7 +487,7 @@ namespace KLC_Finch {
                 case "UploadComplete":
                     Console.WriteLine(jsonstr);
                     queuedUpload.Close();
-                    serverBupload.Close(); //This causes RC to die
+                    serverBupload.Close();
 
                     if (txtBox != null) {
                         txtBox.Dispatcher.Invoke(new Action(() => {

@@ -28,13 +28,13 @@ namespace KLC_Finch {
         }
 
         private void btnRegistryStart_Click(object sender, RoutedEventArgs e) {
-            btnRegistryStart.IsEnabled = false;
-            btnRegistryDeleteKey.IsEnabled = false;
-            btnRegistryDeleteValue.IsEnabled = false;
-
-            window = ((WindowAlternative)Window.GetWindow(this));
-            KLC.LiveConnectSession session = window.session;
+            KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
+                btnRegistryStart.IsEnabled = false;
+                btnRegistryDeleteKey.IsEnabled = false;
+                btnRegistryDeleteValue.IsEnabled = false;
+                window = ((WindowAlternative)Window.GetWindow(this));
+
                 moduleRegistry = new RegistryEditor(session, lvRegistryKeys, dgvRegistryValues, txtRegistryPath, txtRegistry);
                 session.ModuleRegistryEditor = moduleRegistry;
 

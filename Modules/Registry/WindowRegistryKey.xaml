@@ -14,9 +14,11 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBox x:Name="txtName" Grid.ColumnSpan="2" Margin="5" VerticalAlignment="Center" TextChanged="txtName_TextChanged" />
-        <CheckBox x:Name="chkConfirmSave" Grid.Row="1" VerticalAlignment="Center" Content="Ready to Save" Margin="5" Checked="chkConfirmSave_Checked" Unchecked="chkConfirmSave_Unchecked" />
-        <Button x:Name="btnSave" Content="Save" Grid.Column="1" Grid.Row="1" Margin="5" Click="btnSave_Click" />
+        <Label x:Name="lblLabel" Content="Optional label" />
+        <TextBox x:Name="txtName" Grid.Row="1" Grid.ColumnSpan="2" Margin="5" VerticalAlignment="Center" TextChanged="txtName_TextChanged" />
+        <CheckBox x:Name="chkConfirmSave" Grid.Row="2" VerticalAlignment="Center" Content="Ready to Save" Margin="5" Checked="chkConfirmSave_Checked" Unchecked="chkConfirmSave_Unchecked" />
+        <Button x:Name="btnSave" Content="Save" Grid.Column="1" Grid.Row="2" Margin="5" Click="btnSave_Click" />
     </Grid>
 </Window>

@@ -110,6 +110,7 @@ namespace KLC_Finch {
                             bitmap.BeginInit();
                             bitmap.StreamSource = stream;
                             bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                            //Mac images have red/blue swapped but can't find a quick way to toggle
                             bitmap.EndInit();
                             bitmap.Freeze();
 

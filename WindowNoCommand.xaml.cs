@@ -29,7 +29,7 @@ namespace KLC_Finch {
         private void Window_Loaded(object sender, RoutedEventArgs e) {
             string savedAuthToken = KaseyaAuth.GetStoredAuth();
             if (savedAuthToken != null)
-                txtAuthToken.Text = savedAuthToken;
+                txtAuthToken.Password = savedAuthToken;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
@@ -38,23 +38,23 @@ namespace KLC_Finch {
 
         private void btnAgentGuidConnect_Click(object sender, RoutedEventArgs e) {
             if (txtAgentGuid.Text.Trim().Length > 0) {
-                App.alternative = new WindowAlternative(txtAgentGuid.Text.Trim(), txtAuthToken.Text);
+                App.alternative = new WindowAlternative(txtAgentGuid.Text.Trim(), txtAuthToken.Password);
                 App.alternative.Show();
             }
         }
 
         private void btnLaunchWinTeamviewer_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Text);
+            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Password);
             App.alternative.Show();
         }
 
         private void btnLaunchWinTeamviewerShared_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Text, true, false);
+            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Password, true, false);
             App.alternative.Show();
         }
 
         private void btnLaunchMacMini_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative("718548734128395", txtAuthToken.Text);
+            App.alternative = new WindowAlternative("718548734128395", txtAuthToken.Password);
             App.alternative.Show();
         }
 
@@ -67,7 +67,8 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
             WindowViewerV2 myViewer = App.viewer = new WindowViewerV2(null, width, height);
-
+            myViewer.AddScreen("0", "Test Screen", height, width, 0, 0);
+            myViewer.SetCanvas(0, 0, width, height);
             myViewer.Show();
 
             Thread threadTest = new Thread(() => {
@@ -82,8 +83,7 @@ namespace KLC_Finch {
                 while (myViewer.IsVisible) {
                     foreach (System.Drawing.Color c in colors) {
                         using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(c); }
-                        throw new NotImplementedException();
-                        //myViewer.LoadTexture(bTest.Width, bTest.Height, bTest);
+                        myViewer.LoadTexture(bTest.Width, bTest.Height, bTest);
 
                         Thread.Sleep(1500);
                     }
@@ -108,7 +108,7 @@ namespace KLC_Finch {
             }
 
             if (val.Length > 0) {
-                App.alternative = new WindowAlternative(val, txtAuthToken.Text);
+                App.alternative = new WindowAlternative(val, txtAuthToken.Password);
                 App.alternative.Show();
             }
         }

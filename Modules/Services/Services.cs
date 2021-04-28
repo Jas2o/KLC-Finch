@@ -17,16 +17,10 @@ namespace KLC_Finch.Modules {
         private static string modulename = "services";
         private IWebSocketConnection serverB;
 
-        private DataGrid dgvServices;
-        private TextBox txtBox;
+        private ServicesData servicesData;
 
-        private List<ServiceValue> listServiceValue;
-
-        public Services(KLC.LiveConnectSession session, DataGrid dgvServices, TextBox txtBox = null) {
-            this.dgvServices = dgvServices;
-            this.txtBox = txtBox;
-
-            listServiceValue = new List<ServiceValue>();
+        public Services(KLC.LiveConnectSession session, ServicesData servicesData) {
+            this.servicesData = servicesData;
 
             if (session != null)
                 session.WebsocketB.ControlAgentSendTask(modulename);
@@ -37,45 +31,94 @@ namespace KLC_Finch.Modules {
         }
 
         public void Receive(string message) {
-            txtBox.Dispatcher.Invoke(new Action(() => {
-                dynamic temp = JsonConvert.DeserializeObject(message);
-                string something = (string)temp["action"];
-                switch (temp["action"].ToString()) {
-                    case "ScriptReady":
-                        RequestListServices();
-                        break;
+            dynamic temp = JsonConvert.DeserializeObject(message);
+            switch (temp["action"].ToString()) {
+                case "ScriptReady":
+                    RequestListServices();
+                    break;
 
-                    case "ListServices":
-                    case "StartService":
-                    case "StopService":
-                    case "SetStartupType":
-                        //There's no RestartService, you get a Stop and Start response
-                        /*{
-                           "action":"ListServices",
-                           "success":true,
-                           "serviceName":null, //Name of service admin changed
-                           "displayName":null,
-                           "contentsList":[
-                        */
+                case "ListServices":
+                case "StartService":
+                case "StopService":
+                case "SetStartupType":
+                    //There's no RestartService, you get a Stop and Start response
+                    /*{
+                        "action":"ListServices",
+                        "success":true,
+                        "serviceName":null, //Name of service admin changed
+                        "displayName":null,
+                        "contentsList":[
+                    */
 
-                        if (temp["contentsList"] != null) {
-                            listServiceValue.Clear(); //Probably should update what's already there
+                    if (temp["contentsList"] != null) {
+                        servicesData.ServicesClear();
+                        //Probably should update what's already there
 
-                            foreach (dynamic s in temp["contentsList"].Children()) {
-                                ServiceValue sv = new ServiceValue(s);
-                                listServiceValue.Add(sv);
-                            }
-
-                            UpdateDisplayValues();
+                        foreach (dynamic s in temp["contentsList"].Children()) {
+                            ServiceValue sv = new ServiceValue(s);
+                            servicesData.ServicesAdd(sv);
                         }
 
-                        break;
+                        //UpdateDisplayValues();
+                    }
 
-                    default:
-                        txtBox.AppendText("Events message received: " + message + "\r\n\r\n");
-                        break;
-                }
-            }));
+                    break;
+
+                default:
+                    Console.WriteLine("Events message received: " + message);
+                    break;
+            }
+        }
+
+        public void Start(ServiceValue sv) {
+            JObject jEvent = new JObject();
+            jEvent["action"] = "StartService";
+            jEvent["serviceName"] = sv.ServiceName;
+            jEvent["displayName"] = sv.DisplayName;
+            serverB.Send(jEvent.ToString());
+        }
+
+        public void Stop(ServiceValue sv) {
+            JObject jEvent = new JObject();
+            jEvent["action"] = "StopService";
+            jEvent["serviceName"] = sv.ServiceName;
+            jEvent["displayName"] = sv.DisplayName;
+            serverB.Send(jEvent.ToString());
+        }
+
+        public void Restart(ServiceValue sv) {
+            JObject jEvent = new JObject();
+            jEvent["action"] = "RestartService";
+            jEvent["serviceName"] = sv.ServiceName;
+            jEvent["displayName"] = sv.DisplayName;
+            serverB.Send(jEvent.ToString());
+        }
+
+        public void SetAuto(ServiceValue sv) {
+            JObject jEvent = new JObject();
+            jEvent["action"] = "SetStartupType";
+            jEvent["serviceName"] = sv.ServiceName;
+            jEvent["displayName"] = sv.DisplayName;
+            jEvent["startupType"] = "auto";
+            serverB.Send(jEvent.ToString());
+        }
+
+        public void SetManual(ServiceValue sv) {
+            JObject jEvent = new JObject();
+            jEvent["action"] = "SetStartupType";
+            jEvent["serviceName"] = sv.ServiceName;
+            jEvent["displayName"] = sv.DisplayName;
+            jEvent["startupType"] = "manual";
+            serverB.Send(jEvent.ToString());
+        }
+
+        public void SetDisabled(ServiceValue sv) {
+            JObject jEvent = new JObject();
+            jEvent["action"] = "SetStartupType";
+            jEvent["serviceName"] = sv.ServiceName;
+            jEvent["displayName"] = sv.DisplayName;
+            jEvent["startupType"] = "disabled";
+            serverB.Send(jEvent.ToString());
         }
 
         public void RequestListServices() {
@@ -84,65 +127,5 @@ namespace KLC_Finch.Modules {
             serverB.Send(jStartData.ToString());
         }
 
-        private void UpdateDisplayValues() {
-            dgvServices.DataContext = null;
-
-            DataTable dt = new DataTable();
-            dt.Columns.Add("DisplayName", typeof(string));
-            dt.Columns.Add("ServiceName", typeof(string));
-            dt.Columns.Add("Description", typeof(string));
-            dt.Columns.Add("ServiceStatus", typeof(int));
-            dt.Columns.Add("StartupType", typeof(string));
-            dt.Columns.Add("StartName", typeof(string));
-
-            foreach (ServiceValue value in listServiceValue) {
-                DataRow row = dt.NewRow();
-                row[0] = value.DisplayName;
-                row[1] = value.ServiceName;
-                row[2] = value.Description;
-                row[3] = value.ServiceStatus;
-                row[4] = value.StartupType;
-                row[5] = value.StartName;
-                dt.Rows.Add(row);
-            }
-
-            dgvServices.DataContext = dt;
-            //dgvServices.AutoResizeColumns();
-            //dgvServices.Sort(dgvServices.Columns[0], System.ComponentModel.ListSortDirection.Ascending);
-        }
-
-        /*
-         * {
-  "action": "StopService",
-  "serviceName": "HpTouchpointAnalyticsService",
-  "displayName": "HP Analytics service"
-}
-
-        {
-  "action": "StartService",
-  "serviceName": "HpTouchpointAnalyticsService",
-  "displayName": "HP Analytics service"
-}
-
-        {
-  "action": "RestartService",
-  "serviceName": "HpTouchpointAnalyticsService",
-  "displayName": "HP Analytics service"
-}
-
-        {
-  "action": "SetStartupType",
-  "serviceName": "HpTouchpointAnalyticsService",
-  "displayName": "HP Analytics service",
-  "startupType": "manual"
-}
-
-        {
-  "action": "SetStartupType",
-  "serviceName": "HpTouchpointAnalyticsService",
-  "displayName": "HP Analytics service",
-  "startupType": "auto"
-}
-         */
     }
 }

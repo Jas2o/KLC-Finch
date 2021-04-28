@@ -20,6 +20,7 @@ namespace KLC {
         //private string Module;
 
         private IWebSocketConnection ServerBsocketControlAgent;
+        private IWebSocketConnection ServerBsocketRemoteControl;
         private int clientPortControlAgent;
         private int clientPortRemoteControl;
 
@@ -59,9 +60,14 @@ namespace KLC {
         }
 
         private void ServerB_MessageReceived(IWebSocketConnection socket, string message) {
-            switch (socket.ConnectionInfo.Path) {
+            string path = socket.ConnectionInfo.Path.Replace("?Y2", "");
+            switch (path) {
                 case "/control/agent":
-                    Console.WriteLine("ServerB Message Unhandled [ControlAgent]: " + message);
+                    App.ShowUnhandledExceptionFromSrc(message, "Websocket B Control Agent");
+                    //Console.WriteLine("ServerB Message Unhandled [ControlAgent]: " + message);
+
+                    //Declined remote control
+                    //{"extendedError":2,"id":"5c419d84-20d7-448a-9605-73df69c52261","p2pConnectionId":"4bc14e73-b863-4586-a0fe-ea331f83ac25","result":false,"type":"RemoteControl"}
                     break;
 
                 case "/app/dashboard":
@@ -108,27 +114,30 @@ namespace KLC {
         }
 
         private void ServerB_BinaryReceived(IWebSocketConnection socket, byte[] data) {
+            string path = socket.ConnectionInfo.Path.Replace("?Y2", "");
+
             //Session.Parent.LogText("B MSG " + e.IpPor);
             //if (eB.HttpRequest.Url.PathAndQuery == "/control/agent") {
 
-            if (socket.ConnectionInfo.Path == "/app/files/download") {
+
+            if (path == "/app/files/download") {
                 if (Session.ModuleFileExplorer != null)
                     Session.ModuleFileExplorer.HandleDownload(data);
-            } else if (socket.ConnectionInfo.Path == "/app/files/upload") {
+            } else if (path == "/app/files/upload") {
                 if (Session.ModuleFileExplorer != null) {
                     Session.ModuleFileExplorer.HandleUpload(data);
                 }
             }
-            else if(socket.ConnectionInfo.Path == "/app/staticimage") {
+            else if(path == "/app/staticimage") {
                 if (Session.ModuleStaticImage != null)
                     Session.ModuleStaticImage.HandleBytes(data);
             } else if (socket.ConnectionInfo.ClientPort == clientPortRemoteControl) {
-                //string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "");
+                //string sessionId = path.Replace("/app/remotecontrol/", "");
                 //e.g. /app/remotecontrol/3c3757ca-72f5-4a1a-ac51-5c457e731fd0
                 if (Session.ModuleRemoteControl != null)
                     Session.ModuleRemoteControl.HandleBytesFromRC(data);
             } else {
-                Console.WriteLine("ServerB Binary Unhandled: " + socket.ConnectionInfo.Path);
+                Console.WriteLine("ServerB Binary Unhandled: " + path);
             }
 
             //string messageB = Encoding.UTF8.GetString(e.Data);
@@ -146,9 +155,11 @@ namespace KLC {
         private void ServerB_ClientDisconnected(IWebSocketConnection socket) {
             Console.WriteLine("B Close " + socket.ConnectionInfo.Path);
 
-            if (Session.ModuleRemoteControl != null) {
-                string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "");
-                Session.ModuleRemoteControl.Disconnect(sessionId);
+            if (socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/")) {
+                if (Session.ModuleRemoteControl != null) {
+                    string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "").Replace("?Y2", "");
+                    Session.ModuleRemoteControl.Disconnect(sessionId);
+                }
             }
         }
 
@@ -159,7 +170,8 @@ namespace KLC {
 
             int clientPort = socket.ConnectionInfo.ClientPort;
 
-            switch(socket.ConnectionInfo.Path) {
+            string path = socket.ConnectionInfo.Path.Replace("?Y2", "");
+            switch (path) {
                 case "/control/agent":
                     ServerBsocketControlAgent = socket;
                     clientPortControlAgent = clientPort;
@@ -214,6 +226,8 @@ namespace KLC {
 
                 default:
                     if(socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/")) {
+                        ServerBsocketRemoteControl = socket;
+
                         clientPortRemoteControl = clientPort;
                         Session.ModuleRemoteControl.SetSocket(socket, clientPort);
                     } else {
@@ -248,6 +262,7 @@ namespace KLC {
             string guidGenP2pConnectionId = Guid.NewGuid().ToString();
 
             //I don't think rcPolicy actually matters
+            //The Type sure does
 
             string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
 

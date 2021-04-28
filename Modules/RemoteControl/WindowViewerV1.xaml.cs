@@ -634,9 +634,9 @@ namespace KLC_Finch {
                     //this.BeginInvoke(new Action(() => {
                     if (clipboard.Length > 0)
                         Clipboard.SetDataObject(clipboard);
-                        //Clipboard.SetText(clipboard); //Apparently this doesn't work
-                    else
-                        Clipboard.Clear();
+                //Clipboard.SetText(clipboard); //Apparently WPF clipboard has issues
+                else
+                    Clipboard.Clear();
                     //}));
                     //}
                 //} catch(Exception ex) {

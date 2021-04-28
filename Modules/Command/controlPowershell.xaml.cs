@@ -26,12 +26,14 @@ namespace KLC_Finch {
         }
 
         private void btnCommandStart_Click(object sender, RoutedEventArgs e) {
-            btnCommandStart.IsEnabled = false;
-
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
+                btnCommandStart.IsEnabled = false;
+
                 moduleCommand = new CommandPowershell(session, richCommand);
                 session.ModuleCommandPowershell = moduleCommand;
+
+                txtCommandInput.Focus();
             }
         }
 

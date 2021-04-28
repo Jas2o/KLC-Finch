@@ -39,6 +39,12 @@ namespace KLC_Finch {
             });
         }
 
+        public static void ShowUnhandledExceptionFromSrc(string error, string source) {
+            Application.Current.Dispatcher.Invoke((Action)delegate {
+                new WindowException(error, source).Show();
+            });
+        }
+
         void ShowUnhandledException(Exception e, string unhandledExceptionType) {
             new WindowException(e, unhandledExceptionType).Show(); //Removed: , Debugger.IsAttached
         }

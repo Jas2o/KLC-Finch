@@ -20,23 +20,151 @@ namespace KLC_Finch {
     public partial class controlServices : UserControl {
 
         private Modules.Services moduleServices;
+        private Modules.ServicesData servicesData;
 
         public controlServices() {
+            servicesData = new Modules.ServicesData();
+            this.DataContext = servicesData;
             InitializeComponent();
         }
 
         private void btnServicesStart_Click(object sender, RoutedEventArgs e) {
-            btnServicesStart.IsEnabled = false;
-
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
-                moduleServices = new Modules.Services(session, dgvServices, txtServices);
+                btnServicesStart.IsEnabled = false;
+                ToggleButtons(false);
+
+                moduleServices = new Modules.Services(session, servicesData);
                 session.ModuleServices = moduleServices;
             }
         }
 
         private void btnServicesRefresh_Click(object sender, RoutedEventArgs e) {
+            if (moduleServices == null)
+                return;
+
             moduleServices.RequestListServices();
+        }
+
+        private void dgvServices_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+            Modules.ServiceValue sv = (Modules.ServiceValue)dgvServices.SelectedValue;
+            if (sv == null)
+                return;
+
+            lblServiceInfo.Text = sv.ServiceName + "\r\n" + sv.Description;
+            ToggleButtons(true);
+        }
+
+        private void btnServicesSelectedStart_Click(object sender, RoutedEventArgs e) {
+            Modules.ServiceValue sv = (Modules.ServiceValue)dgvServices.SelectedValue;
+            if (sv == null)
+                return;
+
+            moduleServices.Start(sv);
+            ToggleButtons(false);
+        }
+
+        private void btnServicesSelectedStop_Click(object sender, RoutedEventArgs e) {
+            Modules.ServiceValue sv = (Modules.ServiceValue)dgvServices.SelectedValue;
+            if (sv == null)
+                return;
+
+            if (sv.DisplayName == "Kaseya Agent Endpoint")
+                return;
+
+            moduleServices.Stop(sv);
+            ToggleButtons(false);
+        }
+
+        private void btnServicesSelectedRestart_Click(object sender, RoutedEventArgs e) {
+            Modules.ServiceValue sv = (Modules.ServiceValue)dgvServices.SelectedValue;
+            if (sv == null)
+                return;
+
+            if (sv.DisplayName == "Kaseya Agent Endpoint")
+                return;
+
+            moduleServices.Restart(sv);
+            ToggleButtons(false);
+        }
+
+        private void btnServicesSetAuto_Click(object sender, RoutedEventArgs e) {
+            Modules.ServiceValue sv = (Modules.ServiceValue)dgvServices.SelectedValue;
+            if (sv == null)
+                return;
+
+            if (sv.DisplayName.Contains("Kaseya"))
+                return;
+
+            moduleServices.SetAuto(sv);
+            ToggleButtons(false);
+        }
+
+        private void btnServicesSetManual_Click(object sender, RoutedEventArgs e) {
+            Modules.ServiceValue sv = (Modules.ServiceValue)dgvServices.SelectedValue;
+            if (sv == null)
+                return;
+
+            if (sv.DisplayName.Contains("Kaseya"))
+                return;
+
+            moduleServices.SetManual(sv);
+            ToggleButtons(false);
+        }
+
+        private void btnServicesSetDisabled_Click(object sender, RoutedEventArgs e) {
+            Modules.ServiceValue sv = (Modules.ServiceValue)dgvServices.SelectedValue;
+            if (sv == null)
+                return;
+
+            if (sv.DisplayName.Contains("Kaseya"))
+                return;
+
+            moduleServices.SetDisabled(sv);
+            ToggleButtons(false);
+        }
+
+        private void ToggleButtons(bool value) {
+            btnServicesSelectedStop.IsEnabled = value;
+            btnServicesSelectedStart.IsEnabled = value;
+            btnServicesSelectedRestart.IsEnabled = value;
+
+            btnServicesSetAuto.IsEnabled = value;
+            btnServicesSetManual.IsEnabled = value;
+            btnServicesSetDisabled.IsEnabled = value;
+        }
+
+        private string typedChars = string.Empty;
+
+        private void dgvServices_PreviewKeyDown(object sender, KeyEventArgs e) {
+            if (e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Up || e.Key == Key.Down) {
+                typedChars = string.Empty;
+                e.Handled = false;
+                return;
+            }
+
+            if (e.Key == Key.Space)
+                typedChars += " ";
+            else if (Char.IsLetter(e.Key.ToString(), 0))
+                typedChars += e.Key.ToString();
+
+            Modules.ServiceValue match = null;
+            foreach (Modules.ServiceValue sv in dgvServices.Items) {
+                if (sv.DisplayName.StartsWith(typedChars, true, System.Globalization.CultureInfo.InvariantCulture))
+                    match = sv;
+                else if (match != null)
+                    break;
+            }
+
+            if (match == null)
+                return;
+
+            dgvServices.SelectedItem = match;
+            dgvServices.ScrollIntoView(match);
+        }
+
+        private void dgvServices_PreviewMouseDown(object sender, MouseButtonEventArgs e) {
+            typedChars = string.Empty;
         }
     }
 }

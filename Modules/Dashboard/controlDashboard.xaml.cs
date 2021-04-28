@@ -27,10 +27,10 @@ namespace KLC_Finch {
         }
 
         private void btnDashboardStartData_Click(object sender, RoutedEventArgs e) {
-            btnDashboardStartData.IsEnabled = false;
-
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
+                btnDashboardStartData.IsEnabled = false;
+
                 moduleDashboard = new Dashboard(session, txtDashboard);
                 session.ModuleDashboard = moduleDashboard;
             }
@@ -50,20 +50,26 @@ namespace KLC_Finch {
         }
 
         public void btnStaticImageStart_Click(object sender, RoutedEventArgs e) {
-            btnStaticImageStart.IsEnabled = false;
-
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
+                btnStaticImageStart.IsEnabled = false;
+
                 moduleStaticImage = new StaticImage(session, imgScreenPreview);
                 session.ModuleStaticImage = moduleStaticImage;
             }
         }
 
         private void btnStaticImageRefresh_Click(object sender, RoutedEventArgs e) {
+            if (moduleStaticImage == null)
+                return;
+
             moduleStaticImage.RequestRefresh();
         }
 
         private void btnStaticImageRefreshFull_Click(object sender, RoutedEventArgs e) {
+            if (moduleStaticImage == null)
+                return;
+
             moduleStaticImage.RequestRefreshFull();
         }
     }

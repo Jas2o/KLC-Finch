@@ -17,6 +17,7 @@ namespace NTR {
         public int ID;
 
         private Rectangle rect; //Kinda silly we have this twice
+        private int width, height;
 
         private int VBOScreen;
         private Vector2[] vertBufferScreen;
@@ -31,6 +32,8 @@ namespace NTR {
         public void Load(Rectangle rect, Bitmap decomp) {
             this.rect = rect;
 
+            width = decomp.Width;
+            height = decomp.Height;
             BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
             
             //if (Data == null || virtualRequireViewportUpdate)
@@ -53,8 +56,8 @@ namespace NTR {
                 TextureTarget.Texture2D,
                 0, //Level
                 PixelInternalFormat.Rgb,
-                rect.Width,
-                rect.Height,
+                width,
+                height,
                 0, //Border
                 OpenTK.Graphics.OpenGL.PixelFormat.Bgr,
                 PixelType.UnsignedByte,

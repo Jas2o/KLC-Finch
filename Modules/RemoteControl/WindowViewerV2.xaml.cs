@@ -27,6 +27,7 @@ namespace KLC_Finch {
 
         public Settings Settings;
 
+        private bool useMultiScreen = true;
         private bool virtualRequireViewportUpdate = false;
         private bool controlEnabled = false;
 
@@ -43,6 +44,7 @@ namespace KLC_Finch {
         private RemoteControl rc;
 
         private Rectangle virtualCanvas, virtualViewWant, virtualViewNeed;
+        int legacyVirtualWidth, legacyVirtualHeight;
         int vpX, vpY;
         double scaleX, scaleY;
 
@@ -70,6 +72,14 @@ namespace KLC_Finch {
         Vector2[] vertBufferMouse, vertBufferKeyboard, vertBufferTop, vertBufferCenter;
         int VBOScreen;
         int VBOmouse, VBOkeyboard, VBOtop, VBOcenter;
+
+        #region Legacy
+        private int textureLegacyWidth;
+        private int textureLegacyHeight;
+        private byte[] textureLegacyData;
+        private bool textureLegacyNew;
+        int textureLegacyId;
+        #endregion
 
         private bool keyDownWin;
         private bool autotypeAlwaysConfirmed;
@@ -110,7 +120,12 @@ namespace KLC_Finch {
             socketAlive = false;
             connectionStatus = ConnectionStatus.FirstConnectionAttempt;
 
+            //Multi-screen
             MainCamera = new Camera(Vector2.Zero);
+
+            //Legacy
+            if(!useMultiScreen)
+                SetVirtual(0, 0, virtualWidth, virtualHeight);
 
             clipboardMon = new ClipBoardMonitor();
             clipboardMon.OnUpdate += SyncClipboard;
@@ -144,13 +159,25 @@ namespace KLC_Finch {
 
         public void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight)
         {
-            virtualCanvas = new Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
-            SetVirtual(virtualX, virtualY, virtualCanvas.Width, virtualCanvas.Height);
+            if (useMultiScreen) {
+                virtualCanvas = new Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
+                SetVirtual(virtualX, virtualY, virtualCanvas.Width, virtualCanvas.Height);
+            } else {
+                virtualCanvas = new Rectangle(0, 0, virtualWidth, virtualHeight);
+                SetVirtual(0, 0, virtualWidth, virtualHeight);
+            }
         }
 
         public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight)
         {
-            virtualViewWant = new Rectangle(virtualX, virtualY, virtualWidth, virtualHeight);
+            if(useMultiScreen) {
+                virtualViewWant = new Rectangle(virtualX, virtualY, virtualWidth, virtualHeight);
+            } else {
+                this.legacyVirtualWidth = virtualWidth;
+                this.legacyVirtualHeight = virtualHeight;
+                virtualCanvas = virtualViewWant = new Rectangle(0, 0, virtualWidth, virtualHeight);
+            }
+
             virtualRequireViewportUpdate = true;
         }
 
@@ -229,9 +256,7 @@ namespace KLC_Finch {
             glControl.Invalidate();
         }
 
-        private void Render() {
-            glControl.MakeCurrent();
-
+        private void RenderStartMulti() {
             if (virtualRequireViewportUpdate) {
                 float currentAspectRatio = (float)glControl.Width / (float)glControl.Height;
                 float targetAspectRatio = (float)virtualViewWant.Width / (float)virtualViewWant.Height;
@@ -264,11 +289,58 @@ namespace KLC_Finch {
             GL.Viewport(0, 0, glControl.Width, glControl.Height);
             MainCamera.ApplyTransform();
             GL.MatrixMode(MatrixMode.Modelview);
-            //GL.LoadIdentity();
-            //GL.Disable(EnableCap.DepthTest);
+        }
 
-            //BuildOverlay2dMouse(true);
-            //BuildOverlay2dKeyboard(true);
+        private void RenderStartLegacy() {
+            if (virtualRequireViewportUpdate) {
+                RefreshVirtual();
+                virtualRequireViewportUpdate = false;
+            }
+
+            int screenWidth = glControl.Width;
+            int screenHeight = glControl.Height;
+
+            float targetAspectRatio = (float)legacyVirtualWidth / (float)legacyVirtualHeight;
+
+            int width = screenWidth;
+            int height = (int)((float)width / targetAspectRatio/* + 0.5f*/);
+
+            if (height > screenHeight) {
+                //Pillarbox
+                height = screenHeight;
+                width = (int)((float)height * targetAspectRatio/* + 0.5f*/);
+            }
+
+            vpX = (screenWidth / 2) - (width / 2);
+            vpY = (screenHeight / 2) - (height / 2);
+
+            GL.Viewport(vpX, vpY, width, height);
+
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(0, legacyVirtualWidth, 0, legacyVirtualHeight, -1, 1);
+            //GL.Ortho(0, legacyVirtualWidth, legacyVirtualHeight, 0, -1, 1); // Should be 2D
+
+            GL.MatrixMode(MatrixMode.Modelview);
+            //GL.PushMatrix();
+
+            //Now to calculate the scale considering the screen size and virtual size
+            scaleX = (double)screenWidth / (double)legacyVirtualWidth;
+            scaleY = (double)screenHeight / (double)legacyVirtualHeight;
+            GL.Scale(scaleX, scaleY, 1.0f);
+
+            GL.LoadIdentity();
+
+            GL.Disable(EnableCap.DepthTest);
+        }
+
+        private void Render() {
+            glControl.MakeCurrent();
+
+            if (useMultiScreen)
+                RenderStartMulti();
+            else
+                RenderStartLegacy();
 
             //--
 
@@ -284,24 +356,24 @@ namespace KLC_Finch {
             } else
                 textureCursor.RenderNew();
 
-            /*
-            if (textureNew) {
-                GL.BindTexture(TextureTarget.Texture2D, textureID);
+            if (!useMultiScreen) {
+                if (textureLegacyNew) {
+                    GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
 
-                GL.TexImage2D(
-                    TextureTarget.Texture2D,
-                    0, //Level
-                    PixelInternalFormat.Rgb,
-                    textureWidth,
-                    textureHeight,
-                    0, //Border
-                    OpenTK.Graphics.OpenGL.PixelFormat.Bgr,
-                    PixelType.UnsignedByte,
-                    textureData); //bmpData.Scan0
+                    GL.TexImage2D(
+                        TextureTarget.Texture2D,
+                        0, //Level
+                        PixelInternalFormat.Rgb,
+                        textureLegacyWidth,
+                        textureLegacyHeight,
+                        0, //Border
+                        OpenTK.Graphics.OpenGL.PixelFormat.Bgr,
+                        PixelType.UnsignedByte,
+                        textureLegacyData); //bmpData.Scan0
 
-                textureNew = false;
+                    textureLegacyNew = false;
+                }
             }
-            */
 
             #region Overlay
             if (overlayNewMouse) {
@@ -356,114 +428,78 @@ namespace KLC_Finch {
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            //GL.BindTexture(TextureTarget.Texture2D, textureScreenLegacy.ID);
-            //GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-            //GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
-            //GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-            //GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
+            if (useMultiScreen) {
+                foreach (RCScreen screen in listScreen) {
+                    if (screen.Texture != null) {
+                        if (screen == currentScreen)
+                            GL.Color3(Color.White);
+                        else if (controlEnabled || virtualViewWant == virtualCanvas) //In overview, or it's on the edge of focused screen
+                            GL.Color3(Color.Gray);
+                        else
+                            GL.Color3(Color.Cyan);
 
-            //GL.Disable(EnableCap.Texture2D);
-            int screenNum = 0;
+                        if (!screen.Texture.Render()) {
+                            GL.Disable(EnableCap.Texture2D);
+                            GL.Color3(Color.DimGray);
 
-            
+                            //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                            GL.Begin(PrimitiveType.Polygon);
+                            GL.PointSize(5f);
+                            GL.LineWidth(5f);
 
-            foreach (RCScreen screen in listScreen)
-            {
-                if (false) {
+                            GL.Vertex2(screen.rect.Left, screen.rect.Bottom);
+                            GL.Vertex2(screen.rect.Left, screen.rect.Top);
+                            GL.Vertex2(screen.rect.Right, screen.rect.Top);
+                            GL.Vertex2(screen.rect.Right, screen.rect.Bottom);
+
+                            //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
+
+                            GL.End();
+                        }
+                    }
+                }
+
+                if (textureCursor != null) {
+                    GL.Color3(Color.White);
+                    textureCursor.Render();
+                }
+
+                /*
+                if(rectCursor != null) {
                     GL.Disable(EnableCap.Texture2D);
-                    //Test
-                    if (screenNum == 0)
-                        GL.Color3(Color.FromArgb(251, 218, 3)); //Yellow
-                    else if (screenNum == 1)
-                        GL.Color3(Color.FromArgb(255, 165, 50)); //Orrange
-                    else if (screenNum == 2)
-                        GL.Color3(Color.FromArgb(53, 166, 170)); //Teal
-                    else if (screenNum == 3)
-                        GL.Color3(Color.FromArgb(220, 108, 167)); //Pink
-                    else if (screenNum == 4)
-                        GL.Color3(Color.FromArgb(57, 54, 122)); //Purple
-                    else
-                        GL.Color3(Color.White);
+                    GL.Color3(Color.Yellow);
 
                     //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
                     GL.Begin(PrimitiveType.Polygon);
                     GL.PointSize(5f);
                     GL.LineWidth(5f);
 
-                    GL.Vertex2(screen.rect.Left, screen.rect.Bottom);
-                    GL.Vertex2(screen.rect.Left, screen.rect.Top);
-                    GL.Vertex2(screen.rect.Right, screen.rect.Top);
-                    GL.Vertex2(screen.rect.Right, screen.rect.Bottom);
+                    GL.Vertex2(rectCursor.Left, rectCursor.Bottom);
+                    GL.Vertex2(rectCursor.Left, rectCursor.Top);
+                    GL.Vertex2(rectCursor.Right, rectCursor.Top);
+                    GL.Vertex2(rectCursor.Right, rectCursor.Bottom);
 
                     //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
 
                     GL.End();
-
-                    screenNum++;
                 }
-
-                if (screen.Texture != null) {
-                    if(screen == currentScreen)
-                        GL.Color3(Color.White);
-                    else if(controlEnabled || virtualViewWant == virtualCanvas) //In overview, or it's on the edge of focused screen
-                        GL.Color3(Color.Gray);
-                    else
-                        GL.Color3(Color.Cyan);
-
-                    if (!screen.Texture.Render()) {
-                        GL.Disable(EnableCap.Texture2D);
-                        GL.Color3(Color.DimGray);
-
-                        //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-                        GL.Begin(PrimitiveType.Polygon);
-                        GL.PointSize(5f);
-                        GL.LineWidth(5f);
-
-                        GL.Vertex2(screen.rect.Left, screen.rect.Bottom);
-                        GL.Vertex2(screen.rect.Left, screen.rect.Top);
-                        GL.Vertex2(screen.rect.Right, screen.rect.Top);
-                        GL.Vertex2(screen.rect.Right, screen.rect.Bottom);
-
-                        //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
-
-                        GL.End();
-                    }
-                }
+                */
+            } else {
+                //Legacy behavior
+                GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
+                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+                GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
+                GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
+                GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
             }
-
-            //--
-
-            if (textureCursor != null) {
-                GL.Color3(Color.White);
-                textureCursor.Render();
-            }
-
-            /*
-            if(rectCursor != null) {
-                GL.Disable(EnableCap.Texture2D);
-                GL.Color3(Color.Yellow);
-
-                //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-                GL.Begin(PrimitiveType.Polygon);
-                GL.PointSize(5f);
-                GL.LineWidth(5f);
-
-                GL.Vertex2(rectCursor.Left, rectCursor.Bottom);
-                GL.Vertex2(rectCursor.Left, rectCursor.Top);
-                GL.Vertex2(rectCursor.Right, rectCursor.Top);
-                GL.Vertex2(rectCursor.Right, rectCursor.Bottom);
-
-                //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
-
-                GL.End();
-            }
-            */
 
             //--
 
             GL.Enable(EnableCap.Texture2D);
 
             #region Overlay
+            if(!useMultiScreen)
+                GL.Viewport(0, 0, glControl.Width, glControl.Height);
 
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
@@ -506,7 +542,6 @@ namespace KLC_Finch {
             glControl.SwapBuffers();
         }
 
-        //Rectangle rectCursor;
         public void LoadCursor(int cursorX, int cursorY, int cursorWidth, int cursorHeight, int cursorHotspotX, int cursorHotspotY, byte[] remaining) {
             if (textureCursor != null)
                 textureCursor.Load(new Rectangle(cursorX, cursorY, cursorWidth, cursorHeight), remaining);
@@ -525,15 +560,14 @@ namespace KLC_Finch {
                 OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero); // just allocate memory, so we can update efficiently using TexSubImage2D
         }
 
-        /*
-        private void InitScreenTexture(ref int textureID) {
+        private void InitLegacyScreenTexture() {
             GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
-            textureID = GL.GenTexture();
+            textureLegacyId = GL.GenTexture();
 
-            GL.BindTexture(TextureTarget.Texture2D, textureID);
+            GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
             GL.TexImage2D(TextureTarget.Texture2D, 0,
                 PixelInternalFormat.Rgb,
-                virtualCanvas.Width, virtualCanvas.Height, 0, //W, H, Border (!! this is probably wrong since the virtualCanvas was added)
+                legacyVirtualWidth, legacyVirtualHeight, 0, //W, H, Border
                 OpenTK.Graphics.OpenGL.PixelFormat.Bgr,
                 PixelType.UnsignedByte, IntPtr.Zero);
 
@@ -543,7 +577,6 @@ namespace KLC_Finch {
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
         }
-        */
 
         private void InitTextures() {
             //FPS/Mouse/Keyboard
@@ -623,16 +656,7 @@ namespace KLC_Finch {
                 textureOverlayDataControlOff);
             #endregion
 
-            //--
-
-            /*
-            textureScreens = new TextureScreen[4];
-            for (int i = 0; i < textureScreens.Length; i++) {
-                textureScreens[i] = new TextureScreen();
-                InitScreenTexture(ref textureScreens[i].ID);
-            }
-            textureScreenLegacy = textureScreens[0];
-            */
+            InitLegacyScreenTexture();
 
             GL.EnableClientState(ArrayCap.VertexArray);
             GL.EnableClientState(ArrayCap.TextureCoordArray);
@@ -663,7 +687,10 @@ namespace KLC_Finch {
             if (currentScreen == null) {
                 currentScreen = newScreen;
 
-                //SetVirtual(screen_x, screen_y, screen_width, screen_height);
+                //Legacy
+                legacyVirtualHeight = currentScreen.rect.Height;
+                legacyVirtualWidth = currentScreen.rect.Width;
+                virtualRequireViewportUpdate = true;
             }
 
             Dispatcher.Invoke((Action)delegate {
@@ -686,10 +713,14 @@ namespace KLC_Finch {
             currentScreen = listScreen.First(x => x.screen_name == screen_selected[0]);
             rc.ChangeScreen(currentScreen.screen_id);
 
-            PositionCameraToCurrentScreen();
+            if (useMultiScreen)
+                PositionCameraToCurrentScreen();
         }
 
         private void PositionCameraToCurrentScreen() {
+            if (!useMultiScreen)
+                return;
+
             //MainCamera.Rotation = 0f;
             MainCamera.Position = Vector2.Zero;
             MainCamera.Scale = new Vector2(1f, 1f);
@@ -701,10 +732,16 @@ namespace KLC_Finch {
 
         private void toolScreenOverview_Click(object sender, RoutedEventArgs e)
         {
+            if (!useMultiScreen)
+                return;
+
             ChangeViewToOverview();
         }
 
         private void ChangeViewToOverview() {
+            if (!useMultiScreen)
+                return;
+
             //MainCamera.Rotation = 0f;
             MainCamera.Position = Vector2.Zero;
             MainCamera.Scale = new Vector2(1f, 1f);
@@ -714,38 +751,6 @@ namespace KLC_Finch {
             virtualRequireViewportUpdate = true;
             glControl.Invalidate();
         }
-
-        /*
-        public void LoadTexture(int width, int height, Bitmap decomp) {
-            if (currentScreen.rect.Width != width || currentScreen.rect.Height != height) {
-                Console.WriteLine("Current screen resolution did not match texture received.");
-
-                try {
-                    currentScreen.rect.Width = width;
-                    currentScreen.rect.Height = height;
-
-                    //This is a sad attempt a fixing a problem when changing left monitor's size.
-                    //However if changing a middle monitor, the right monitor will break.
-                    //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                    if (currentScreen.rect.X < 0)
-                        currentScreen.rect.X = width * -1;
-
-                    SetVirtual(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
-                } catch(Exception ex) {
-                    Console.WriteLine("[LoadTexture] " + ex.ToString());
-                }
-                
-                //textureData = null; //This seems to make it crack
-                //Need to find a better way to load the texture in, maybe just before render?
-                //return;
-            }
-
-            textureScreenLegacy.Load(width, height, decomp, virtualRequireViewportUpdate);
-            socketAlive = true;
-
-            glControl.Invalidate();
-        }
-        */
 
         public void LoadTexture(int width, int height, Bitmap decomp) {
             /*
@@ -763,48 +768,90 @@ namespace KLC_Finch {
             }
             */
 
-            RCScreen scr = null;
-            if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
-                scr = currentScreen;
-            else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
-                scr = previousScreen;
-            else {
-                //If this happens, we should probably kick back to legacy
-                //Will result in the old "Virtual resolution did not match texture received."
+            if (useMultiScreen) {
+                #region Multi-Screen
+                RCScreen scr = null;
+                if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
+                    scr = currentScreen;
+                else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
+                    scr = previousScreen;
+                else {
+                    List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
+                    if (scrMatch.Count == 1) {
+                        scr = scrMatch[0];
+                    } else {
+                        Console.WriteLine("Forced switch from Multi-Screen to Legacy");
+                        useMultiScreen = false;
+                        LoadTexture(width, height, decomp);
 
-                scr = currentScreen;
-                //return;
-            }
+                        Dispatcher.Invoke((Action)delegate {
+                            toolScreenOverview.Header = "Legacy";
+                            toolScreenOverview.IsEnabled = false;
+                            toolZoomIn.Visibility = Visibility.Collapsed;
+                            toolZoomOut.Visibility = Visibility.Collapsed;
+                        });
 
-            if (scr == null) {
-                //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
-                //listScreen might be empty
-                return;
-            }
+                        return;
+                    }
+                }
 
-            //--
+                if (scr == null) {
+                    //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
+                    //listScreen might be empty
+                    return;
+                }
 
-            /*
-            //Legacy
-            if (scr.rect.Width != width || scr.rect.Height != height){
-                Console.WriteLine("Virtual resolution did not match texture received.");
-                return;
-                //SetVirtual(width, height);
-
-                try {
+                if (scr.rect.Width != width || scr.rect.Height != height) {
                     scr.rect.Width = width;
                     scr.rect.Height = height;
-                    if (scr.rect.X < 0)
-                        scr.rect.X = width * -1;
-                } catch (Exception ex) {
-                    Console.WriteLine("[LoadTexture] " + ex.ToString());
                 }
-            }
-            */
 
-            if(scr.Texture != null)
-                scr.Texture.Load(scr.rect, decomp);
-            socketAlive = true;
+                if (scr.Texture != null)
+                    scr.Texture.Load(scr.rect, decomp);
+                socketAlive = true;
+                #endregion
+            } else {
+                #region Legacy
+                if (currentScreen == null)
+                    return;
+
+                if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
+                    Console.WriteLine("Virtual resolution did not match texture received.");
+                    SetVirtual(0, 0, width, height);
+
+                    try {
+                        currentScreen.rect.Width = width;
+                        currentScreen.rect.Height = height;
+                        //This is a sad attempt a fixing a problem when changing left monitor's size.
+                        //However if changing a middle monitor, the right monitor will break.
+                        //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
+                        if (currentScreen.rect.X < 0)
+                            currentScreen.rect.X = width * -1;
+                    } catch (Exception ex) {
+                        Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
+                    }
+
+                    //textureData = null; //This seems to make it crack
+                    //Need to find a better way to load the texture in, maybe just before render?
+                    //return;
+                }
+
+                //qt.v = textureBottom;
+                //qtBottom = qt;
+
+                textureLegacyWidth = width;
+                textureLegacyHeight = height;
+
+                BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                if (textureLegacyData == null || virtualRequireViewportUpdate)
+                    textureLegacyData = new byte[Math.Abs(data.Stride * data.Height)];
+                Marshal.Copy(data.Scan0, textureLegacyData, 0, textureLegacyData.Length); //This can fail with re-taking over private remote control
+                decomp.UnlockBits(data);
+
+                textureLegacyNew = true;
+                socketAlive = true;
+                #endregion
+            }
 
             glControl.Invalidate();
         }
@@ -865,7 +912,7 @@ namespace KLC_Finch {
                 //this.BeginInvoke(new Action(() => {
                 if (clipboard.Length > 0)
                     Clipboard.SetDataObject(clipboard);
-                //Clipboard.SetText(clipboard); //Apparently this doesn't work
+                //Clipboard.SetText(clipboard); //Apparently WPF clipboard has issues
                 else
                     Clipboard.Clear();
                 //}));
@@ -938,31 +985,38 @@ namespace KLC_Finch {
             if (rc == null)
                 return;
 
-            Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), virtualViewNeed.X, virtualViewNeed.Y);
-            RCScreen screenPointingTo = GetScreenUsingMouse(point);
-            if (screenPointingTo == null)
-                return;
+            if (useMultiScreen) {
+                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), virtualViewNeed.X, virtualViewNeed.Y);
+                RCScreen screenPointingTo = GetScreenUsingMouse(point);
+                if (screenPointingTo == null)
+                    return;
 
-            if (controlEnabled) {
-                if (virtualViewWant != virtualCanvas && screenPointingTo != currentScreen) {
-                    //We're not in overview, and we just clicked on a screen we can't see updates for while control is enabled...
+                if (controlEnabled) {
+                    if (virtualViewWant != virtualCanvas && screenPointingTo != currentScreen) {
+                        //We're not in overview, and we just clicked on a screen we can't see updates for while control is enabled...
 
-                    previousScreen = currentScreen;
-                    currentScreen = screenPointingTo;
-                    rc.ChangeScreen(currentScreen.screen_id);
+                        previousScreen = currentScreen;
+                        currentScreen = screenPointingTo;
+                        rc.ChangeScreen(currentScreen.screen_id);
+                        PositionCameraToCurrentScreen();
+                        return;
+                    }
+                } else {
+                    if (virtualViewWant != virtualCanvas) {
+                        //We're not in overview
+
+                        previousScreen = currentScreen;
+                        currentScreen = screenPointingTo;
+                        rc.ChangeScreen(currentScreen.screen_id);
+                    }
                     PositionCameraToCurrentScreen();
                     return;
                 }
             } else {
-                if (virtualViewWant != virtualCanvas) {
-                    //We're not in overview
+                //Use legacy behavior
 
-                    previousScreen = currentScreen;
-                    currentScreen = screenPointingTo;
-                    rc.ChangeScreen(currentScreen.screen_id);
-                }
-                PositionCameraToCurrentScreen();
-                return;
+                if (!controlEnabled)
+                    return;
             }
 
             if (e.Button == System.Windows.Forms.MouseButtons.Middle) {
@@ -1080,6 +1134,8 @@ namespace KLC_Finch {
         */
 
         private void toolZoomIn_Click(object sender, RoutedEventArgs e) {
+            if (!useMultiScreen)
+                return;
             if (virtualViewWant.Width - 200 < 0 || virtualViewWant.Height - 200 < 0)
                 return;
 
@@ -1091,6 +1147,9 @@ namespace KLC_Finch {
         }
 
         private void toolZoomOut_Click(object sender, RoutedEventArgs e) {
+            if (!useMultiScreen)
+                return;
+
             virtualViewWant = new Rectangle(virtualViewWant.X - 100, virtualViewWant.Y - 100, virtualViewWant.Width + 200, virtualViewWant.Height + 200);
             virtualRequireViewportUpdate = true;
 
@@ -1185,24 +1244,51 @@ namespace KLC_Finch {
 
             windowActivatedMouseMove = false;
 
-            Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), virtualViewNeed.X, virtualViewNeed.Y);
-            DebugMouseEvent((int)point.X, (int)point.Y);
+            if (useMultiScreen) {
+                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), virtualViewNeed.X, virtualViewNeed.Y);
+                DebugMouseEvent((int)point.X, (int)point.Y);
 
-            RCScreen screenPointingTo = GetScreenUsingMouse(point);
-            if (screenPointingTo == null)
-                return;
+                RCScreen screenPointingTo = GetScreenUsingMouse(point);
+                if (screenPointingTo == null)
+                    return;
 
-            if (virtualViewWant == virtualCanvas && currentScreen.screen_id != screenPointingTo.screen_id) {
-                //We are in overview, change which screen gets texture updates
-                previousScreen = currentScreen;
-                currentScreen = screenPointingTo;
-                rc.ChangeScreen(currentScreen.screen_id);
+                if (virtualViewWant == virtualCanvas && currentScreen.screen_id != screenPointingTo.screen_id) {
+                    //We are in overview, change which screen gets texture updates
+                    previousScreen = currentScreen;
+                    currentScreen = screenPointingTo;
+                    rc.ChangeScreen(currentScreen.screen_id);
+                }
+
+                if (!controlEnabled || !this.IsActive)
+                    return;
+
+                rc.SendMousePosition((int)point.X, (int)point.Y);
+            } else {
+                //Legacy behavior
+
+                System.Drawing.Point legacyPoint = new System.Drawing.Point(e.X - vpX, e.Y - vpY);
+                if (legacyPoint.X < 0 || legacyPoint.Y < 0)
+                    if (legacyPoint.X < 0 || legacyPoint.Y < 0)
+                        return;
+
+                if (vpX > 0) {
+                    legacyPoint.X = (int)(legacyPoint.X / scaleY);
+                    legacyPoint.Y = (int)(legacyPoint.Y / scaleY);
+                } else {
+                    legacyPoint.X = (int)(legacyPoint.X / scaleX);
+                    legacyPoint.Y = (int)(legacyPoint.Y / scaleX);
+                }
+
+                if (legacyPoint.X > legacyVirtualWidth || legacyPoint.Y > legacyVirtualHeight)
+                    return;
+
+                legacyPoint.X = legacyPoint.X + currentScreen.rect.X;
+                legacyPoint.Y = legacyPoint.Y + currentScreen.rect.Y;
+
+                DebugMouseEvent(legacyPoint.X, legacyPoint.Y);
+
+                rc.SendMousePosition(legacyPoint.X, legacyPoint.Y);
             }
-
-            if (!controlEnabled || !this.IsActive)
-                return;
-
-            rc.SendMousePosition((int)point.X, (int)point.Y);
         }
 
         private RCScreen GetScreenUsingMouse(Vector2 point) {

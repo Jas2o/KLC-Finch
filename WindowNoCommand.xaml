@@ -23,7 +23,7 @@
         <TextBlock TextWrapping="Wrap" Text="No KLC payload has been given, for debugging enter your Auth Token and select an agent." TextAlignment="Center" Grid.ColumnSpan="3" Margin="5"/>
         <TextBlock Grid.Row="1" TextWrapping="Wrap" Text="Token" VerticalAlignment="Center" Margin="5,0"/>
         <TextBlock Grid.Row="2" TextWrapping="Wrap" Text="GUID" VerticalAlignment="Center" Margin="5,0"/>
-        <TextBox x:Name="txtAuthToken" Grid.Column="1" Grid.Row="1" TextWrapping="Wrap" Text="" Margin="5" Grid.ColumnSpan="2"/>
+        <PasswordBox x:Name="txtAuthToken" Grid.Column="1" Grid.Row="1" Margin="5" Grid.ColumnSpan="2"/>
         <Grid Grid.Column="1" Grid.Row="2" Margin="5" Grid.ColumnSpan="2" >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>

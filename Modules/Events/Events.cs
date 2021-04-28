@@ -14,24 +14,21 @@ using System.Windows.Controls;
 namespace KLC_Finch.Modules {
     public class Events {
 
+        public const string LabelExtended = "! Extended";
         private static string modulename = "events";
         private IWebSocketConnection serverB;
 
-        private DataGrid dgvEventsValues;
-        private TextBox txtBox;
-        private ComboBox cmbLogTypes, cmbLogTypesExtended;
+        private EventsData eventsData;
+        private ComboBox cmbLogTypes;
+        //private ComboBox cmbLogTypesExtended;
 
         private string lastLogType;
-        private List<EventValue> listEventValue;
         //private int scan = -1;
 
-        public Events(KLC.LiveConnectSession session, DataGrid dgvEventsValues, TextBox txtBox = null, ComboBox cmbLogTypes=null, ComboBox cmbLogTypesExtended=null) {
-            this.dgvEventsValues = dgvEventsValues;
-            this.txtBox = txtBox;
+        public Events(KLC.LiveConnectSession session, EventsData eventsData, ComboBox cmbLogTypes=null) {
+            this.eventsData = eventsData;
             this.cmbLogTypes = cmbLogTypes;
-            this.cmbLogTypesExtended = cmbLogTypesExtended;
-
-            listEventValue = new List<EventValue>();
+            //this.cmbLogTypesExtended = cmbLogTypesExtended;
 
             if (session != null)
                 session.WebsocketB.ControlAgentSendTask(modulename);
@@ -42,24 +39,20 @@ namespace KLC_Finch.Modules {
         }
 
         public void Receive(string message) {
-            txtBox.Dispatcher.Invoke(new Action(() => {
-                dynamic temp = JsonConvert.DeserializeObject(message);
-                string something = (string)temp["action"];
-                switch (temp["action"].ToString()) {
-                    case "ScriptReady":
-                        JObject jStartEventsData = new JObject();
-                        jStartEventsData["action"] = "GetLogTypes";
-                        serverB.Send(jStartEventsData.ToString());
-
-                        cmbLogTypesExtended.Items.Clear();
-                        foreach (string key in EventsExtendedList.Items)
-                            cmbLogTypesExtended.Items.Add(key);
-
-                        break;
-                    case "GetLogTypes":
+            dynamic temp = JsonConvert.DeserializeObject(message);
+            string something = (string)temp["action"];
+            switch (temp["action"].ToString()) {
+                case "ScriptReady":
+                    JObject jStartEventsData = new JObject();
+                    jStartEventsData["action"] = "GetLogTypes";
+                    serverB.Send(jStartEventsData.ToString());
+                    break;
+                case "GetLogTypes":
+                    cmbLogTypes.Dispatcher.Invoke(new Action(() => {
                         cmbLogTypes.Items.Clear();
                         if (temp["logs"] != null) {
                             List<string> listTypes = new List<string>();
+                            listTypes.Add(LabelExtended);
                             foreach (dynamic key in temp["logs"].Children())
                                 listTypes.Add(key.ToString());
 
@@ -69,72 +62,35 @@ namespace KLC_Finch.Modules {
 
                         //cmbLogTypes.SelectedIndex = 0;
                         cmbLogTypes.SelectedValue = "Application";
-                        break;
-                    case "setLogType": //Valid
-                    case "SetLogType": //Errors
-                    case "GetEvents":
-                        if (temp["events"] != null) {
-                            if (temp["action"].ToString() != "GetEvents") {
-                                listEventValue.Clear();
-                                txtBox.Text = "";
-                            }
-
-                            //if (scan > -1) Console.WriteLine(lastLogType);
-
-                            foreach (dynamic e in temp["events"].Children()) {
-                                //txtBox.AppendText(e.ToString() + "\r\n\r\n");
-                                EventValue ev = new EventValue(e);
-                                listEventValue.Add(ev);
-                            }
-
-                            UpdateDisplayValues();
-                        } else if (temp["errors"] != null) {
-                            txtBox.Text = temp["errors"].ToString();
+                        SetLogType("Application");
+                    }));
+                    break;
+                case "setLogType": //Valid
+                case "SetLogType": //Errors
+                case "GetEvents":
+                    if (temp["events"] != null) {
+                        if (temp["action"].ToString() != "GetEvents") {
+                            eventsData.EventsClear();
+                            //txtBox.Text = "";
                         }
 
-                        //if (scan > -1) Scan();
-                        break;
+                        //if (scan > -1) Console.WriteLine(lastLogType);
 
-                    default:
-                        txtBox.AppendText("Events message received: " + message + "\r\n\r\n");
-                        break;
-                }
-            }));
-        }
+                        foreach (dynamic e in temp["events"].Children()) {
+                            eventsData.EventsAdd(new EventValue(e));
+                        }
+                    } else if (temp["errors"] != null) {
+                        App.ShowUnhandledExceptionFromSrc(temp["errors"].ToString(), "Events: error");
+                    }
 
-        private void UpdateDisplayValues() {
-            dgvEventsValues.DataContext = null;
+                    //if (scan > -1) Scan();
+                    break;
 
-            DataTable dt = new DataTable();
-            dt.Columns.Add("SourceName", typeof(string));
-            dt.Columns.Add("Id", typeof(string));
-            dt.Columns.Add("EventType", typeof(int));
-            dt.Columns.Add("LogType", typeof(string));
-            dt.Columns.Add("Category", typeof(string));
-            dt.Columns.Add("EventMessage", typeof(string));
-            dt.Columns.Add("EventGeneratedTime", typeof(DateTime));
-            dt.Columns.Add("RecordNumber", typeof(int));
-            dt.Columns.Add("User", typeof(string));
-            dt.Columns.Add("Computer", typeof(string));
-
-            foreach (EventValue value in listEventValue) {
-                DataRow row = dt.NewRow();
-                row[0] = value.SourceName;
-                row[1] = value.Id;
-                row[2] = value.EventType;
-                row[3] = value.LogType;
-                row[4] = value.Category;
-                row[5] = value.EventMessage;
-                row[6] = value.EventGeneratedTime;
-                row[7] = value.RecordNumber;
-                row[8] = value.User;
-                row[9] = value.Computer;
-                dt.Rows.Add(row);
+                default:
+                    App.ShowUnhandledExceptionFromSrc(temp["errors"].ToString(), "Events: unhandled");
+                    //txtBox.AppendText("Events message received: " + message + "\r\n\r\n");
+                    break;
             }
-
-            dgvEventsValues.DataContext = dt;
-            //dgvEventsValues.AutoResizeColumns();
-            //dgvEventsValues.Sort(dgvEventsValues.Columns[0], System.ComponentModel.ListSortDirection.Ascending);
         }
 
         /*

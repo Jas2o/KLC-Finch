@@ -17,16 +17,17 @@ namespace KLC_Finch.Modules {
         private static string modulename = "processes";
         private IWebSocketConnection serverB;
 
-        private DataGrid dgvProcesses;
-        private TextBox txtBox;
+        private ProcessesData processesData;
+        //private DataGrid dgvProcesses;
+        //private TextBox txtBox;
 
-        private List<ProcessValue> listProcessValue;
+        //private List<ProcessValue> listProcessValue;
 
-        public Processes(KLC.LiveConnectSession session, DataGrid dgvProcesses, TextBox txtBox = null) {
-            this.dgvProcesses = dgvProcesses;
-            this.txtBox = txtBox;
-
-            listProcessValue = new List<ProcessValue>();
+        public Processes(KLC.LiveConnectSession session, ProcessesData processesData) {
+            this.processesData = processesData;
+            //this.dgvProcesses = dgvProcesses;
+            //this.txtBox = txtBox;
+            //listProcessValue = new List<ProcessValue>();
 
             if (session != null)
                 session.WebsocketB.ControlAgentSendTask(modulename);
@@ -37,41 +38,45 @@ namespace KLC_Finch.Modules {
         }
 
         public void Receive(string message) {
-            txtBox.Dispatcher.Invoke(new Action(() => {
-                dynamic temp = JsonConvert.DeserializeObject(message);
-                string something = (string)temp["action"];
-                switch (temp["action"].ToString()) {
-                    case "ScriptReady":
-                        RequestListProcesses();
-                        break;
+            dynamic temp = JsonConvert.DeserializeObject(message);
+            string something = (string)temp["action"];
+            switch (temp["action"].ToString()) {
+                case "ScriptReady":
+                    RequestListProcesses();
+                    break;
 
-                    case "ListProcesses":
-                    case "EndProcess":
-                        /*{
-                           "action":"ListProcesses",
-                           "success":true,
-                           "PID":null, //Values of process that admin ended
-                           "displayName":null,
-                           "contentsList":[
-                        */
+                case "ListProcesses":
+                case "EndProcess":
+                    /*{
+                        "action":"ListProcesses",
+                        "success":true,
+                        "PID":null, //Values of process that admin ended
+                        "displayName":null,
+                        "contentsList":[
+                    */
 
-                        if (temp["contentsList"] != null) {
-                            listProcessValue.Clear(); //Probably should update what's already there
+                    if (temp["contentsList"] != null) {
+                        processesData.ProcessesClear();
+                        //Probably should update what's already there
 
-                            foreach (dynamic p in temp["contentsList"].Children()) {
-                                ProcessValue pv = new ProcessValue(p);
-                                listProcessValue.Add(pv);
-                            }
-
-                            UpdateDisplayValues();
+                        foreach (dynamic p in temp["contentsList"].Children()) {
+                            ProcessValue pv = new ProcessValue(p);
+                            processesData.ProcessesAdd(pv);
                         }
-                        break;
 
-                    default:
-                        txtBox.AppendText("Events message received: " + message + "\r\n\r\n");
-                        break;
-                }
+                        //UpdateDisplayValues();
+                    }
+                    break;
+
+                default:
+                    Console.WriteLine("Processes message received: " + message);
+                    break;
+            }
+
+            /*
+            txtBox.Dispatcher.Invoke(new Action(() => {
             }));
+            */
         }
 
         public void RequestListProcesses() {
@@ -80,6 +85,7 @@ namespace KLC_Finch.Modules {
             serverB.Send(jStartData.ToString());
         }
 
+        /*
         private void UpdateDisplayValues() {
             dgvProcesses.DataContext = null;
 
@@ -104,13 +110,21 @@ namespace KLC_Finch.Modules {
             //dgvProcesses.AutoResizeColumns();
             //dgvProcesses.Sort(dgvServices.Columns[0], System.ComponentModel.ListSortDirection.Ascending);
         }
-
-        /*
-         * {
-  "action": "EndProcess",
-  "PID": "6856",
-  "displayName": "Portals.exe"
-}
         */
+
+        public void EndTask(ProcessValue pv) {
+            /* {
+              "action": "EndProcess",
+              "PID": "6856",
+              "displayName": "Portals.exe"
+            } */
+
+            JObject jEvent = new JObject();
+            jEvent["action"] = "EndProcess";
+            jEvent["PID"] = pv.PID.ToString();
+            jEvent["displayName"] = pv.DisplayName;
+            serverB.Send(jEvent.ToString());
+        }
+
     }
 }

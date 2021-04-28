@@ -29,7 +29,7 @@
                 <ColumnDefinition/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="txtCommandInput" TextWrapping="Wrap" KeyDown="txtCommandInput_KeyDown"/>
+            <TextBox x:Name="txtCommandInput" TextWrapping="Wrap" KeyDown="txtCommandInput_KeyDown" PreviewKeyDown="txtCommandInput_PreviewKeyDown"/>
             <Button x:Name="btnCommandLineMode" Content="Line Mode" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Grid.Column="1" Margin="5,0,0,0" Click="btnCommandLineMode_Click" IsEnabled="False" />
         </Grid>
     </Grid>

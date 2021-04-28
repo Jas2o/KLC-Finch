@@ -39,13 +39,13 @@ namespace KLC_Finch {
         }
 
         private void btnFilesStart_Click(object sender, RoutedEventArgs e) {
-            btnFilesStart.IsEnabled = false;
-            btnFilesFolderDelete.IsEnabled = false;
-            btnFilesFileDelete.IsEnabled = false;
-
-            window = ((WindowAlternative)Window.GetWindow(this));
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
+                btnFilesStart.IsEnabled = false;
+                btnFilesFolderDelete.IsEnabled = false;
+                btnFilesFileDelete.IsEnabled = false;
+                window = ((WindowAlternative)Window.GetWindow(this));
+
                 moduleFileExplorer = new FileExplorer(session);
                 moduleFileExplorer.LinkToUI(listFilesFolders, dgvFilesFiles, txtFilesPath, txtFiles, progressBar, progressText, btnFilesDownload, btnFilesUpload);
                 session.ModuleFileExplorer = moduleFileExplorer;
