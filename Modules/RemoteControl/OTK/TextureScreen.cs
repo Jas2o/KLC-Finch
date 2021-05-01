@@ -35,8 +35,9 @@ namespace NTR {
             width = decomp.Width;
             height = decomp.Height;
             BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-            
-            //if (Data == null || virtualRequireViewportUpdate)
+
+            if (this.Data == null || this.Data.Length != Math.Abs(data.Stride * data.Height))
+                this.Data = new byte[Math.Abs(data.Stride * data.Height)];
             byte[] Data = new byte[Math.Abs(data.Stride * data.Height)];
             Marshal.Copy(data.Scan0, Data, 0, Data.Length); //This can fail with re-taking over private remote control
             this.Data = Data; //Seems more stable replacing the array rather than writing into it

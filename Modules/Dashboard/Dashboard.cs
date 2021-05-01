@@ -15,18 +15,44 @@ namespace KLC_Finch {
 
         private static string modulename = "dashboard";
         private TextBox txtBox;
+        private StackPanel stackDisks;
         private IWebSocketConnection serverB;
 
-        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null) {
-            this.txtBox = txtBox;
+        private KLC.LiveConnectSession session;
+        System.Timers.Timer timerStart;
+        System.Timers.Timer timerRefresh;
 
-            if (session != null)
-                session.WebsocketB.ControlAgentSendTask(modulename);
+        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks=null) {
+            this.session = session;
+            this.txtBox = txtBox;
+            this.stackDisks = stackDisks;
+
+            timerStart = new System.Timers.Timer(1000);
+            timerStart.Elapsed += TimerStart_Elapsed;
+            timerStart.Start();
+
+            //timerRefresh = new System.Timers.Timer(30000);
+            //timerRefresh.Elapsed += TimerRefresh_Elapsed;
         }
 
         public void SetSocket(IWebSocketConnection ServerBsocket) {
             this.serverB = ServerBsocket;
         }
+
+        private void TimerStart_Elapsed(object sender, System.Timers.ElapsedEventArgs e) {
+            if (session == null) {
+                timerStart.Stop();
+            } else if (session.WebsocketB.ControlAgentIsReady()) {
+                timerStart.Stop();
+                session.WebsocketB.ControlAgentSendTask(modulename);
+            }
+        }
+
+        /*
+        private void TimerRefresh_Elapsed(object sender, System.Timers.ElapsedEventArgs e) {
+            RequestRefresh();
+        }
+        */
 
         public void GetCpuRam() {
             if (serverB != null) {
@@ -63,52 +89,72 @@ namespace KLC_Finch {
         public void Receive(string message) {
             txtBox.Dispatcher.Invoke(new Action(() => {
                 dynamic temp = JsonConvert.DeserializeObject(message);
-                string something = (string)temp["action"];
                 switch (temp["action"].ToString()) {
                     case "ScriptReady":
                         JObject jStartDashboardData = new JObject();
                         jStartDashboardData["action"] = "StartDashboardData";
                         serverB.Send(jStartDashboardData.ToString());
                         break;
+
+                    case "VolumesData":
+                        //{"action":"VolumesData","data":[{"label":"C:\\","free":129323569152,"total":254956666880,"type":"Fixed"}],"errors":[]}
+                        stackDisks.Children.Clear();
+
+                        foreach (dynamic v in temp["data"].Children()) {
+                            if ((string)v["type"] != "Fixed")
+                                continue;
+
+                            controlDisk disk = new controlDisk((string)v["label"], (long)v["total"], (long)v["free"]);
+                            stackDisks.Children.Add(disk);
+                        }
+
+                        break;
+
+                    case "EventsData":
+                        /*{
+                           "action":"EventsData",
+                           "data":[
+                              {
+                                 "type":"Warning",
+                                 "timestamp":"2021-05-01T07:20:41.802Z",
+                                 "description":"desc here",
+                                 "additional":""
+                              },
+                              {
+                                 "type":"Info",
+                                 "timestamp":"2021-05-01T07:17:12.019Z",
+                                 "description":"desc here",
+                                 "additional":""
+                              }
+                           ],
+                           "errors":[]
+                        }*/
+                        break;
+
+                    case "TopProcData":
+                        /* {
+                           "action":"TopProcData",
+                           "topCpu":[
+                              { "pid":"4", "name":"System", "user":"NT AUTHORITY\\SYSTEM", "mem":"0.21", "cpu":"0.7" },
+                              { "pid":"33892", "name":"ServiceHub.ThreadedWaitDialog.exe", "user":"company\\username", "mem":"73.54", "cpu":"0.4" }
+                           ],
+                           "topMem":[
+                              { "pid":"5020", "name":"SavService.exe", "user":"NT AUTHORITY\\LOCAL SERVICE", "mem":"353.78", "cpu":"0.0" },
+                              { "pid":"34284", "name":"devenv.exe", "user":"company\\username", "mem":"320.46", "cpu":"0.0" }
+                           ],
+                           "errors":[]
+                        } */
+                        //break;
+
+                    case "CpuRamData":
+                        //{"action":"CpuRamData","data":{"ram":46,"cpu":1.6440618016222541},"errors":[]}
+                        //break;
+
                     default:
-                        txtBox.AppendText("Dashboard message received: " + message + "\r\n");
+                        txtBox.AppendText("Dashboard message: " + message + "\r\n");
                         break;
                 }
             }));
         }
-
-        /*
-        private WebSocket WS_EdgeRelay(string authPayloadjsonWebToken, string sessionId) {
-
-            string pathModule = Util.EncodeToBase64("/app/" + modulename);
-
-            WebSocket websocket = new WebSocket("wss://vsa-web.company.com.au:443/kaseya/edge/relay?auth=" + authPayloadjsonWebToken + "&relayId=" + sessionId + "|" + pathModule);
-
-            websocket.AutoSendPingInterval = 5;
-            websocket.EnableAutoSendPing = true;
-            if (txtBox != null) {
-                websocket.Opened += (sender, e) => txtBox.Invoke(new Action(() => {
-                    txtBox.AppendText("Dashboard Socket opened: " + sessionId + "\r\n");
-                }));
-                websocket.Closed += (sender, e) => txtBox.Invoke(new Action(() => {
-                    txtBox.AppendText("Dashboard Socket closed: " + sessionId + " - " + e.ToString() + "\r\n");
-                }));
-                websocket.MessageReceived += (sender, e) => 
-                websocket.Error += (sender, e) => txtBox.Invoke(new Action(() => {
-                    txtBox.AppendText("Dashboard Socket error: " + sessionId + " - " + e.Exception.ToString() + "\r\n");
-                }));
-            } else {
-                websocket.Opened += (sender, e) => Console.WriteLine("Dashboard Socket opened: " + sessionId);
-                websocket.Closed += (sender, e) => Console.WriteLine("Dashboard Socket closed: " + sessionId + " - " + e.ToString());
-                websocket.MessageReceived += (sender, e) => Console.WriteLine("Dashboard message received: " + sessionId + " - " + e.Message);
-                websocket.Error += (sender, e) => Console.WriteLine("Dashboard Socket error: " + sessionId + " - " + e.Exception.ToString());
-            }
-
-            Util.ConfigureProxy(websocket);
-
-            websocket.Open();
-            return websocket;
-        }
-        */
     }
 }

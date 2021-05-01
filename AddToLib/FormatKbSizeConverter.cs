@@ -13,7 +13,7 @@ namespace KLC_Finch {
         //https://thomasfreudenberg.com/archive/2017/01/21/presenting-byte-size-values-in-wpf/
 
         [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
-        private static extern long StrFormatByteSizeW(long qdw, [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszBuf,
+        public static extern long StrFormatByteSizeW(long qdw, [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszBuf,
             int cchBuf);
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {

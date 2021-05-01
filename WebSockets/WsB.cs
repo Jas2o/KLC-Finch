@@ -155,7 +155,7 @@ namespace KLC {
         private void ServerB_ClientDisconnected(IWebSocketConnection socket) {
             Console.WriteLine("B Close " + socket.ConnectionInfo.Path);
 
-            if (socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/")) {
+            if (socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/") || socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
                 if (Session.ModuleRemoteControl != null) {
                     string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "").Replace("?Y2", "");
                     Session.ModuleRemoteControl.Disconnect(sessionId);

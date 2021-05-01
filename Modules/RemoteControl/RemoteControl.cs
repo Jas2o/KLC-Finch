@@ -193,24 +193,28 @@ namespace KLC_Finch {
                         lowestY = Math.Min(screen_y, lowestY);
                         highestX = Math.Max(screen_x + screen_width, highestX);
                         highestY = Math.Max(screen_y + screen_height, highestY);
-
-                        /*
-                        if (screen_x == 0 && threadOpenTK == null) {
-
-                            viewer.SetVirtual(screen_width, screen_height);
-
-                            if (!session.agent.IsMac) {
-                                //This is a hack to assume my middle screen is my main screen)
-                                ChangeScreen(screen_id);
-                            }
-
-                            while (viewer == null) { Thread.Sleep(10); }
-                        }
-                        */
                     }
 
                     Viewer.SetCanvas(lowestX, lowestY, highestX, highestY);
                     Viewer.SetControlEnabled(true, !modePrivate);
+                } else if (type == (byte)Enums.KaseyaMessageTypes.HostTerminalSessionsList) {
+                    Console.WriteLine("HostTerminalSessionsList");
+                    //{"default_session":4294967294,"sessions":[{"session_id":4294967294,"session_name":"Console JH-TEST-2016\\Hackerman"},{"session_id":1,"session_name":"JH-TEST-2016\\TestUser"}]}
+
+                    string default_session = json["default_session"].ToString();
+                    Console.WriteLine("Clear TS Sessions");
+                    Viewer.ClearTSSessions();
+                    foreach (dynamic session in json["sessions"]) {
+
+                        string session_id = session["session_id"].ToString(); //int or BigInteger
+                        string session_name = (string)session["session_name"];
+
+                        Viewer.AddTSSession(session_id, session_name);
+                        Console.WriteLine("Add TS Session: " + session_id);
+                    }
+
+                    //Viewer.SetActiveTSSession(default_session);
+
                 } else if (type == (byte)Enums.KaseyaMessageTypes.CursorImage) {
                     //Only provided when the cursor image changes, can be from cher end user or remote controller.
                     //{"height":32,"hotspotX":0,"hotspotY":0,"screenPosX":433,"screenPosY":921,"width":32}
@@ -387,6 +391,11 @@ namespace KLC_Finch {
             //This doesn't seem to work in private sessions
 
             SendJson(Enums.KaseyaMessageTypes.SecureAttentionSequence, "{}");
+        }
+
+        public void ChangeTSSession(string session_id) {
+            string sendjson = "{\"sessionId\":" + session_id + "}"; //Intentionally using a string as int/biginteger
+            SendJson(Enums.KaseyaMessageTypes.UpdateTerminalSessionId, sendjson);
         }
 
         public void ChangeScreen(string screen_id) {

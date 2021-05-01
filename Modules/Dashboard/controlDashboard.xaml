@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:command="clr-namespace:KLC_Finch"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <!--  Loaded="UserControl_Loaded"-->
@@ -12,29 +13,49 @@
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
             <RowDefinition/>
             <RowDefinition Height="auto"/>
-            <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
-        <StackPanel Grid.Row="2" Orientation="Horizontal">
+        <StackPanel>
+            <TextBlock x:Name="txtRCNotify" Text="Remote control notify policy here." TextAlignment="Center" Margin="0,0,0,5"/>
+            <TextBlock x:Name="txtSpecialInstructions"  Text="Special Instructions for this Machine" FontWeight="Bold" TextAlignment="Center" Margin="0,0,0,5"/>
+            <TextBlock x:Name="txtMachineNote" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,5">
+                <TextBlock.Inlines>
+                    <Run x:Name="txtMachineNoteText" Text="Machine Note Here"></Run>
+                    <Hyperlink x:Name="txtMachineNoteLink" RequestNavigate="txtMachineNoteLink_RequestNavigate">
+                        <TextBlock x:Name="txtMachineNoteLinkText" Text="https://www.example.com"></TextBlock>
+                    </Hyperlink>
+                </TextBlock.Inlines>
+            </TextBlock>
+        </StackPanel>
+
+        <Image x:Name="imgScreenPreview" StretchDirection="DownOnly" Grid.Row="1" />
+        
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5,0,0">
             <Button x:Name="btnStaticImageStart" Content="StartStaticImage" Margin="0,0,5,0" Click="btnStaticImageStart_Click"/>
             <Button x:Name="btnStaticImageRefresh" Content="Refresh" Margin="0,0,5,0" Click="btnStaticImageRefresh_Click"/>
             <Button x:Name="btnStaticImageRefreshFull" Content="Get full res. frame" Margin="0,0,5,0" Click="btnStaticImageRefreshFull_Click"/>
         </StackPanel>
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Grid.Column="1">
-            <Button x:Name="btnDashboardStartData" Content="StartDashboardData" Margin="0,0,5,0" Click="btnDashboardStartData_Click"/>
-            <Button x:Name="btnDashboardGetCpuRam" Content="GetCpuRam" Margin="0,0,5,0" Click="btnDashboardGetCpuRam_Click"/>
-            <Button x:Name="btnDashboardGetVolumes" Content="GetVolumes" Margin="0,0,5,0" Click="btnDashboardGetVolumes_Click"/>
+        
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Column="1" Margin="5,0,0,0" Grid.RowSpan="2">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <StackPanel x:Name="stackDisks">
+                    <!--<command:controlDisk/>-->
+                </StackPanel>
+                <TextBox x:Name="txtDashboard" Margin="0" Background="DarkSlateBlue" Foreground="White" FontFamily="Consolas" IsReadOnly="true" TextWrapping="Wrap" Grid.Row="1" />
+            </Grid>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Grid.Column="1" Margin="0,5,0,0">
+            <Button x:Name="btnDashboardStartData" Content="Start Data" Margin="5,0" Click="btnDashboardStartData_Click"/>
+            <Button x:Name="btnDashboardGetCpuRam" Content="CPU/RAM" Margin="0,0,5,0" Click="btnDashboardGetCpuRam_Click"/>
+            <Button x:Name="btnDashboardGetVolumes" Content="Volumes" Margin="0,0,5,0" Click="btnDashboardGetVolumes_Click"/>
         </StackPanel>
-        <TextBox x:Name="txtDashboard" Margin="0" Background="DarkSlateBlue" Foreground="White" FontFamily="Consolas" IsReadOnly="true" VerticalScrollBarVisibility="Auto" Grid.Column="1" TextWrapping="Wrap" />
-        <Grid Grid.Row="1" Margin="0,5" Grid.Column="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBox x:Name="txtDashboardInput" TextWrapping="Wrap" IsEnabled="False"/>
-            <Button x:Name="btnDashboardSend" Content="Send" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Grid.Column="1" Margin="5,0,0,0" IsEnabled="False" />
-        </Grid>
-        <Image x:Name="imgScreenPreview" StretchDirection="DownOnly" />
     </Grid>
 </UserControl>

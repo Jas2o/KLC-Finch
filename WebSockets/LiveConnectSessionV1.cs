@@ -1,5 +1,6 @@
 ﻿using KLC_Finch;
 using LibKaseya;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -23,6 +24,7 @@ namespace KLC {
         public Structure.EAL eal { get; private set; }
         public Structure.EIRC eirc { get; private set; }
         public string randSessionGuid { get; private set; }
+        public int RCNotify { get; private set; }
 
         public Dashboard ModuleDashboard;
         public StaticImage ModuleStaticImage; //Sub-module of Dashboard
@@ -45,6 +47,14 @@ namespace KLC {
 
             auth = KaseyaAuth.ApiAuthX(shorttoken);
             eal = Api15.EndpointsAdminLogin(shorttoken);
+
+            JObject rcNotifyPolicy = agent.GetRemoteControlNotifyPolicyFromAPI(shortToken);
+            if (rcNotifyPolicy["Result"] != null && rcNotifyPolicy["Result"]["RemoteControlNotify"] != null)
+                RCNotify = (int)rcNotifyPolicy["Result"]["RemoteControlNotify"];
+
+            ////dynamic agentSettings = agent.GetAgentSettingsInfoFromAPI(shorttoken);
+            ////dynamic auditSummary = agent.GetAgentAuditSummaryFromAPI(shorttoken);
+
             eirc = Api15.EndpointsInitiateRemoteControl(shorttoken, agentGuid);
             randSessionGuid = Guid.NewGuid().ToString();
 

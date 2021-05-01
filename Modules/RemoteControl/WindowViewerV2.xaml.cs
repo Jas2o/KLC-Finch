@@ -35,6 +35,10 @@ namespace KLC_Finch {
         private KLC.ClipBoardMonitor clipboardMon;
         private bool socketAlive = false;
         //private bool reachedFirstConnect = false;
+        //--
+        private List<TSSession> listTSSession = new List<TSSession>();
+        private TSSession currentTSSession = null;
+        //--
         private List<RCScreen> listScreen = new List<RCScreen>();
         private RCScreen currentScreen = null;
         private RCScreen previousScreen = null;
@@ -672,6 +676,7 @@ namespace KLC_Finch {
             });
         }
 
+        #region Host Desktop Configuration (Screens of current session)
         public void ClearScreens() {
             listScreen.Clear();
             previousScreen = currentScreen = null;
@@ -716,6 +721,62 @@ namespace KLC_Finch {
             if (useMultiScreen)
                 PositionCameraToCurrentScreen();
         }
+        #endregion
+
+        #region Host Terminal Sessions List
+        //public void SetActiveTSSession(string session_id) {
+            //currentTSSession = session_id;
+        //}
+
+        public void AddTSSession(string session_id, string session_name) {
+            TSSession newTSSession = new TSSession(session_id, session_name);
+            listTSSession.Add(newTSSession);
+
+            Dispatcher.Invoke((Action)delegate {
+                MenuItem item = new MenuItem();
+                item.Header = session_name;
+                item.Click += new RoutedEventHandler(toolTSSession_ItemClicked);
+
+                toolTSSession.Items.Add(item);
+                toolTSSession.Visibility = Visibility.Visible;
+
+                if (currentTSSession == null) {
+                    currentTSSession = newTSSession;
+                    toolTSSession.Header = currentTSSession.session_name;
+                }
+            });
+        }
+
+        public void ClearTSSessions() {
+            listTSSession.Clear();
+            currentTSSession = null;
+
+            Dispatcher.Invoke((Action)delegate {
+                toolTSSession.Items.Clear();
+            });
+        }
+
+        private void toolTSSession_ItemClicked(object sender, RoutedEventArgs e) {
+            MenuItem source = (MenuItem)e.Source;
+            string session_selected = source.Header.ToString();
+
+            TSSession selectedTSSession = listTSSession.First(x => x.session_name == session_selected);
+            if (currentTSSession == selectedTSSession)
+                return; //There's a bug with being in legacy, selecting the same session, it changes back to multi-screen but the mouse is wrong.
+
+            currentTSSession = selectedTSSession;
+            rc.ChangeTSSession(currentTSSession.session_id);
+
+            useMultiScreen = true;
+            Dispatcher.Invoke((Action)delegate {
+                toolTSSession.Header = currentTSSession.session_name;
+                toolScreenOverview.Header = "Overview";
+                //toolScreenOverview.IsEnabled = true;
+                toolZoomIn.Visibility = Visibility.Visible;
+                toolZoomOut.Visibility = Visibility.Visible;
+            });
+        }
+        #endregion
 
         private void PositionCameraToCurrentScreen() {
             if (!useMultiScreen)
@@ -732,8 +793,16 @@ namespace KLC_Finch {
 
         private void toolScreenOverview_Click(object sender, RoutedEventArgs e)
         {
-            if (!useMultiScreen)
-                return;
+            if (!useMultiScreen) {
+                useMultiScreen = true;
+                Dispatcher.Invoke((Action)delegate {
+                    toolScreenOverview.Header = "Overview";
+                    //toolScreenOverview.IsEnabled = true;
+                    toolZoomIn.Visibility = Visibility.Visible;
+                    toolZoomOut.Visibility = Visibility.Visible;
+                });
+                //return;
+            }
 
             ChangeViewToOverview();
         }
@@ -741,6 +810,20 @@ namespace KLC_Finch {
         private void ChangeViewToOverview() {
             if (!useMultiScreen)
                 return;
+
+            int lowestX = 0;
+            int lowestY = 0;
+            int highestX = 0;
+            int highestY = 0;
+            foreach(RCScreen screen in listScreen) {
+                lowestX = Math.Min(screen.rect.X, lowestX);
+                lowestY = Math.Min(screen.rect.Y, lowestY);
+                highestX = Math.Max(screen.rect.X + screen.rect.Width, highestX);
+                highestY = Math.Max(screen.rect.Y + screen.rect.Height, highestY);
+            }
+            SetCanvas(lowestX, lowestY, highestX, highestY);
+
+            //--
 
             //MainCamera.Rotation = 0f;
             MainCamera.Position = Vector2.Zero;
@@ -786,7 +869,7 @@ namespace KLC_Finch {
 
                         Dispatcher.Invoke((Action)delegate {
                             toolScreenOverview.Header = "Legacy";
-                            toolScreenOverview.IsEnabled = false;
+                            //toolScreenOverview.IsEnabled = false;
                             toolZoomIn.Visibility = Visibility.Collapsed;
                             toolZoomOut.Visibility = Visibility.Collapsed;
                         });
@@ -816,7 +899,7 @@ namespace KLC_Finch {
                     return;
 
                 if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
-                    Console.WriteLine("Virtual resolution did not match texture received.");
+                    Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
                     SetVirtual(0, 0, width, height);
 
                     try {
@@ -843,6 +926,12 @@ namespace KLC_Finch {
                 textureLegacyHeight = height;
 
                 BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+                if (textureLegacyData != null && textureLegacyData.Length != Math.Abs(data.Stride * data.Height)) {
+                    virtualRequireViewportUpdate = true;
+                    Console.WriteLine("[LoadTexture:Legacy] Array needs to be resized");
+                }
+
                 if (textureLegacyData == null || virtualRequireViewportUpdate)
                     textureLegacyData = new byte[Math.Abs(data.Stride * data.Height)];
                 Marshal.Copy(data.Scan0, textureLegacyData, 0, textureLegacyData.Length); //This can fail with re-taking over private remote control
@@ -1265,6 +1354,8 @@ namespace KLC_Finch {
                 rc.SendMousePosition((int)point.X, (int)point.Y);
             } else {
                 //Legacy behavior
+                if (!controlEnabled || !this.IsActive)
+                    return;
 
                 System.Drawing.Point legacyPoint = new System.Drawing.Point(e.X - vpX, e.Y - vpY);
                 if (legacyPoint.X < 0 || legacyPoint.Y < 0)

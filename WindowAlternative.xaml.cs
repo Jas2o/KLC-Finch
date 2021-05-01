@@ -115,7 +115,13 @@ namespace KLC_Finch {
         }
 
         private void ctrlDashboard_Loaded(object sender, RoutedEventArgs e) {
+            if (session == null)
+                return;
+
+            ctrlDashboard.DisplayRCNotify(session.RCNotify);
+            ctrlDashboard.DisplayMachineNote(session.agent.MachineNote, session.agent.MachineShowToolTip);
             ctrlDashboard.btnStaticImageStart_Click(sender, e);
+            ctrlDashboard.btnDashboardStartData_Click(sender, e);
         }
 
         private void btnWiresharkFilter_Click(object sender, RoutedEventArgs e) {

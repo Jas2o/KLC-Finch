@@ -23,6 +23,7 @@
             <MenuItem x:Name="toolToggleControl" Header="Control Enabled" Click="toolToggleControl_Click" />
             <MenuItem x:Name="toolKeyWin" Header="Win" Click="toolKeyWin_Click" />
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <MenuItem x:Name="toolTSSession" Header="Session" Visibility="Collapsed" />
             <MenuItem x:Name="toolScreen" Header="Screen" />
             <MenuItem x:Name="toolScreenOverview" Header="Overview" Click="toolScreenOverview_Click" />
             <MenuItem x:Name="toolZoomIn" Header="Zoom In" Click="toolZoomIn_Click" />

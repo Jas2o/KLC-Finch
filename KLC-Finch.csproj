@@ -106,6 +106,9 @@
     <Compile Include="Modules\Dashboard\controlDashboard.xaml.cs">
       <DependentUpon>controlDashboard.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Modules\Dashboard\controlDisk.xaml.cs">
+      <DependentUpon>controlDisk.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Modules\Dashboard\Dashboard.cs" />
     <Compile Include="Modules\Dashboard\StaticImage.cs" />
     <Compile Include="Modules\Events\controlEvents.xaml.cs">
@@ -160,9 +163,10 @@
     <Compile Include="Modules\RemoteControl\RemoteControl.cs" />
     <Compile Include="Modules\RemoteControl\OTK\FPSCounter.cs" />
     <Compile Include="Modules\RemoteControl\OTK\RCScreen.cs" />
-    <Compile Include="Modules\RemoteControl\WindowViewerV1.xaml.cs">
+    <None Include="Modules\RemoteControl\WindowViewerV1.xaml.cs">
       <DependentUpon>WindowViewerV1.xaml</DependentUpon>
-    </Compile>
+    </None>
+    <Compile Include="Modules\RemoteControl\TSSession.cs" />
     <Compile Include="Modules\RemoteControl\WindowViewerV2.xaml.cs">
       <DependentUpon>WindowViewerV2.xaml</DependentUpon>
     </Compile>
@@ -196,6 +200,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Modules\Dashboard\controlDashboard.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\Dashboard\controlDisk.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -239,10 +247,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Modules\RemoteControl\WindowViewerV1.xaml">
+    <None Include="Modules\RemoteControl\WindowViewerV1.xaml">
       <SubType>Designer</SubType>
       <Generator>XamlIntelliSenseFileGenerator</Generator>
-    </Page>
+    </None>
     <Page Include="Modules\RemoteControl\WindowViewerV2.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
