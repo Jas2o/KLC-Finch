@@ -326,12 +326,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\Icon.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Resource>
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\tray-arrow-down.png" />
   </ItemGroup>
   <ItemGroup>

@@ -1,5 +1,7 @@
-﻿namespace KLC_Finch.Modules {
-    public class ServiceValue {
+﻿using System;
+
+namespace KLC_Finch.Modules {
+    public class ServiceValue : IComparable {
 
         public int ServiceStatus { get; private set; }
         public string DisplayName { get; private set; }
@@ -27,6 +29,14 @@
             Description = (string)s["Description"];
             StartupType = (string)s["StartupType"];
             StartName = (string)s["StartName"];
+        }
+
+        public int CompareTo(object obj) {
+            return DisplayName.CompareTo(((ServiceValue)obj).DisplayName);
+        }
+
+        public override string ToString() {
+            return DisplayName;
         }
     }
 }

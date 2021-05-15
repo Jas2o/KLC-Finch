@@ -1,15 +1,7 @@
 ﻿using Fleck;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using RestSharp;
 using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Web;
-using System.Windows.Controls;
 
 namespace KLC_Finch.Modules {
     public class Services {
@@ -51,15 +43,11 @@ namespace KLC_Finch.Modules {
                     */
 
                     if (temp["contentsList"] != null) {
-                        servicesData.ServicesClear();
-                        //Probably should update what's already there
-
+                        //servicesData.ServicesClear(); //Probably should update what's already there
                         foreach (dynamic s in temp["contentsList"].Children()) {
                             ServiceValue sv = new ServiceValue(s);
                             servicesData.ServicesAdd(sv);
                         }
-
-                        //UpdateDisplayValues();
                     }
 
                     break;

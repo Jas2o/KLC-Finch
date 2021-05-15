@@ -1,17 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace KLC_Finch {
     /// <summary>
@@ -52,7 +42,7 @@ namespace KLC_Finch {
                 return;
 
             lblServiceInfo.Text = sv.ServiceName + "\r\n" + sv.Description;
-            ToggleButtons(true);
+            ToggleButtons(sv.ServiceStatus, sv.StartupType);
         }
 
         private void btnServicesSelectedStart_Click(object sender, RoutedEventArgs e) {
@@ -134,6 +124,16 @@ namespace KLC_Finch {
             btnServicesSetDisabled.IsEnabled = value;
         }
 
+        private void ToggleButtons(int serviceStatus, string StartupType) {
+            btnServicesSelectedStop.IsEnabled = (serviceStatus == 4);
+            btnServicesSelectedStart.IsEnabled = (serviceStatus == 1);
+            btnServicesSelectedRestart.IsEnabled = (serviceStatus == 4);
+
+            btnServicesSetAuto.IsEnabled = (StartupType != "Automatic");
+            btnServicesSetManual.IsEnabled = (StartupType != "On demand");
+            btnServicesSetDisabled.IsEnabled = (StartupType != "");
+        }
+
         private string typedChars = string.Empty;
 
         private void dgvServices_PreviewKeyDown(object sender, KeyEventArgs e) {
@@ -150,9 +150,10 @@ namespace KLC_Finch {
 
             Modules.ServiceValue match = null;
             foreach (Modules.ServiceValue sv in dgvServices.Items) {
-                if (sv.DisplayName.StartsWith(typedChars, true, System.Globalization.CultureInfo.InvariantCulture))
+                if (sv.DisplayName.StartsWith(typedChars, true, System.Globalization.CultureInfo.InvariantCulture)) {
                     match = sv;
-                else if (match != null)
+                    break;
+                } else if (match != null)
                     break;
             }
 
