@@ -33,6 +33,8 @@ namespace KLC_Finch {
             if (session != null) {
                 btnEventsStart.IsEnabled = false;
                 lblExtended.Content = "";
+                lblExtended.ToolTip = "";
+                lblExtended.Visibility = Visibility.Collapsed;
 
                 moduleEvents = new Modules.Events(session, eventsData, cmbLogType);
                 session.ModuleEvents = moduleEvents;
@@ -45,16 +47,22 @@ namespace KLC_Finch {
 
             string value = ((ComboBox)sender).SelectedValue.ToString();
             if (value == Modules.Events.LabelExtended) {
-                WindowEventsExtended wext = new WindowEventsExtended(lblExtended.Content.ToString());
+                WindowEventsExtended wext = new WindowEventsExtended(lblExtended.ToolTip.ToString());
                 wext.Owner = ((WindowAlternative)Window.GetWindow(this));
                 bool accept = (bool)wext.ShowDialog();
                 if (accept) {
                     moduleEvents.SetLogType(wext.ReturnValue);
-                    lblExtended.Content = wext.ReturnValue;
+
+                    string[] split = wext.ReturnValue.Split(new char[] { '-' });
+                    lblExtended.Content = split.Last();
+                    lblExtended.ToolTip = wext.ReturnValue;
+                    lblExtended.Visibility = Visibility.Visible;
                 }
             } else {
                 moduleEvents.SetLogType(value);
                 lblExtended.Content = "";
+                lblExtended.ToolTip = "";
+                lblExtended.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -89,5 +97,8 @@ namespace KLC_Finch {
             txtEventCategory.Content = ev.Category;
         }
 
+        private void txtFilter_TextChanged(object sender, TextChangedEventArgs e) {
+            eventsData.Filter(txtFilter.Text);
+        }
     }
 }

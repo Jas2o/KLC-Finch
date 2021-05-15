@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace KLC_Finch.Modules {
-    public class ProcessValue {
+    public class ProcessValue : IComparable {
 
         public int PID { get; private set; }
         public string DisplayName { get; private set; }
@@ -15,6 +15,14 @@ namespace KLC_Finch.Modules {
             UserName = (string)p["UserName"];
             Memory = int.Parse((string)p["Memory"]);
             CPU = (int)Math.Ceiling(double.Parse((string)p["CPU"]));
+        }
+
+        public int CompareTo(object obj) {
+            return DisplayName.CompareTo(((ProcessValue)obj).DisplayName);
+        }
+
+        public override string ToString() {
+            return DisplayName;
         }
     }
 }

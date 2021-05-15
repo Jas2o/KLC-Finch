@@ -17,11 +17,12 @@
             <Button x:Name="btnEventsStart" Content="Start" Width="50" Margin="0,0,5,0" Click="btnEventsStart_Click"/>
             <Button x:Name="btnEventsRefresh" Content="Refresh" Margin="0,0,5,0" Click="btnEventsRefresh_Click" Width="50" />
             <Button x:Name="btnEventsMore" Content="More" Width="50" Margin="0,0,5,0" Click="btnEventsMore_Click" />
-            <Button x:Name="btnEventsFilter" Content="Filter" Width="50" Margin="0,0,5,0" IsEnabled="False" />
+            <Button x:Name="btnEventsFilter" Content="Filter" Width="50" Margin="0,0,5,0" IsEnabled="False" Visibility="Collapsed" />
             <Label Content="Get Log:" />
             <ComboBox x:Name="cmbLogType" Width="120" DropDownClosed="cmbLogType_DropDownClosed"/>
             <Label x:Name="lblExtended" Content="Extended" Margin="0,0,5,0" />
-            <!--<ComboBox x:Name="cmbLogTypeExtended" Width="350" ItemsSource="{Binding ListTypeExtended, Mode=OneWay}" SelectionChanged="cmbLogType_SelectionChanged"/>-->
+            <Label Content="Filter:" Margin="0,0,5,0" VerticalAlignment="Center" />
+            <TextBox x:Name="txtFilter" Width="100" VerticalAlignment="Center" TextChanged="txtFilter_TextChanged" />
         </StackPanel>
         <DataGrid x:Name="dgvEventsValues" Grid.Row="1" ItemsSource="{Binding ListEvent, Mode=Oneway}" IsReadOnly="True" AutoGenerateColumns="False" SelectionChanged="dgvEventsValues_SelectionChanged" SelectionMode="Single">
             <DataGrid.Columns>

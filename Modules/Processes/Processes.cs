@@ -57,14 +57,12 @@ namespace KLC_Finch.Modules {
 
                     if (temp["contentsList"] != null) {
                         processesData.ProcessesClear();
-                        //Probably should update what's already there
+                        //Probably should update what's already there, but for Processes it's just easier to clear it.
 
                         foreach (dynamic p in temp["contentsList"].Children()) {
                             ProcessValue pv = new ProcessValue(p);
                             processesData.ProcessesAdd(pv);
                         }
-
-                        //UpdateDisplayValues();
                     }
                     break;
 

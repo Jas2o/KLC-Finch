@@ -80,9 +80,10 @@ namespace KLC_Finch {
 
             Modules.ProcessValue match = null;
             foreach (Modules.ProcessValue pv in dgvProcesses.Items) {
-                if (pv.DisplayName.StartsWith(typedChars, true, System.Globalization.CultureInfo.InvariantCulture))
+                if (pv.DisplayName.StartsWith(typedChars, true, System.Globalization.CultureInfo.InvariantCulture)) {
                     match = pv;
-                else if (match != null)
+                    break;
+                } else if (match != null)
                     break;
             }
 
@@ -95,6 +96,10 @@ namespace KLC_Finch {
 
         private void dgvProcesses_PreviewMouseDown(object sender, MouseButtonEventArgs e) {
             typedChars = string.Empty;
+        }
+
+        private void txtFilterName_TextChanged(object sender, TextChangedEventArgs e) {
+            processesData.Filter(txtFilterName.Text);
         }
     }
 }

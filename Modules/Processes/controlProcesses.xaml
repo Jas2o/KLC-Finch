@@ -15,6 +15,8 @@
             <Button x:Name="btnProcessesRefresh" Content="Refresh" Margin="0,0,5,0" Click="btnProcessesRefresh_Click" />
             <Button x:Name="btnProcesseSafety" Content="(Safety)" Margin="0,0,5,0" Click="btnProcesseSafety_Click" />
             <Button x:Name="btnProcesseEnd" Content="End Task" Margin="0,0,5,0" Click="btnProcesseEnd_Click" />
+            <Label Content="Filter by Name:" Margin="0,0,5,0" VerticalAlignment="Center" />
+            <TextBox x:Name="txtFilterName" Width="100" VerticalAlignment="Center" TextChanged="txtFilterName_TextChanged" />
         </StackPanel>
         <DataGrid x:Name="dgvProcesses" Grid.Row="1" ItemsSource="{Binding ListProcess, Mode=Oneway}" IsReadOnly="True" AutoGenerateColumns="False" SelectionMode="Single" SelectionChanged="dgvProcesses_SelectionChanged" PreviewKeyDown="dgvProcesses_PreviewKeyDown" PreviewMouseDown="dgvProcesses_PreviewMouseDown">
             <DataGrid.Resources>

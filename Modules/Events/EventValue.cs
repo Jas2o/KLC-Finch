@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace KLC_Finch.Modules {
-    public class EventValue {
+    public class EventValue : IComparable {
 
         public string SourceName { get; private set; } //Microsoft-Windows-Security-SPP
         public uint IdRaw { get; private set; } //Actually a number, but I don't trust Kaseya - 1073758208,
@@ -46,6 +46,14 @@ namespace KLC_Finch.Modules {
 
             EventId = (int)(IdRaw & 0xFFFF);
             EventQualifiers = (int)((IdRaw >> 16) & 0xFFFF);
+        }
+
+        public int CompareTo(object obj) {
+            return EventId.CompareTo(((EventValue)obj).EventId);
+        }
+
+        public override string ToString() {
+            return SourceName;
         }
 
         /*

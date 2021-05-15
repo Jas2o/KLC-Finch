@@ -101,5 +101,9 @@ namespace KLC_Finch {
             return value.Length <= maxChars ? value : value.Substring(0, maxChars) + "...";
         }
 
+        public static string TruncateEnd(this string value, int maxChars) {
+            return value.Length <= maxChars ? value : "..." + value.Substring(value.Length-maxChars, maxChars);
+        }
+
     }
 }
