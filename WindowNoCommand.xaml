@@ -19,6 +19,7 @@
             <RowDefinition/>
             <RowDefinition/>
             <RowDefinition/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <TextBlock TextWrapping="Wrap" Text="No KLC payload has been given, for debugging enter your Auth Token and select an agent." TextAlignment="Center" Grid.ColumnSpan="3" Margin="5"/>
         <TextBlock Grid.Row="1" TextWrapping="Wrap" Text="Token" VerticalAlignment="Center" Margin="5,0"/>
@@ -38,6 +39,6 @@
         <Button x:Name="btnLaunchWinTeamviewerShared" Content="TV Shared" Grid.Column="2" Grid.Row="4" Margin="5" Click="btnLaunchWinTeamviewerShared_Click" />
         <Button x:Name="btnLaunchRCTest" Content="RC Test" Grid.Column="1" Grid.Row="5" Margin="5" Click="btnLaunchRCTest_Click"/>
         <Button x:Name="btnLaunchNull" Content="Null" Grid.Column="2" Grid.Row="5" Margin="5" Click="btnLaunchNull_Click"/>
-
+        <CheckBox x:Name="chkUseMITM" Content="MITM" Margin="0,0,5,0" VerticalAlignment="Center" Grid.Row="3" Checked="chkUseMITM_Change" Unchecked="chkUseMITM_Change" />
     </Grid>
 </Window>

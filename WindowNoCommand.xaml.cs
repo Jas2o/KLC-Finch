@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -30,6 +31,9 @@ namespace KLC_Finch {
             string savedAuthToken = KaseyaAuth.GetStoredAuth();
             if (savedAuthToken != null)
                 txtAuthToken.Password = savedAuthToken;
+
+            if (!File.Exists(@"C:\Program Files\Kaseya Live Connect-MITM\KaseyaLiveConnect.exe"))
+                chkUseMITM.Visibility = Visibility.Collapsed;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
@@ -111,6 +115,10 @@ namespace KLC_Finch {
                 App.alternative = new WindowAlternative(val, txtAuthToken.Password);
                 App.alternative.Show();
             }
+        }
+
+        private void chkUseMITM_Change(object sender, RoutedEventArgs e) {
+            KLC.WsA.useInternalMITM = (bool)chkUseMITM.IsChecked;
         }
     }
 }

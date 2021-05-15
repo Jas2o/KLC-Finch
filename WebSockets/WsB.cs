@@ -63,11 +63,12 @@ namespace KLC {
             string path = socket.ConnectionInfo.Path.Replace("?Y2", "");
             switch (path) {
                 case "/control/agent":
-                    App.ShowUnhandledExceptionFromSrc(message, "Websocket B Control Agent");
+                    if (message.Contains("RemoteControl") && Session.ModuleRemoteControl != null) {
+                        ////{"extendedError":2,"id":"5c419d84-20d7-448a-9605-73df69c52261","p2pConnectionId":"4bc14e73-b863-4586-a0fe-ea331f83ac25","result":false,"type":"RemoteControl"}
+                        Session.ModuleRemoteControl.Disconnect(path); //Should be session ID but meh
+                    } else
+                        App.ShowUnhandledExceptionFromSrc(message, "Websocket B Control Agent");
                     //Console.WriteLine("ServerB Message Unhandled [ControlAgent]: " + message);
-
-                    //Declined remote control
-                    //{"extendedError":2,"id":"5c419d84-20d7-448a-9605-73df69c52261","p2pConnectionId":"4bc14e73-b863-4586-a0fe-ea331f83ac25","result":false,"type":"RemoteControl"}
                     break;
 
                 case "/app/dashboard":

@@ -90,6 +90,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AddToLib\Api15.cs" />
+    <Compile Include="AddToLib\DropdownButton.cs" />
     <Compile Include="AddToLib\EAL.cs" />
     <Compile Include="AddToLib\EIRC.cs" />
     <Compile Include="AddToLib\FormatKbSizeConverter.cs" />
@@ -167,6 +168,9 @@
       <DependentUpon>WindowViewerV1.xaml</DependentUpon>
     </None>
     <Compile Include="Modules\RemoteControl\TSSession.cs" />
+    <Compile Include="Modules\RemoteControl\WindowOptions.xaml.cs">
+      <DependentUpon>WindowOptions.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Modules\RemoteControl\WindowViewerV2.xaml.cs">
       <DependentUpon>WindowViewerV2.xaml</DependentUpon>
     </Compile>
@@ -251,6 +255,10 @@
       <SubType>Designer</SubType>
       <Generator>XamlIntelliSenseFileGenerator</Generator>
     </None>
+    <Page Include="Modules\RemoteControl\WindowOptions.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Modules\RemoteControl\WindowViewerV2.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -316,6 +324,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\Icon.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\tray-arrow-down.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\tray-arrow-up.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\magnify-plus-outline.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\magnify-minus-outline.png" />
   </ItemGroup>
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaLiveConnect\LibKaseyaLiveConnect.projitems" Label="Shared" />

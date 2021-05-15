@@ -21,5 +21,6 @@ namespace KLC_Finch {
         public bool DisplayOverlayKeyboardOther { get; set; } = false;
         public uint RemoteControlWidth { get; set; } = 1370;  //The same as Kaseya
         public uint RemoteControlHeight { get; set; } = 800;
+        public bool MacSwapCtrlWin { get; set; } = false;
     }
 }

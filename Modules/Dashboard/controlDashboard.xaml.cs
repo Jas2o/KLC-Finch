@@ -115,8 +115,12 @@ namespace KLC_Finch {
                 txtRCNotify.Text = "Unknown RC notify policy: " + policy;
         }
 
-        public void DisplayMachineNote(string machineNote, int machineShowToolTip) {
-            if (machineNote.Length == 0) {
+        //session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink
+        public void DisplayMachineNote(int machineShowToolTip, string machineNote, string machineNoteLink=null) {
+            if (machineNote == null)
+                return;
+
+            if (machineShowToolTip == 0 && machineNote.Length == 0) {
                 txtSpecialInstructions.Visibility = txtMachineNote.Visibility = Visibility.Collapsed;
                 return;
             }
@@ -128,17 +132,13 @@ namespace KLC_Finch {
                     txtSpecialInstructions.Text += " (" + machineShowToolTip + ")";
             }
 
-            string link = string.Empty;
-            string[] links = machineNote.Split("\t\n ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries).Where(s => s.StartsWith("http://") || s.StartsWith("https://") || s.StartsWith("www.")).ToArray();
-
-            if (links != null && links.Length > 0) {
-                link = links[0];
-                txtMachineNoteLink.NavigateUri = new Uri(link);
-                txtMachineNoteLinkText.Text = link;
-                txtMachineNoteText.Text = machineNote.Replace(link, "").Trim();
+            if (machineNoteLink != null) {
+                txtMachineNoteLink.NavigateUri = new Uri(machineNoteLink);
+                txtMachineNoteLinkText.Text = machineNoteLink;
+                txtMachineNoteText.Text = machineNote;
             } else {
                 txtMachineNoteLinkText.Text = string.Empty;
-                txtMachineNoteText.Text = machineNote.Trim();
+                txtMachineNoteText.Text = machineNote;
             }
 
         }

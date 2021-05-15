@@ -50,8 +50,9 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
 
-            Viewer = App.viewer = new WindowViewerV2(this, 1920, 1080);
+            Viewer = App.viewer = new WindowViewerV2(this, 1920, 1080, session.agent.IsMac);
             Viewer.SetTitle(session.agent.Name + "::" + (modePrivate ? "Private" : "Shared"));
+            Viewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             Viewer.Show();
 
             if (session != null) {
@@ -129,9 +130,11 @@ namespace KLC_Finch {
             byte type = bytes[0];
 
             if (type == 0x27) {
-                Console.WriteLine("Connected RC?");
+                Viewer.ClearApproval();
             } else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported) {
-                Console.WriteLine("SessionNotSupported");
+                App.ShowUnhandledExceptionFromSrc("SessionNotSupported", "Remote Control");
+                Viewer.NotifySocketClosed(rcSessionId);
+                serverB.Close();
                 //Private session failed, this is supposed to prompt the user if they want to use a Shared session
             } else if (type == (byte)Enums.KaseyaMessageTypes.PrivateSessionDisconnected) {
                 Console.WriteLine("PrivateSessionDisconnected");

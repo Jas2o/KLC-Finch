@@ -119,7 +119,7 @@ namespace KLC_Finch {
                 return;
 
             ctrlDashboard.DisplayRCNotify(session.RCNotify);
-            ctrlDashboard.DisplayMachineNote(session.agent.MachineNote, session.agent.MachineShowToolTip);
+            ctrlDashboard.DisplayMachineNote(session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             ctrlDashboard.btnStaticImageStart_Click(sender, e);
             ctrlDashboard.btnDashboardStartData_Click(sender, e);
         }

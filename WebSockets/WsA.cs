@@ -24,7 +24,7 @@ namespace KLC {
 
         public bool HasCompleted { get; private set; }
 
-        private static bool useInternalMITM = false; //Hawk
+        public static bool useInternalMITM = false; //Hawk
         private static bool useExternalMITM = false; //Port M
 
         public WsA(LiveConnectSession session, int portA, int portB) {

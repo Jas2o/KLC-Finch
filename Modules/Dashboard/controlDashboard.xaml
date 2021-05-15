@@ -19,7 +19,7 @@
         </Grid.RowDefinitions>
         <StackPanel>
             <TextBlock x:Name="txtRCNotify" Text="Remote control notify policy here." TextAlignment="Center" Margin="0,0,0,5"/>
-            <TextBlock x:Name="txtSpecialInstructions"  Text="Special Instructions for this Machine" FontWeight="Bold" TextAlignment="Center" Margin="0,0,0,5"/>
+            <TextBlock x:Name="txtSpecialInstructions" Text="Special Instructions for this Machine" FontWeight="Bold" TextAlignment="Center" Margin="0,0,0,5"/>
             <TextBlock x:Name="txtMachineNote" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,5">
                 <TextBlock.Inlines>
                     <Run x:Name="txtMachineNoteText" Text="Machine Note Here"></Run>
