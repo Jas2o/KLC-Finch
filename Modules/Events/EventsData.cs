@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
 
 namespace KLC_Finch.Modules {
-    public class EventsData {
+    public class EventsData : INotifyPropertyChanged {
 
         public ObservableCollection<string> ListType { get; set; }
         public ObservableCollection<EventValue> ListEvent { get; set; }
@@ -20,6 +21,16 @@ namespace KLC_Finch.Modules {
             if (_listCollectionView != null) {
                 _listCollectionView.IsLiveSorting = true;
                 _listCollectionView.CustomSort = new CaseInsensitiveComparer(CultureInfo.InvariantCulture);
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged {
+            add {
+                ((INotifyPropertyChanged)ListEvent).PropertyChanged += value;
+            }
+
+            remove {
+                ((INotifyPropertyChanged)ListEvent).PropertyChanged -= value;
             }
         }
 
