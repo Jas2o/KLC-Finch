@@ -178,5 +178,15 @@ namespace KLC_Finch {
             btnFilesFolderDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
             btnFilesFileDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
         }
+
+        private void txtFilesPath_PreviewKeyDown(object sender, KeyEventArgs e) {
+            if (moduleFileExplorer == null)
+                return;
+
+            if (e.Key == Key.Enter) {
+                moduleFileExplorer.GoTo(txtFilesPath.Text);
+                e.Handled = true;
+            }
+        }
     }
 }

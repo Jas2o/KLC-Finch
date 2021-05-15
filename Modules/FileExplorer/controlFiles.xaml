@@ -22,7 +22,7 @@
                 <Button x:Name="btnFilesStart" Content="Start" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="0,0,5,0" Click="btnFilesStart_Click"/>
                 <Button x:Name="btnFilesPathUp" Content="Up" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="0,0,5,0" Click="btnFilesPathUp_Click" />
             </StackPanel>
-            <TextBox x:Name="txtFilesPath" TextWrapping="Wrap" Grid.Column="1"/>
+            <TextBox x:Name="txtFilesPath" TextWrapping="Wrap" Grid.Column="1" PreviewKeyDown="txtFilesPath_PreviewKeyDown"/>
             <Button x:Name="btnFilesPathJump" Content="Jump" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Grid.Column="2" Margin="5,0,0,0" Click="btnFilesPathJump_Click" />
         </Grid>
         <Grid Grid.Row="1">

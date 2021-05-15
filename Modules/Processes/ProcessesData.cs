@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
 
 namespace KLC_Finch.Modules {
-    public class ProcessesData {
+    public class ProcessesData : INotifyPropertyChanged {
 
         public ObservableCollection<ProcessValue> ListProcess { get; set; }
         private ListCollectionView _listCollectionView;
@@ -18,6 +19,16 @@ namespace KLC_Finch.Modules {
             if (_listCollectionView != null) {
                 _listCollectionView.IsLiveSorting = true;
                 _listCollectionView.CustomSort = new CaseInsensitiveComparer(CultureInfo.InvariantCulture);
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged {
+            add {
+                ((INotifyPropertyChanged)ListProcess).PropertyChanged += value;
+            }
+
+            remove {
+                ((INotifyPropertyChanged)ListProcess).PropertyChanged -= value;
             }
         }
 

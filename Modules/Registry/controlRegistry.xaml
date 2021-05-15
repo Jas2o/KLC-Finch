@@ -21,7 +21,7 @@
                 <Button x:Name="btnRegistryStart" Content="Start" HorizontalAlignment="Left" Width="75" Margin="0,0,5,0" Click="btnRegistryStart_Click"/>
                 <Button x:Name="btnRegistryPathUp" Content="Up" HorizontalAlignment="Left" Width="75" Margin="0,0,5,0" Click="btnRegistryPathUp_Click" />
             </StackPanel>
-            <TextBox x:Name="txtRegistryPath" TextWrapping="Wrap" Grid.Column="1"/>
+            <TextBox x:Name="txtRegistryPath" TextWrapping="Wrap" Grid.Column="1" PreviewKeyDown="txtRegistryPath_PreviewKeyDown"/>
             <Button x:Name="btnRegistryPathJump" Content="Jump" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Grid.Column="2" Margin="5,0,0,0" Click="btnRegistryPathJump_Click" />
         </Grid>
         <Grid Grid.Row="1">

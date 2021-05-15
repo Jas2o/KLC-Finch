@@ -41,6 +41,11 @@ namespace KLC_Finch {
             txtUsed.Text = string.Format("{0} ({1}%) used", usedSb.ToString(), usedPercent);
 
             progressBar.Value = usedPercent;
+
+            if(usedPercent >= 95)
+                progressBar.Foreground = new SolidColorBrush(Colors.Red);
+            else if(usedPercent >= 90)
+                progressBar.Foreground = new SolidColorBrush(Colors.Goldenrod);
         }
     }
 }

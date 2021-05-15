@@ -309,5 +309,15 @@ namespace KLC_Finch {
                     break;
             }
         }
+
+        private void txtRegistryPath_PreviewKeyDown(object sender, KeyEventArgs e) {
+            if (moduleRegistry == null)
+                return;
+
+            if(e.Key == Key.Enter) {
+                moduleRegistry.GoTo(txtRegistryPath.Text);
+                e.Handled = true;
+            }
+        }
     }
 }
