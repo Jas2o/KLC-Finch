@@ -14,9 +14,19 @@
         <StackPanel Orientation="Horizontal">
             <Button x:Name="btnCommandStart" Content="Start" Width="75" Click="btnCommandStart_Click" Margin="0,0,5,0"/>
             <Button x:Name="btnCommandKill" Content="KillCommand" Width="85" Margin="0,0,5,0" Click="btnCommandKill_Click"/>
-            <Button x:Name="btnCommandClear" Content="Clear" Width="75" Margin="0,0,5,0" Click="btnCommandClear_Click" />
-            <Button x:Name="btnCommandMacKillKRCH" Content="(Mac) Kill KaseyaRemoteControlHost" Width="215" Margin="0,0,5,0" Click="btnCommandMacKillKRCH_Click"/>
+            <!--<Button x:Name="btnCommandClear" Content="Clear" Width="75" Margin="0,0,5,0" Click="btnCommandClear_Click" />-->
+            <Label Content="Scrollback:" Margin="0,0,5,0" VerticalAlignment="Center" />
+            <Button x:Name="btnCommandScrollback" Content="Little (Fast)" Width="75" Margin="0,0,5,0" Click="btnCommandScrollback_Click" />
+            <Button x:Name="btnCommandScrollbackSlow" Content="Far (Slow)" Width="75" Margin="0,0,5,0" Click="btnCommandScrollbackSlow_Click" />
+            <CheckBox x:Name="chkAllowColour" Content="Allow Colour" VerticalAlignment="Center" Margin="0,0,5,0" />
+            <Button x:Name="btnCommandMacKillKRCH" Content="Kill KRCH" Width="75" Margin="0,0,5,0" Click="btnCommandMacKillKRCH_Click">
+                <Button.ToolTip>
+                    <TextBlock>Kill KaseyaRemoteControlHost<LineBreak />for when Mac RC is unresponsive.</TextBlock>
+                </Button.ToolTip>
+            </Button>
         </StackPanel>
+        
+        <TextBox x:Name="txtCommand" Grid.Row="1" Margin="0,5,0,0" Background="Black" Foreground="White" FontFamily="Consolas" IsReadOnly="true" VerticalScrollBarVisibility="Auto" />
         <RichTextBox x:Name="richCommand" Grid.Row="1" Margin="0,5,0,0" Background="Black" Foreground="White" FontFamily="Consolas" IsReadOnly="true" UseLayoutRounding="False" VerticalScrollBarVisibility="Auto">
             <RichTextBox.Resources>
                 <Style TargetType="{x:Type Paragraph}">
@@ -24,12 +34,13 @@
                 </Style>
             </RichTextBox.Resources>
         </RichTextBox>
+        
         <Grid Grid.Row="2" Margin="0,5,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="txtCommandInput" TextWrapping="Wrap" KeyDown="txtCommandInput_KeyDown" PreviewKeyDown="txtCommandInput_PreviewKeyDown"/>
+            <TextBox x:Name="txtCommandInput" TextWrapping="Wrap" AcceptsReturn="true" VerticalScrollBarVisibility="Auto" PreviewKeyDown="txtCommandInput_PreviewKeyDown"/>
             <Button x:Name="btnCommandLineMode" Content="Line Mode" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Grid.Column="1" Margin="5,0,0,0" Click="btnCommandLineMode_Click" IsEnabled="False" />
         </Grid>
     </Grid>

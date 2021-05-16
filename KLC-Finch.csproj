@@ -79,6 +79,9 @@
     <Reference Include="VP8.NET">
       <HintPath>..\KLC-Hawk\VP8.NET.dll</HintPath>
     </Reference>
+    <Reference Include="VtNetCore, Version=1.0.30.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\VtNetCore.1.0.30\lib\net46\VtNetCore.dll</HintPath>
+    </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -95,7 +98,8 @@
     <Compile Include="AddToLib\EIRC.cs" />
     <Compile Include="AddToLib\FormatKbSizeConverter.cs" />
     <Compile Include="AddToLib\Util.cs" />
-    <Compile Include="Modules\Command\BaseTerm.cs" />
+    <Compile Include="Modules\Command\BaseTermTXTv1.cs" />
+    <Compile Include="Modules\Command\BaseTermRTB.cs" />
     <Compile Include="Modules\Command\CommandPowershell.cs" />
     <Compile Include="Modules\Command\CommandTerminal.cs" />
     <Compile Include="Modules\Command\controlPowershell.xaml.cs">

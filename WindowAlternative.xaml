@@ -32,7 +32,7 @@
                 </Grid>
             </TabItem>
             <TabItem x:Name="tabCommand" Header="Command Prompt" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Margin="0">
-                <command:controlCommand />
+                <command:controlCommand x:Name="ctrlCommand" />
             </TabItem>
             <TabItem x:Name="tabPowershell" Header="Powershell" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Margin="0">
                 <command:controlPowershell />

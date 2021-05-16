@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -12,6 +13,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using VtNetCore.VirtualTerminal;
+using VtNetCore.XTermParser;
 
 namespace KLC_Finch {
     /// <summary>
@@ -21,20 +24,95 @@ namespace KLC_Finch {
 
         private CommandTerminal moduleCommand;
 
+        System.Timers.Timer timerRefresh;
+        private VirtualTerminalController vtController;
+        private DataConsumer dataPart;
+        private bool colourized;
+
         public controlCommand() {
             InitializeComponent();
+
+            timerRefresh = new System.Timers.Timer(500);
+            timerRefresh.Elapsed += TimerRefresh_Elapsed;
         }
 
         private void btnCommandStart_Click(object sender, RoutedEventArgs e) {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) {
                 btnCommandStart.IsEnabled = false;
+                richCommand.Visibility = Visibility.Hidden;
 
-                moduleCommand = new CommandTerminal(session, richCommand);
+                vtController = new VirtualTerminalController();
+                //vtController.MaximumHistoryLines = 685; // Kaseya native
+                vtController.MaximumHistoryLines = 2966; //To match real Powershell
+                vtController.ResizeView(106, 54);
+                dataPart = new VtNetCore.XTermParser.DataConsumer(vtController);
+
+                moduleCommand = new CommandTerminal(session, vtController, dataPart);
                 session.ModuleCommandTerminal = moduleCommand;
 
+                timerRefresh.Start();
                 txtCommandInput.Focus();
             }
+        }
+
+        private void TimerRefresh_Elapsed(object sender, ElapsedEventArgs e) {
+            App.Current.Dispatcher.Invoke((Action)delegate {
+                if (vtController.Changed) {
+                    if (vtController.VisibleRows == vtController.MaximumHistoryLines)
+                        vtController.ResizeView(vtController.VisibleColumns, 54);
+                    colourized = false;
+
+                    richCommand.Visibility = Visibility.Hidden;
+                    txtCommand.Visibility = Visibility.Visible;
+
+                    txtCommand.Text = vtController.GetScreenText().Trim();
+                    txtCommand.ScrollToEnd();
+
+                    vtController.ClearChanges();
+                } else if (!colourized) {
+                    colourized = true;
+                    if (!(bool)chkAllowColour.IsChecked)
+                        return;
+
+                    richCommand.Document.Blocks.Clear();
+
+                    int start = Math.Max(0, vtController.BottomRow - vtController.VisibleRows);
+                    List<VtNetCore.VirtualTerminal.Layout.LayoutRow> rows = vtController.GetPageSpans(start, vtController.VisibleRows);
+
+                    int lastGoodRow = 0;
+                    for (int i = 0; i < rows.Count; i++) {
+                        foreach (VtNetCore.VirtualTerminal.Layout.LayoutSpan something in rows[i].Spans) {
+                            if (something.Text.Trim().Length > 0)
+                                lastGoodRow = i;
+                            break;
+                        }
+                    }
+
+                    Color fgColor, bgColor;
+                    for (int i = 0; i <= lastGoodRow; i++) {
+                        foreach (VtNetCore.VirtualTerminal.Layout.LayoutSpan something in rows[i].Spans) {
+                            fgColor = (Color)ColorConverter.ConvertFromString(something.ForgroundColor);
+                            //if (fgColor.R == 205 && fgColor.G == 205 && fgColor.B == 205)
+                                //fgColor = Colors.White;
+                            bgColor = (Color)ColorConverter.ConvertFromString(something.BackgroundColor);
+                            //if (bgColor == Colors.Black)
+                                //bgColor = Colors.MidnightBlue;
+                            richCommand.AppendText(something.Text, fgColor, bgColor);
+                        }
+
+                        richCommand.AppendText("\r\n");
+                    }
+
+                    richCommand.ScrollToEnd();
+                    richCommand.Visibility = Visibility.Visible;
+                    txtCommand.Visibility = Visibility.Hidden;
+                }
+            });
+        }
+
+        public static void SetForWindows() {
+            throw new NotImplementedException();
         }
 
         private void btnCommandKill_Click(object sender, RoutedEventArgs e) {
@@ -43,7 +121,8 @@ namespace KLC_Finch {
         }
 
         private void btnCommandClear_Click(object sender, RoutedEventArgs e) {
-            richCommand.Document.Blocks.Clear();
+            txtCommand.Clear();
+            //richCommand.Document.Blocks.Clear();
         }
 
         private void btnCommandMacKillKRCH_Click(object sender, RoutedEventArgs e) {
@@ -55,17 +134,19 @@ namespace KLC_Finch {
 
         }
 
-        private void txtCommandInput_KeyDown(object sender, KeyEventArgs e) {
-        }
-
         private void txtCommandInput_PreviewKeyDown(object sender, KeyEventArgs e) {
             if (moduleCommand == null)
                 return;
 
             switch (e.Key) {
                 case Key.Enter:
-                    moduleCommand.Send(txtCommandInput.Text);
-                    txtCommandInput.Clear();
+                    if (Keyboard.IsKeyDown(Key.LeftShift)) {
+                        txtCommandInput.AppendText("\n");
+                        txtCommandInput.CaretIndex = txtCommandInput.Text.Length;
+                    } else {
+                        moduleCommand.Send(txtCommandInput.Text);
+                        txtCommandInput.Clear();
+                    }
 
                     e.Handled = true;
                     break;
@@ -79,14 +160,53 @@ namespace KLC_Finch {
 
                 case Key.Up:
                     Console.WriteLine("CMD Up");
-                    e.Handled = true;
+                    e.Handled = false;
                     break;
 
                 case Key.Down:
-                    Console.WriteLine("Down");
-                    e.Handled = true;
+                    Console.WriteLine("CMD Down");
+                    e.Handled = false;
                     break;
             }
+        }
+
+        private void btnCommandScrollback_Click(object sender, RoutedEventArgs e) {
+            richCommand.Visibility = Visibility.Hidden;
+            txtCommand.Visibility = Visibility.Visible;
+
+            int start = Math.Max(0, vtController.BottomRow - 740);
+            txtCommand.Text = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim();
+            txtCommand.ScrollToEnd();
+
+            /*
+            richCommand.Document.Blocks.Clear();
+            richCommand.Document.Blocks.Add(new Paragraph(new Run(vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim())));
+            richCommand.ScrollToEnd();
+            */
+        }
+
+        private void btnCommandScrollbackSlow_Click(object sender, RoutedEventArgs e) {
+            txtCommand.Background = new SolidColorBrush(Colors.Indigo);
+            richCommand.Background = new SolidColorBrush(Colors.Indigo);
+
+            MessageBoxResult result = MessageBox.Show("Render 2000 lines? You will not be able to interact until rendering completes, which can take a long time.", "KLC-Finch Powershell", MessageBoxButton.YesNo);
+            if (result == MessageBoxResult.Yes) {
+                richCommand.Visibility = Visibility.Hidden;
+                txtCommand.Visibility = Visibility.Visible;
+
+                int start = Math.Max(0, vtController.BottomRow - 2000);
+                txtCommand.Text = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim();
+                txtCommand.ScrollToEnd();
+
+                /*
+                richCommand.Document.Blocks.Clear();
+                richCommand.Document.Blocks.Add(new Paragraph(new Run(vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim())));
+                richCommand.ScrollToEnd();
+                */
+            }
+
+            txtCommand.Background = new SolidColorBrush(Colors.Black);
+            richCommand.Background = new SolidColorBrush(Colors.Black);
         }
     }
 }

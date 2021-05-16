@@ -71,6 +71,9 @@ namespace KLC_Finch {
                 tabCommand.Header = "Terminal";
                 tabPowershell.Visibility = Visibility.Collapsed;
                 tabRegistry.Visibility = Visibility.Collapsed;
+                ctrlCommand.chkAllowColour.IsChecked = true;
+            } else {
+                ctrlCommand.btnCommandMacKillKRCH.Visibility = Visibility.Collapsed;
             }
 
             if (!System.IO.File.Exists(@"C:\Program Files\Wireshark\Wireshark.exe"))

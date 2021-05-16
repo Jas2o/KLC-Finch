@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Windows.Controls;
 using System.Windows.Media;
+using VtNetCore.VirtualTerminal;
+using VtNetCore.XTermParser;
 
 namespace KLC_Finch {
     public class CommandTerminal {
@@ -18,15 +20,32 @@ namespace KLC_Finch {
         private static string modulenameWin = "commandshell";
         private static string modulenameMac = "terminal";
         private string modulename;
-        private RichTextBox richCommand;
 
         private bool IsMac;
         private IWebSocketConnection serverB;
-        BaseTerm term;
+
+        private VirtualTerminalController vtController;
+        private DataConsumer dataPart;
+
+        /*
+        BaseTermRTB term;
+        private RichTextBox richCommand;
 
         public CommandTerminal(KLC.LiveConnectSession session, RichTextBox richCommand) {
             this.richCommand = richCommand;
-            term = new BaseTerm(richCommand);
+            term = new BaseTermRTB(richCommand);
+
+            if (session != null) {
+                IsMac = session.agent.IsMac;
+                modulename = (IsMac ? modulenameMac : modulenameWin);
+                session.WebsocketB.ControlAgentSendTask(modulename);
+            }
+        }
+        */
+
+        public CommandTerminal(KLC.LiveConnectSession session, VirtualTerminalController vtController, DataConsumer dataPart) {
+            this.vtController = vtController;
+            this.dataPart = dataPart;
 
             if (session != null) {
                 IsMac = session.agent.IsMac;
@@ -72,76 +91,48 @@ namespace KLC_Finch {
             } else {
                 jAction["action"] = "ShellCommand";
                 jAction["command"] = input + "\n";
-                richCommand.AppendText(input + "\r\n", Colors.Cyan); //Wrong background colour
-                richCommand.ScrollToEnd();
+                //richCommand.AppendText(input + "\r\n", Colors.Cyan); //Wrong background colour
+                //richCommand.ScrollToEnd();
+
+                dataPart.Push(Encoding.UTF8.GetBytes(input + "\r\n"));
+
+                if (input.ToLower() == "cls")
+                    dataPart.Push(Encoding.UTF8.GetBytes("\u001b[2J"));
             }
 
             serverB.Send(jAction.ToString());
         }
 
         public void Receive(string message) {
-            richCommand.Dispatcher.Invoke((Action)delegate {
+            App.Current.Dispatcher.Invoke((Action)delegate {
                 dynamic temp = JsonConvert.DeserializeObject(message);
                 switch ((string)temp["action"]) {
                     case "ScriptReady":
                         JObject jAction = new JObject();
                         jAction["action"] = "ConnectionOpen";
-                        jAction["rows"] = 54;
-                        jAction["cols"] = 106;
+                        jAction["rows"] = vtController.VisibleRows;
+                        jAction["cols"] = vtController.VisibleColumns;
                         serverB.Send(jAction.ToString());
                         break;
                     case "ShellOutput":
                         //Mac
                         string output = (string)temp["output"];
                         output = HttpUtility.UrlDecode((string)temp["output"]);
-                        term.Append(output);
+
+                        dataPart.Push(Encoding.UTF8.GetBytes(output));
                         break;
                     case "ShellResponse":
                         //Windows CMD or Powershell
-                        term.Append((string)temp["output"]);
+                        dataPart.Push(Encoding.UTF8.GetBytes((string)temp["output"]));
                         break;
                     default:
-                        term.RichText.AppendText("CommandTerminal message received: " + message + "\r\n", Colors.Yellow, Colors.Black);
+                        //term.RichText.AppendText("CommandTerminal message received: " + message + "\r\n", Colors.Yellow, Colors.Black);
+                        Console.WriteLine("CommandTerminal message received: " + message);
                         break;
                 }
+
+                //txtCommand.ScrollToEnd();
             });
         }
-
-        public void SetShowDebug(bool isChecked) {
-            term.SHOW_DEBUG_TEXT = isChecked;
-        }
-
-        /*
-        private WebSocket WS_EdgeRelay(string authPayloadjsonWebToken, string sessionId) {
-            string pathModule = Util.EncodeToBase64("/app/" + (IsMac ? modulenameMac : modulenameWin));
-
-            WebSocket websocket = new WebSocket("wss://vsa-web.company.com.au:443/kaseya/edge/relay?auth=" + authPayloadjsonWebToken + "&relayId=" + sessionId + "|" + pathModule);
-
-            websocket.AutoSendPingInterval = 5;
-            websocket.EnableAutoSendPing = true;
-            if (term != null) {
-                websocket.Opened += (sender, e) => term.RichText.Invoke(new Action(() => {
-                    term.RichText.AppendText("CommandTerminal Socket opened: " + sessionId + "\r\n", System.Drawing.Color.Yellow, System.Drawing.Color.Black);
-                }));
-                websocket.Closed += (sender, e) => term.RichText.Invoke(new Action(() => {
-                    term.RichText.AppendText("CommandTerminal Socket closed: " + sessionId + " - " + e.ToString() + "\r\n", System.Drawing.Color.Yellow, System.Drawing.Color.Black);
-                }));
-                websocket.MessageReceived += (sender, e) => term.RichText.Invoke(new Action(() => {
-                    
-                }));
-                websocket.Error += (sender, e) => term.RichText.Invoke(new Action(() => {
-                    term.RichText.AppendText("CommandTerminal Socket error: " + sessionId + " - " + e.Exception.ToString() + "\r\n", System.Drawing.Color.Yellow, System.Drawing.Color.Black);
-                }));
-            } else {
-                websocket.Opened += (sender, e) => Console.WriteLine("CommandTerminal Socket opened: " + sessionId);
-                websocket.Closed += (sender, e) => Console.WriteLine("CommandTerminal Socket closed: " + sessionId + " - " + e.ToString());
-                websocket.MessageReceived += (sender, e) => Console.WriteLine("CommandTerminal message received: " + sessionId + " - " + e.Message);
-                websocket.Error += (sender, e) => Console.WriteLine("CommandTerminal Socket error: " + sessionId + " - " + e.Exception.ToString());
-            }
-
-            websocket.Open();
-            return websocket;
-        }
-        */
     }
 }
