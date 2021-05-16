@@ -200,6 +200,9 @@ namespace KLC_Finch {
         }
 
         private void btnCommandScrollback_Click(object sender, RoutedEventArgs e) {
+            if (moduleCommand == null)
+                return;
+
             richCommand.Visibility = Visibility.Hidden;
             txtCommand.Visibility = Visibility.Visible;
 
@@ -215,6 +218,9 @@ namespace KLC_Finch {
         }
 
         private void btnCommandScrollbackSlow_Click(object sender, RoutedEventArgs e) {
+            if (moduleCommand == null)
+                return;
+
             txtCommand.Background = new SolidColorBrush(Colors.Indigo);
             richCommand.Background = new SolidColorBrush(Colors.Indigo);
 

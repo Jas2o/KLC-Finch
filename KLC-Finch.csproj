@@ -98,8 +98,6 @@
     <Compile Include="AddToLib\EIRC.cs" />
     <Compile Include="AddToLib\FormatKbSizeConverter.cs" />
     <Compile Include="AddToLib\Util.cs" />
-    <Compile Include="Modules\Command\BaseTermTXTv1.cs" />
-    <Compile Include="Modules\Command\BaseTermRTB.cs" />
     <Compile Include="Modules\Command\CommandPowershell.cs" />
     <Compile Include="Modules\Command\CommandTerminal.cs" />
     <Compile Include="Modules\Command\controlPowershell.xaml.cs">
