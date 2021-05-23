@@ -30,6 +30,7 @@ namespace KLC_Finch {
 
         //private string activeScreenID;
         private VP8.Decoder decoder;
+        //private Vpx.Net.VP8Codec decoder2; //Test
 
         private IWebSocketConnection serverB;
         private int clientB;
@@ -42,6 +43,7 @@ namespace KLC_Finch {
             this.modePrivate = modePrivate;
 
             decoder = new VP8.Decoder();
+            //decoder2 = new Vpx.Net.VP8Codec(); //Test
         }
 
         public void Connect() {
@@ -255,7 +257,32 @@ namespace KLC_Finch {
 
                     Bitmap b1 = null;
                     try {
-                        b1 = decoder.Decode(remaining);
+                        //b1 = decoder.Decode(remaining, 0);
+
+                        int w = 0;
+                        int h = 0;
+                        byte[] b2 = decoder.DecodeRaw(remaining, out w, out h);
+
+                        if(!File.Exists("vp8test.bin")) {
+                            FileStream fs = new FileStream("vp8test.bin", FileMode.Create);
+                            fs.Write(b2, 0, b2.Length);
+                            fs.Flush();
+                            fs.Close();
+                        }
+
+                        Console.WriteLine();
+
+                        /*
+                        //Test
+                        int b2w = 0;
+                        int b2h = 0;
+                        Vpx.Net.vpx_image_t img2 = decoder2.DecodeFrame(remaining);
+                        img2.Dispose();
+                        if (b2w != 0 && b2h != 0) {
+                            //Console.WriteLine(b2.Length);
+                            Viewer.LoadTextureRaw(b2w, b2h, b2);
+                        }
+                        */
                     } catch (Exception ex) {
                         Console.WriteLine("RC VP8 decode error: " + ex.ToString());
                     } finally {

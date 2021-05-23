@@ -1024,8 +1024,10 @@ namespace KLC_Finch {
                     Console.WriteLine("[LoadTexture:Legacy] Array needs to be resized");
                 }
 
-                if (textureLegacyData == null || virtualRequireViewportUpdate)
+                if (textureLegacyData == null || virtualRequireViewportUpdate) {
+                    Console.WriteLine("Rebuilding Legacy Texture Buffer");
                     textureLegacyData = new byte[Math.Abs(data.Stride * data.Height)];
+                }
                 Marshal.Copy(data.Scan0, textureLegacyData, 0, textureLegacyData.Length); //This can fail with re-taking over private remote control
                 decomp.UnlockBits(data);
 
@@ -1033,6 +1035,27 @@ namespace KLC_Finch {
                 socketAlive = true;
                 #endregion
             }
+
+            glControl.Invalidate();
+        }
+
+        public void LoadTextureRaw(int width, int height, byte[] buffer) {
+            int stride = (width * 3 + 3) / 4 * 4;
+
+            useMultiScreen = false;
+            SetVirtual(0, 0, width, height);
+
+            textureLegacyWidth = width;
+            textureLegacyHeight = height;
+
+            if (textureLegacyData == null || textureLegacyData.Length != Math.Abs(stride * height)) {
+                textureLegacyData = new byte[Math.Abs(stride * height)];
+                Console.WriteLine("Stuff");
+            }
+            System.Buffer.BlockCopy(buffer, 0, textureLegacyData, 0, buffer.Length);
+
+            textureLegacyNew = true;
+            socketAlive = true;
 
             glControl.Invalidate();
         }
