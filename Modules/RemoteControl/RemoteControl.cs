@@ -229,7 +229,7 @@ namespace KLC_Finch {
                     int cursorHotspotX = (int)json["hotspotX"];
                     int cursorHotspotY = (int)json["hotspotY"];
 
-                    string hex = BitConverter.ToString(remaining).Replace("-", "");
+                    //string hex = BitConverter.ToString(remaining).Replace("-", "");
 
                     //Console.WriteLine("Hotspot: " + cursorHotspotX + ", " + cursorHotspotY);
                     Viewer.LoadCursor(cursorX, cursorY, cursorWidth, cursorHeight, cursorHotspotX, cursorHotspotY, remaining);

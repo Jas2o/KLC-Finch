@@ -339,6 +339,32 @@
   <ItemGroup>
     <Resource Include="Resources\magnify-minus-outline.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\auto-fix.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\key-outline.png" />
+    <Resource Include="Resources\key.png" />
+    <Resource Include="Resources\keyboard-close.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\clipboard-arrow-down-outline.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\sync-off.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\sync.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\sync-half.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\application.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\apps.png" />
+  </ItemGroup>
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaLiveConnect\LibKaseyaLiveConnect.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaAuth\LibKaseyaAuth.projitems" Label="Shared" />

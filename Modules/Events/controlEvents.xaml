@@ -9,7 +9,7 @@
     <UserControl.Resources>
         <CollectionViewSource Source="{Binding ListEvent}" x:Key="GridItems">
             <CollectionViewSource.SortDescriptions>
-                <scm:SortDescription PropertyName="Date/Time" Direction="Descending"/>
+                <scm:SortDescription PropertyName="EventGeneratedTime" Direction="Descending"/>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
     </UserControl.Resources>

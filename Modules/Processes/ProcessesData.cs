@@ -10,16 +10,9 @@ namespace KLC_Finch.Modules {
     public class ProcessesData : INotifyPropertyChanged {
 
         public ObservableCollection<ProcessValue> ListProcess { get; set; }
-        private ListCollectionView _listCollectionView;
 
         public ProcessesData() {
             ListProcess = new ObservableCollection<ProcessValue>();
-
-            _listCollectionView = CollectionViewSource.GetDefaultView(ListProcess) as ListCollectionView;
-            if (_listCollectionView != null) {
-                _listCollectionView.IsLiveSorting = true;
-                _listCollectionView.CustomSort = new CaseInsensitiveComparer(CultureInfo.InvariantCulture);
-            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged {
@@ -46,10 +39,6 @@ namespace KLC_Finch.Modules {
 
                 ListProcess.Add(pv);
             });
-        }
-
-        public void Filter(string txt) {
-            _listCollectionView.Filter = new Predicate<object>(x => ((ProcessValue)x).DisplayName.IndexOf(txt, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
     }

@@ -99,7 +99,9 @@ namespace KLC_Finch {
         }
 
         private void txtFilterName_TextChanged(object sender, TextChangedEventArgs e) {
-            processesData.Filter(txtFilterName.Text);
+            ListCollectionView collectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(dgvProcesses.ItemsSource);
+            collectionView.Filter = new Predicate<object>(x => ((Modules.ProcessValue)x).DisplayName.IndexOf(txtFilterName.Text, StringComparison.OrdinalIgnoreCase) >= 0);
+            //collectionView.Refresh();
         }
     }
 }

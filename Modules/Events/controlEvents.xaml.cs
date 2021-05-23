@@ -98,7 +98,12 @@ namespace KLC_Finch {
         }
 
         private void txtFilter_TextChanged(object sender, TextChangedEventArgs e) {
-            eventsData.Filter(txtFilter.Text);
+            ListCollectionView collectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(dgvEventsValues.ItemsSource);
+            collectionView.Filter = new Predicate<object>(x =>
+                ((Modules.EventValue)x).EventMessage.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                ((Modules.EventValue)x).SourceName.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0
+            );
+            //collectionView.Refresh();
         }
     }
 }

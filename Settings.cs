@@ -22,5 +22,6 @@ namespace KLC_Finch {
         public uint RemoteControlWidth { get; set; } = 1370;  //The same as Kaseya
         public uint RemoteControlHeight { get; set; } = 800;
         public bool MacSwapCtrlWin { get; set; } = false;
+        public bool MultiAltFit { get; set; } = false;
     }
 }

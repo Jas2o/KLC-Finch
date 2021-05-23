@@ -116,14 +116,13 @@ namespace KLC_Finch {
 
             toolSettingStartControlEnabled.IsChecked = Settings.StartControlEnabled;
             toolSettingMacSwapCtrlWin.IsChecked = Settings.MacSwapCtrlWin;
+            toolSettingMultiAltFit.IsChecked = Settings.MultiAltFit;
             toolDebugKeyboardMod.IsChecked = Settings.DisplayOverlayKeyboardMod;
             toolDebugKeyboardOther.IsChecked = Settings.DisplayOverlayKeyboardOther;
             toolDebugMouse.IsChecked = Settings.DisplayOverlayMouse;
             // This repetition needs to be fixed
-            if (Settings.ClipboardSyncEnabled)
-                toolClipboardSync.Content = "Clipboard (Synced)";
-            else
-                toolClipboardSync.Content = "Clipboard (Receive Only)";
+            toolClipboardSync.Visibility = (Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
+            toolClipboardReceiveOnly.Visibility = (!Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
 
             if (isMac && Settings.MacSwapCtrlWin)
                 toolKeyWin.Visibility = Visibility.Collapsed;
@@ -852,7 +851,32 @@ namespace KLC_Finch {
             MainCamera.Scale = new Vector2(1f, 1f);
             DebugKeyboard();
 
-            SetVirtual(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
+            if (Settings.MultiAltFit) {
+                bool adjustLeft = false;
+                bool adjustUp = false;
+                bool adjustRight = false;
+                bool adjustDown = false;
+
+                foreach (RCScreen screen in listScreen) {
+                    if (screen == currentScreen)
+                        continue;
+
+                    if (screen.rect.Right <= currentScreen.rect.Left)
+                        adjustLeft = true;
+                    if (screen.rect.Bottom <= currentScreen.rect.Top)
+                        adjustUp = true;
+                    if (screen.rect.Left >= currentScreen.rect.Right)
+                        adjustRight = true;
+                    if (screen.rect.Top >= currentScreen.rect.Bottom)
+                        adjustDown = true;
+                }
+
+                SetVirtual(currentScreen.rect.X - (adjustLeft ? 80 : 0),
+                    currentScreen.rect.Y - (adjustUp ? 80 : 0),
+                    currentScreen.rect.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
+                    currentScreen.rect.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
+            } else
+                SetVirtual(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
             glControl.Invalidate();
         }
 
@@ -1032,12 +1056,9 @@ namespace KLC_Finch {
 
         private void toolClipboardSync_Click(object sender, RoutedEventArgs e) {
             Settings.ClipboardSyncEnabled = !Settings.ClipboardSyncEnabled;
-            //toolClipboardSync.Overflow = (clipboardSyncEnabled ? ToolStripItemOverflow.AsNeeded : ToolStripItemOverflow.Always);
 
-            if (Settings.ClipboardSyncEnabled)
-                toolClipboardSync.Content = "Clipboard (Synced)";
-            else
-                toolClipboardSync.Content = "Clipboard (Receive Only)";
+            toolClipboardSync.Visibility = (Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
+            toolClipboardReceiveOnly.Visibility = (!Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
         }
 
         private void toolClipboardSend_Click(object sender, EventArgs e) {
@@ -1392,6 +1413,12 @@ namespace KLC_Finch {
             toolSettingMacSwapCtrlWin.IsChecked = Settings.MacSwapCtrlWin = !Settings.MacSwapCtrlWin;
         }
 
+        private void toolSettingMultiAltFit_Click(object sender, RoutedEventArgs e) {
+            toolSettingMultiAltFit.IsChecked = Settings.MultiAltFit = !Settings.MultiAltFit;
+
+            PositionCameraToCurrentScreen();
+        }
+
         private void toolOptions_Click(object sender, RoutedEventArgs e) {
             new Modules.RemoteControl.WindowOptions().ShowDialog();
         }
@@ -1400,6 +1427,13 @@ namespace KLC_Finch {
             string link = toolMachineNoteLink.Header.ToString();
             if(link.Contains("http"))
                 Process.Start(new ProcessStartInfo(link) { UseShellExecute = true });
+        }
+
+        private void toolClipboardAutotype_Click(object sender, RoutedEventArgs e) {
+            if (rc == null || !controlEnabled)
+                return;
+
+            PerformAutotype();
         }
 
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {

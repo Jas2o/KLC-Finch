@@ -51,7 +51,18 @@
                 <Image Source="/KLC-Finch;component/Resources/magnify-minus-outline.png" StretchDirection="DownOnly" />
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-            <Button x:Name="toolClipboardSync" Content="Clipboard (Receive Only)" Click="toolClipboardSync_Click" VerticalAlignment="Stretch"/>
+            <Button x:Name="toolClipboardSync" ToolTip="Clipboard Synced" Click="toolClipboardSync_Click">
+                <Image Source="/KLC-Finch;component/Resources/sync.png" StretchDirection="DownOnly" />
+            </Button>
+            <Button x:Name="toolClipboardReceiveOnly" ToolTip="Clipboard Receive Only" Click="toolClipboardSync_Click">
+                <Image Source="/KLC-Finch;component/Resources/sync-half.png" StretchDirection="DownOnly" Width="24" Height="24" />
+            </Button>
+            <Button x:Name="toolClipboardAutotype" Click="toolClipboardAutotype_Click">
+                <Button.ToolTip>
+                    <TextBlock>Autotype<LineBreak/><LineBreak/>Middle mouse button<LineBreak/>Ctrl+Shift+V<LineBreak/>Ctrl+`</TextBlock>
+                </Button.ToolTip>
+                <Image Source="/KLC-Finch;component/Resources/clipboard-arrow-down-outline.png" StretchDirection="DownOnly" />
+            </Button>
             <Button x:Name="toolClipboardSend" ToolTip="Send to Client" Click="toolClipboardSend_Click">
                 <Image Source="/KLC-Finch;component/Resources/tray-arrow-down.png" StretchDirection="DownOnly"/>
             </Button>
@@ -59,6 +70,9 @@
                 <Image Source="/KLC-Finch;component/Resources/tray-arrow-up.png" StretchDirection="DownOnly"/>
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <Button x:Name="toolShowAlternative" ToolTip="Show Alternative" Click="toolShowAlternative_Click">
+                <Image Source="/KLC-Finch;component/Resources/application.png" StretchDirection="DownOnly"/>
+            </Button>
             <Button x:Name="toolOptions" Content="Hotkeys" VerticalAlignment="Stretch" Click="toolOptions_Click" Height="30"/>
             <ext:DropdownButton x:Name="toolLatency" Content="Latency">
                 <ext:DropdownButton.DropdownMenu>
@@ -68,13 +82,13 @@
                         <Separator/>
                         <MenuItem x:Name="toolSettingStartControlEnabled" Header="Start Shared with Control Enabled" Click="toolSettingStartControlEnabled_Click" />
                         <MenuItem x:Name="toolSettingMacSwapCtrlWin" Header="Swap Ctrl/Win keys on Macs" Click="toolSettingMacSwapCtrlWin_Click" />
+                        <MenuItem x:Name="toolSettingMultiAltFit" Header="Multi-Screen: Alt Fit" Click="toolSettingMultiAltFit_Click" />
                         <MenuItem x:Name="toolDebugKeyboardMod" Header="Show Modifier Key Events" Click="toolDebugKeyboardMod_Click" />
                         <MenuItem x:Name="toolDebugKeyboardOther" Header="Show Other Key/Click Events" Click="toolDebugKeyboardOther_Click" />
                         <MenuItem x:Name="toolDebugMouse" Header="Show Mouse Move Events" Click="toolDebugMouse_Click" />
                         <Separator/>
                         <MenuItem x:Name="toolSaveSettings" Header="Save Settings" Click="toolSaveSettings_Click" />
                         <Separator/>
-                        <MenuItem x:Name="toolShowAlternative" Header="Show Alternative" Click="toolShowAlternative_Click" />
                         <MenuItem x:Name="toolReconnect" Header="Soft Reconnect" Click="toolReconnect_Click" />
                     </ContextMenu>
                 </ext:DropdownButton.DropdownMenu>
