@@ -29,8 +29,15 @@ namespace KLC_Finch {
         private DataConsumer dataPart;
         private bool colourized;
 
+        private int historyPos;
+        private List<string> history;
+        private bool historyBlockUpDown;
+
         public controlCommand() {
             InitializeComponent();
+
+            historyPos = -1;
+            history = new List<string>();
 
             timerRefresh = new System.Timers.Timer(500);
             timerRefresh.Elapsed += TimerRefresh_Elapsed;
@@ -66,7 +73,13 @@ namespace KLC_Finch {
                     richCommand.Visibility = Visibility.Hidden;
                     txtCommand.Visibility = Visibility.Visible;
 
-                    txtCommand.Text = vtController.GetScreenText().Trim();
+                    //txtCommand.Text = vtController.GetScreenText().Trim();
+
+                    string[] lines = vtController.GetScreenText().TrimEnd().Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None );
+                    txtCommand.Clear();
+                    foreach(string line in lines)
+                        txtCommand.AppendText(line.TrimEnd() + "\n");
+
                     txtCommand.ScrollToEnd();
 
                     vtController.ClearChanges();
@@ -98,7 +111,11 @@ namespace KLC_Finch {
                             bgColor = (Color)ColorConverter.ConvertFromString(something.BackgroundColor);
                             //if (bgColor == Colors.Black)
                                 //bgColor = Colors.MidnightBlue;
-                            richCommand.AppendText(something.Text, fgColor, bgColor);
+
+                            if(something == rows[i].Spans.Last())
+                                richCommand.AppendText(something.Text.TrimEnd(), fgColor, bgColor);
+                            else
+                                richCommand.AppendText(something.Text, fgColor, bgColor);
                         }
 
                         richCommand.AppendText("\r\n");
@@ -144,10 +161,22 @@ namespace KLC_Finch {
                         txtCommandInput.AppendText("\n");
                         txtCommandInput.CaretIndex = txtCommandInput.Text.Length;
                     } else {
+                        if(history.LastOrDefault() != txtCommandInput.Text)
+                            history.Add(txtCommandInput.Text);
+                        historyPos = history.Count;
+                        historyBlockUpDown = false;
+
                         moduleCommand.Send(txtCommandInput.Text);
                         txtCommandInput.Clear();
                     }
 
+                    e.Handled = true;
+                    break;
+
+                case Key.Escape:
+                    historyPos = history.Count;
+                    historyBlockUpDown = false;
+                    txtCommandInput.Clear();
                     e.Handled = true;
                     break;
 
@@ -159,15 +188,44 @@ namespace KLC_Finch {
                     break;
 
                 case Key.Up:
-                    Console.WriteLine("CMD Up");
-                    e.Handled = false;
+                    //Console.WriteLine("CMD Up");
+                    if(txtCommandInput.Text.Contains("\n") && historyBlockUpDown) {
+                        e.Handled = false;
+                    } else {
+                        historyPos--;
+
+                        if (historyPos < 0)
+                            historyPos = -1;
+                        else if (historyPos < history.Count) {
+                            txtCommandInput.Text = history[historyPos];
+                            txtCommandInput.CaretIndex = txtCommandInput.Text.Length;
+                        }
+                        
+                        e.Handled = true;
+                    }
                     break;
 
                 case Key.Down:
-                    Console.WriteLine("CMD Down");
-                    e.Handled = false;
+                    //Console.WriteLine("CMD Down");
+                    if (txtCommandInput.Text.Contains("\n")) {
+                        e.Handled = false;
+                    } else {
+                        historyPos++;
+
+                        if (historyPos > history.Count - 1)
+                            historyPos = history.Count;
+                        else if (historyPos < history.Count) {
+                            txtCommandInput.Text = history[historyPos];
+                            txtCommandInput.CaretIndex = txtCommandInput.Text.Length;
+                        }
+
+                        e.Handled = true;
+                    }
                     break;
             }
+
+            if (txtCommandInput.Text.Contains("\n") && e.Key != Key.Up && e.Key != Key.Down)
+                historyBlockUpDown = true;
         }
 
         private void btnCommandScrollback_Click(object sender, RoutedEventArgs e) {
@@ -178,7 +236,14 @@ namespace KLC_Finch {
             txtCommand.Visibility = Visibility.Visible;
 
             int start = Math.Max(0, vtController.BottomRow - 740);
-            txtCommand.Text = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim();
+            //txtCommand.Text = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim();
+
+            string[] lines = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow)
+                .TrimEnd().Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            txtCommand.Clear();
+            foreach (string line in lines)
+                txtCommand.AppendText(line.TrimEnd() + "\n");
+
             txtCommand.ScrollToEnd();
 
             /*
@@ -201,7 +266,14 @@ namespace KLC_Finch {
                 txtCommand.Visibility = Visibility.Visible;
 
                 int start = Math.Max(0, vtController.BottomRow - 2000);
-                txtCommand.Text = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim();
+                //txtCommand.Text = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim();
+
+                string[] lines = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow)
+                .TrimEnd().Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                txtCommand.Clear();
+                foreach (string line in lines)
+                    txtCommand.AppendText(line.TrimEnd() + "\n");
+
                 txtCommand.ScrollToEnd();
 
                 /*
