@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:KLC_Finch"
         mc:Ignorable="d"
-        Title="KLC-Finch" Height="250" Width="290" ResizeMode="NoResize" Loaded="Window_Loaded" Closing="Window_Closing">
+        Title="KLC-Finch" MinHeight="260" Width="300" SizeToContent="Height" ResizeMode="NoResize" Loaded="Window_Loaded" Closing="Window_Closing">
     <Grid Margin="5">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
@@ -14,14 +14,23 @@
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition/>
-            <RowDefinition/>
-            <RowDefinition/>
-            <RowDefinition/>
-            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock TextWrapping="Wrap" Text="No KLC payload has been given, for debugging enter your Auth Token and select an agent." TextAlignment="Center" Grid.ColumnSpan="3" Margin="5"/>
+        <TextBlock TextWrapping="Wrap" TextAlignment="Center" Grid.ColumnSpan="3" Margin="5">
+            <Run Foreground="Blue" Text="Launching directly only intended for testing." />
+            <LineBreak />
+            For normal usage:<LineBreak />
+            Run KLCProxy, open Settings menu,<LineBreak />
+            tick Use KLCProxy and Use Alternative<LineBreak />
+            then connect to an agent from VSA.
+        </TextBlock>
+        <!--<TextBlock TextWrapping="Wrap" Text="No KLC payload has been given, for debugging enter your Auth Token and select an agent." TextAlignment="Center" Grid.ColumnSpan="3" Margin="5"/>-->
         <TextBlock Grid.Row="1" TextWrapping="Wrap" Text="Token" VerticalAlignment="Center" Margin="5,0"/>
         <TextBlock Grid.Row="2" TextWrapping="Wrap" Text="GUID" VerticalAlignment="Center" Margin="5,0"/>
         <PasswordBox x:Name="txtAuthToken" Grid.Column="1" Grid.Row="1" Margin="5" Grid.ColumnSpan="2"/>
@@ -33,12 +42,13 @@
             <TextBox x:Name="txtAgentGuid" TextWrapping="Wrap" Text=""/>
             <Button x:Name="btnAgentGuidConnect" Content=">" Grid.Column="1" Margin="5,0,0,0" Click="btnAgentGuidConnect_Click"/>
         </Grid>
-        <Button x:Name="btnLaunchThisComputer" Content="This Computer" Grid.Column="1" Grid.Row="3" Margin="5" Click="btnLaunchThisComputer_Click"/>
-        <Button x:Name="btnLaunchWinTeamviewer" Content="JumpBox" Grid.Column="2" Grid.Row="3" Margin="5" Click="btnLaunchWinTeamviewer_Click" />
-        <Button x:Name="btnLaunchMacMini" Content="Mac Mini" Grid.Column="1" Grid.Row="4" Margin="5" Click="btnLaunchMacMini_Click"/>
-        <Button x:Name="btnLaunchWinTeamviewerShared" Content="TV Shared" Grid.Column="2" Grid.Row="4" Margin="5" Click="btnLaunchWinTeamviewerShared_Click" />
-        <Button x:Name="btnLaunchRCTest" Content="RC Test" Grid.Column="1" Grid.Row="5" Margin="5" Click="btnLaunchRCTest_Click"/>
-        <Button x:Name="btnLaunchNull" Content="Null" Grid.Column="2" Grid.Row="5" Margin="5" Click="btnLaunchNull_Click"/>
+        <Button x:Name="btnLaunchThisComputer" Content="This Computer" Grid.Column="1" Grid.Row="3" Margin="2" Click="btnLaunchThisComputer_Click"/>
+        <Button x:Name="btnLaunchWinTeamviewer" Content="JumpBox" Grid.Column="2" Grid.Row="3" Margin="2" Click="btnLaunchWinTeamviewer_Click" />
+        <Button x:Name="btnLaunchMacMini" Content="Mac Mini" Grid.Column="1" Grid.Row="4" Margin="2" Click="btnLaunchMacMini_Click"/>
+        <Button x:Name="btnLaunchWinTeamviewerShared" Content="TV Shared" Grid.Column="2" Grid.Row="4" Margin="2" Click="btnLaunchWinTeamviewerShared_Click" />
+        <Button x:Name="btnLaunchRCTest" Content="RC Test" Grid.Column="1" Grid.Row="5" Margin="2" Click="btnLaunchRCTest_Click"/>
+        <Button x:Name="btnLaunchNull" Content="Null" Grid.Column="2" Grid.Row="5" Margin="2" Click="btnLaunchNull_Click"/>
         <CheckBox x:Name="chkUseMITM" Content="MITM" Margin="0,0,5,0" VerticalAlignment="Center" Grid.Row="3" Checked="chkUseMITM_Change" Unchecked="chkUseMITM_Change" />
+        <TextBlock x:Name="txtVersion" Grid.Row="6" TextAlignment="Center" Grid.ColumnSpan="3" Margin="0,5,0,0">Version</TextBlock>
     </Grid>
 </Window>

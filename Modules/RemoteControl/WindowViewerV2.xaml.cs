@@ -103,6 +103,8 @@ namespace KLC_Finch {
 
         public WindowViewerV2(RemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, bool isMac = false) {
             InitializeComponent();
+            toolVersion.Header = "Build date: " + App.Version;
+
             this.isMac = isMac;
 
             string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
@@ -1067,11 +1069,11 @@ namespace KLC_Finch {
 
             clipboard = Clipboard.GetText();
             Dispatcher.Invoke((Action)delegate {
-                toolClipboardSend.ToolTip = "Send to Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(5);
+                toolClipboardSend.ToolTip = "Send to Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(50);
                 rc.SendClipboard(clipboard);
 
                 if (Settings.ClipboardSyncEnabled)
-                    toolClipboardGet.ToolTip = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(5);
+                    toolClipboardGet.ToolTip = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(50);
             });
         }
 
@@ -1082,7 +1084,7 @@ namespace KLC_Finch {
             clipboard = content;
             Dispatcher.Invoke((Action)delegate {
                 //try {
-                toolClipboardGet.ToolTip = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(5);
+                toolClipboardGet.ToolTip = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(50);
 
                 //if (clipboardSyncEnabled) { //Commented out now that we use Receive-Only mode
                 //this.BeginInvoke(new Action(() => {

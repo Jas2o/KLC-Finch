@@ -140,11 +140,17 @@ namespace KLC_Finch {
         }
 
         public void RequestRefresh() {
+            timerRefresh.Stop();
+            timerRefresh.Start();
+
             SendThumbnailRequest(requestWidth, requestHeight);
         }
 
         public void RequestRefreshFull() {
-            if(currentScreen != null)
+            timerRefresh.Stop();
+            timerRefresh.Start();
+
+            if (currentScreen != null)
                 SendThumbnailRequest(currentScreen.rect.Width, currentScreen.rect.Height);
         }
 

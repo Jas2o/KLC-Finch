@@ -28,6 +28,8 @@ namespace KLC_Finch {
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
+            txtVersion.Text = "Build date: " + App.Version;
+
             string savedAuthToken = KaseyaAuth.GetStoredAuth();
             if (savedAuthToken != null)
                 txtAuthToken.Password = savedAuthToken;

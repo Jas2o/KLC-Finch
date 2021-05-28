@@ -9,13 +9,17 @@
         <TabControl>
             <TabItem Header="Dashboard">
                 <Grid Background="#FFE5E5E5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="75"/>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
                     <StackPanel HorizontalAlignment="Left">
-                        <Button x:Name="btnRCShared" Content="RC Shared" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Click="btnRCShared_Click" Margin="0,5"/>
-                        <Button x:Name="btnRCPrivate" Content="RC Private" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Click="btnRCPrivate_Click"/>
+                        <Button x:Name="btnRCShared" Content="RC Shared" VerticalAlignment="Top" Click="btnRCShared_Click" Margin="0,5"/>
+                        <Button x:Name="btnRCPrivate" Content="RC Private" VerticalAlignment="Top" Click="btnRCPrivate_Click"/>
 
                         <Button x:Name="btnWiresharkFilter" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="0,20,0,0" Click="btnWiresharkFilter_Click">
                             <TextBlock TextWrapping="Wrap" TextAlignment="Center">Wireshark Filter</TextBlock>
@@ -24,11 +28,12 @@
                         <Button x:Name="btnLaunchKLC" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="0,20,0,0" Click="btnLaunchKLC_Click">
                             <TextBlock TextWrapping="Wrap" TextAlignment="Center">Launch Live Connect</TextBlock>
                         </Button>
-                        
-                        <Button x:Name="btnReconnect" Content="Reconnect" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="0,20,0,0" Click="btnReconnect_Click" />
+
+                        <Button x:Name="btnReconnect" Content="Reconnect" VerticalAlignment="Top" Margin="0,20,0,0" Click="btnReconnect_Click" />
                     </StackPanel>
-                    
-                    <command:controlDashboard x:Name="ctrlDashboard" Grid.Column="1" Loaded="ctrlDashboard_Loaded" />
+                    <TextBlock x:Name="txtVersion" TextWrapping="Wrap" Text="Build date: DD/MM/YYYY" Grid.Row="1" TextAlignment="Center" Padding="0,0,0,6" Foreground="Gray"/>
+
+                    <command:controlDashboard x:Name="ctrlDashboard" Grid.Column="1" Loaded="ctrlDashboard_Loaded" Grid.RowSpan="2" />
                 </Grid>
             </TabItem>
             <TabItem x:Name="tabCommand" Header="Command Prompt" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Margin="0">

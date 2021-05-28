@@ -14,6 +14,7 @@ namespace KLC_Finch {
     /// </summary>
     public partial class App : Application {
 
+        public static string Version;
         public static WindowAlternative alternative;
         public static WindowViewerV2 viewer;
 
@@ -31,6 +32,8 @@ namespace KLC_Finch {
                     ShowUnhandledException(args.Exception, "Dispatcher.UnhandledException");
                 };
             }
+
+            Version = KLC_Finch.Properties.Resources.BuildDate.Trim();
         }
 
         public static void ShowUnhandledExceptionFromSrc(Exception e, string source) {

@@ -77,6 +77,8 @@
             <ext:DropdownButton x:Name="toolLatency" Content="Latency">
                 <ext:DropdownButton.DropdownMenu>
                     <ContextMenu>
+                        <MenuItem x:Name="toolVersion" IsEnabled="False" Header="Build date: DD/MM/YYYY" />
+                        <Separator/>
                         <MenuItem x:Name="toolPanicRelease" Header="Attempt mod key releases (Pause)" Click="toolPanicRelease_Click" />
                         <MenuItem x:Name="toolScreenshotToClipboard" Header="Native Res Screenshot to Clipboard" Click="toolScreenshotToClipboard_Click" />
                         <Separator/>

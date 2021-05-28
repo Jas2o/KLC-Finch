@@ -64,6 +64,8 @@ namespace KLC_Finch {
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
+            txtVersion.Text = App.Version;
+
             if (shortToken == null || agentID == null)
                 return; //Dragablz
 

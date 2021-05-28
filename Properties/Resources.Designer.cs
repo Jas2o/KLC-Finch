@@ -81,6 +81,16 @@ namespace KLC_Finch.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Fri 28/05/2021  9:49:58.99 
+        ///.
+        /// </summary>
+        internal static string BuildDate {
+            get {
+                return ResourceManager.GetString("BuildDate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap clipboard_arrow_down_outline {
