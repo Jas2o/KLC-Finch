@@ -79,27 +79,10 @@ namespace KLC_Finch {
         Vector2[] vertBufferMouse, vertBufferKeyboard, vertBufferTop, vertBufferCenter;
         int VBOScreen;
         int VBOmouse, VBOkeyboard, VBOtop, VBOcenter;
-
-        #region Legacy
-        private int textureLegacyWidth;
-        private int textureLegacyHeight;
-        private byte[] textureLegacyData;
-        private bool textureLegacyNew;
-        int textureLegacyId;
-        #endregion
+        private TextureScreen textureLegacy;
 
         #region YUV
-        //https://github.com/minghuam/opentk-gst/blob/master/ThreadedGLSLVideoPlayer.cs
-        int width = 0;
-        int height = 0;
-        int stride = 0;
-        byte[] bufferY = null;
-        byte[] bufferU = null;
-        byte[] bufferV = null;
-        int[] textureIDs = new int[3];
-        bool texturesOK = false;
-
-        bool isFrameNew = false;
+        //YUV source: https://github.com/minghuam/opentk-gst/blob/master/ThreadedGLSLVideoPlayer.cs
         object lockFrameBuf = new object();
         int vertex_shader_object = 0;
         int fragment_shader_object = 0;
@@ -416,8 +399,8 @@ namespace KLC_Finch {
 
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
-            GL.Ortho(0, legacyVirtualWidth, 0, legacyVirtualHeight, -1, 1);
-            //GL.Ortho(0, legacyVirtualWidth, legacyVirtualHeight, 0, -1, 1); // Should be 2D
+            GL.Ortho(0, legacyVirtualWidth, legacyVirtualHeight, 0, -1, 1);//Upsidedown
+            //GL.Ortho(0, legacyVirtualWidth, 0, legacyVirtualHeight, -1, 1);
 
             GL.MatrixMode(MatrixMode.Modelview);
             //GL.PushMatrix();
@@ -444,58 +427,27 @@ namespace KLC_Finch {
 
             //GL.UseProgram(0); //No shader for RGB
 
-            /*
-            foreach (RCScreen screen in listScreen) {
-                if (screen.Texture == null) {
-                    screen.Texture = new TextureScreen();
-                } else
-                    screen.Texture.RenderNew();
-            }
-
-            if (useMultiScreen) {
-                if (textureCursor == null) {
-                    textureCursor = new TextureCursor();
-                } else
-                    textureCursor.RenderNew();
-            }
-
-            if (!useMultiScreen) {
-                if (textureLegacyNew) {
-                    GL.ActiveTexture(TextureUnit.Texture0);
-                    GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
-
-                    GL.TexImage2D(
-                        TextureTarget.Texture2D,
-                        0, //Level
-                        PixelInternalFormat.Rgb,
-                        textureLegacyWidth,
-                        textureLegacyHeight,
-                        0, //Border
-                        OpenTK.Graphics.OpenGL.PixelFormat.Bgr,
-                        PixelType.UnsignedByte,
-                        textureLegacyData); //bmpData.Scan0
-
-                    textureLegacyNew = false;
+            // Setup new textures, not actually render
+            lock (lockFrameBuf) {
+                foreach (RCScreen screen in listScreen) {
+                    if (screen.Texture == null)
+                        screen.Texture = new TextureScreen(Settings.UseYUVShader);
+                    else
+                        screen.Texture.RenderNew(m_shader_sampler);
                 }
-            }
-            */
-
-            //YUV
-            if (width != 0 || width != 0) {
-                if (!texturesOK) {
-                    SetupTexture(width, height);
-                    texturesOK = true;
-                } else if (isFrameNew) {
-                    lock (lockFrameBuf) {
-                        //New frame arrived, update tex
-                        UpdateTexture(width, height, stride);
-                    }
-                    isFrameNew = false;
+                if (useMultiScreen) {
+                    if (textureCursor == null) {
+                        textureCursor = new TextureCursor();
+                    } else
+                        textureCursor.RenderNew();
+                }
+                if (!useMultiScreen) {
+                    if (textureLegacy != null)
+                        textureLegacy.RenderNew(m_shader_sampler);
                 }
             }
 
             #region Overlay
-            /*
             if (overlayNewMouse) {
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
@@ -531,7 +483,6 @@ namespace KLC_Finch {
 
                 overlayNewKeyboard = false;
             }
-            */
             #endregion
 
             switch (connectionStatus) {
@@ -561,8 +512,9 @@ namespace KLC_Finch {
                         else
                             GL.Color3(Color.Cyan);
 
-                        if (!screen.Texture.Render()) {
+                        if (!screen.Texture.Render(shader_program)) {
                             GL.Disable(EnableCap.Texture2D);
+                            //GL.UseProgram(0);
                             GL.Color3(Color.DimGray);
 
                             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
@@ -583,6 +535,7 @@ namespace KLC_Finch {
                 }
 
                 if (textureCursor != null) {
+                    GL.UseProgram(0);
                     GL.Color3(Color.White);
                     textureCursor.Render();
                 }
@@ -609,68 +562,30 @@ namespace KLC_Finch {
                 */
             } else {
                 //Legacy behavior
+                GL.Color3(Color.White);
+                if (!textureLegacy.Render(shader_program)) {
+                    GL.Disable(EnableCap.Texture2D);
+                    GL.UseProgram(0);
+                    //GL.Color3(Color.DimGray);
 
-                if (Settings.UseYUVShader) {
-                    if (texturesOK) {
-                        GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+                    //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                    GL.Begin(PrimitiveType.Polygon);
+                    GL.PointSize(5f);
+                    GL.LineWidth(5f);
 
-                        //GL.UseProgram(shader_program);
-                        //GL.UseProgram(0);
+                    GL.Vertex2(0, legacyVirtualHeight);
+                    GL.Vertex2(0, 0);
+                    GL.Vertex2(legacyVirtualWidth, 0);
+                    GL.Vertex2(legacyVirtualWidth, legacyVirtualHeight);
 
-                        float[] texcoords = {
-                            0.0f, 1.0f,
-                            1.0f, 1.0f,
-                            1.0f, 0.0f,
-                            0.0f, 0.0f
-                        };
+                    //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
 
-                        GL.EnableClientState(ArrayCap.VertexArray);
-                        GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
-
-                        GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-
-                        GL.ActiveTexture(TextureUnit.Texture1);
-                        GL.EnableClientState(ArrayCap.TextureCoordArray);
-                        //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
-                        //GL.BindTexture(TextureTarget.Texture2D, textureIDs[0]);
-                        //GL.Uniform1(m_shader_sampler[0], 1);
-
-                        GL.ActiveTexture(TextureUnit.Texture2);
-                        GL.EnableClientState(ArrayCap.TextureCoordArray);
-                        //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
-                        //GL.BindTexture(TextureTarget.Texture2D, textureIDs[1]);
-                        //GL.Uniform1(m_shader_sampler[1], 2);
-
-                        GL.ActiveTexture(TextureUnit.Texture3);
-                        GL.EnableClientState(ArrayCap.TextureCoordArray);
-                        //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
-                        //GL.BindTexture(TextureTarget.Texture2D, textureIDs[2]);
-                        //GL.Uniform1(m_shader_sampler[1], 3);
-
-
-                        GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-                        GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
-
-                        //GL.UseProgram(shader_program);
-
-                        //GL.ActiveTexture(TextureUnit.Texture0);
-                        //GL.DisableClientState(ArrayCap.VertexArray);
-                        //GL.DisableClientState(ArrayCap.TextureCoordArray);
-                        //GL.UseProgram(0);
-                    }
-                } else {
-                    GL.ActiveTexture(TextureUnit.Texture0);
-                    GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
-                    GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-                    GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
-                    GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-                    GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
+                    GL.End();
                 }
             }
 
             //--
 
-            /*
             GL.Enable(EnableCap.Texture2D);
 
             #region Overlay
@@ -716,7 +631,6 @@ namespace KLC_Finch {
                 GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferTop.Length / 2);
             }
             #endregion
-            */
 
             //--
 
@@ -740,25 +654,6 @@ namespace KLC_Finch {
 
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, overlay2d.Width, overlay2d.Height, 0,
                 OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero); // just allocate memory, so we can update efficiently using TexSubImage2D
-        }
-
-        private void InitLegacyScreenTexture() {
-            GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
-            textureLegacyId = GL.GenTexture();
-
-            GL.ActiveTexture(TextureUnit.Texture0);
-            GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
-            GL.TexImage2D(TextureTarget.Texture2D, 0,
-                PixelInternalFormat.Rgb,
-                legacyVirtualWidth, legacyVirtualHeight, 0, //W, H, Border
-                OpenTK.Graphics.OpenGL.PixelFormat.Bgr,
-                PixelType.UnsignedByte, IntPtr.Zero);
-
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Clamp);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Clamp);
-
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
         }
 
         private void InitTextures() {
@@ -841,7 +736,8 @@ namespace KLC_Finch {
                 textureOverlayDataControlOff);
             #endregion
 
-            InitLegacyScreenTexture();
+            textureLegacy = new TextureScreen(Settings.UseYUVShader);
+            //InitLegacyScreenTexture();
 
             GL.EnableClientState(ArrayCap.VertexArray);
             GL.EnableClientState(ArrayCap.TextureCoordArray);
@@ -1073,112 +969,96 @@ namespace KLC_Finch {
         }
 
         public void LoadTexture(int width, int height, Bitmap decomp) {
-            /*
-            if(currentScreen != previousScreen) {
-                if (previousScreen != null && currentScreen.rect.Width == previousScreen.rect.Width) {
-                    //Console.WriteLine("Chance of glitch...");
-                    if(vp8length > 200)
-                        Console.WriteLine(vp8length);
-                } else {
-                    Console.WriteLine("#");
-                    //previousScreen = currentScreen;
-                }
-            } else {
-                Console.WriteLine(".");
-            }
-            */
+            lock (lockFrameBuf) {
+                if (useMultiScreen) {
+                    #region Multi-Screen
+                    RCScreen scr = null;
+                    if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
+                        scr = currentScreen;
+                    else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
+                        scr = previousScreen;
+                    else {
+                        List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
+                        if (scrMatch.Count == 1) {
+                            scr = scrMatch[0];
+                        } else {
+                            Console.WriteLine("Forced switch from Multi-Screen to Legacy");
+                            useMultiScreen = false;
+                            LoadTexture(width, height, decomp);
 
-            if (useMultiScreen) {
-                #region Multi-Screen
-                RCScreen scr = null;
-                if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
-                    scr = currentScreen;
-                else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
-                    scr = previousScreen;
-                else {
-                    List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
-                    if (scrMatch.Count == 1) {
-                        scr = scrMatch[0];
-                    } else {
-                        Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                        useMultiScreen = false;
-                        LoadTexture(width, height, decomp);
+                            Dispatcher.Invoke((Action)delegate {
+                                toolScreenOverview.Content = "Legacy";
+                                //toolScreenOverview.IsEnabled = false;
+                                toolZoomIn.Visibility = Visibility.Collapsed;
+                                toolZoomOut.Visibility = Visibility.Collapsed;
+                            });
 
-                        Dispatcher.Invoke((Action)delegate {
-                            toolScreenOverview.Content = "Legacy";
-                            //toolScreenOverview.IsEnabled = false;
-                            toolZoomIn.Visibility = Visibility.Collapsed;
-                            toolZoomOut.Visibility = Visibility.Collapsed;
-                        });
+                            return;
+                        }
+                    }
 
+                    if (scr == null) {
+                        //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
+                        //listScreen might be empty
                         return;
                     }
-                }
 
-                if (scr == null) {
-                    //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
-                    //listScreen might be empty
-                    return;
-                }
-
-                if (scr.rect.Width != width || scr.rect.Height != height) {
-                    scr.rect.Width = width;
-                    scr.rect.Height = height;
-                }
-
-                if (scr.Texture != null)
-                    scr.Texture.Load(scr.rect, decomp);
-                socketAlive = true;
-                #endregion
-            } else {
-                #region Legacy
-                if (currentScreen == null)
-                    return;
-
-                if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
-                    Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
-                    SetVirtual(0, 0, width, height);
-
-                    try {
-                        currentScreen.rect.Width = width;
-                        currentScreen.rect.Height = height;
-                        //This is a sad attempt a fixing a problem when changing left monitor's size.
-                        //However if changing a middle monitor, the right monitor will break.
-                        //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                        if (currentScreen.rect.X < 0)
-                            currentScreen.rect.X = width * -1;
-                    } catch (Exception ex) {
-                        Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
+                    if (scr.rect.Width != width || scr.rect.Height != height) {
+                        scr.rect.Width = width;
+                        scr.rect.Height = height;
                     }
 
-                    //textureData = null; //This seems to make it crack
-                    //Need to find a better way to load the texture in, maybe just before render?
-                    //return;
+                    if (scr.Texture != null)
+                        scr.Texture.Load(scr.rect, decomp);
+                    socketAlive = true;
+                    #endregion
+                } else {
+                    #region Legacy
+                    if (currentScreen == null)
+                        return;
+
+                    if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
+                        Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
+                        SetVirtual(0, 0, width, height);
+
+                        try {
+                            currentScreen.rect.Width = width;
+                            currentScreen.rect.Height = height;
+                            //This is a sad attempt a fixing a problem when changing left monitor's size.
+                            //However if changing a middle monitor, the right monitor will break.
+                            //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
+                            if (currentScreen.rect.X < 0)
+                                currentScreen.rect.X = width * -1;
+                        } catch (Exception ex) {
+                            Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
+                        }
+                    }
+
+                    textureLegacy.Load(new Rectangle(0, 0, width, height), decomp);
+
+                    /*
+                    textureLegacyWidth = width;
+                    textureLegacyHeight = height;
+
+                    BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+                    if (textureLegacyData != null && textureLegacyData.Length != Math.Abs(data.Stride * data.Height)) {
+                        virtualRequireViewportUpdate = true;
+                        Console.WriteLine("[LoadTexture:Legacy] Array needs to be resized");
+                    }
+
+                    if (textureLegacyData == null || virtualRequireViewportUpdate) {
+                        Console.WriteLine("Rebuilding Legacy Texture Buffer");
+                        textureLegacyData = new byte[Math.Abs(data.Stride * data.Height)];
+                    }
+                    Marshal.Copy(data.Scan0, textureLegacyData, 0, textureLegacyData.Length); //This can fail with re-taking over private remote control
+                    decomp.UnlockBits(data);
+
+                    textureLegacyNew = true;
+                    */
+                    socketAlive = true;
+                    #endregion
                 }
-
-                //qt.v = textureBottom;
-                //qtBottom = qt;
-
-                textureLegacyWidth = width;
-                textureLegacyHeight = height;
-
-                BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-
-                if (textureLegacyData != null && textureLegacyData.Length != Math.Abs(data.Stride * data.Height)) {
-                    virtualRequireViewportUpdate = true;
-                    Console.WriteLine("[LoadTexture:Legacy] Array needs to be resized");
-                }
-
-                if (textureLegacyData == null || virtualRequireViewportUpdate) {
-                    Console.WriteLine("Rebuilding Legacy Texture Buffer");
-                    textureLegacyData = new byte[Math.Abs(data.Stride * data.Height)];
-                }
-                Marshal.Copy(data.Scan0, textureLegacyData, 0, textureLegacyData.Length); //This can fail with re-taking over private remote control
-                decomp.UnlockBits(data);
-
-                textureLegacyNew = true;
-                socketAlive = true;
-                #endregion
             }
 
             glControl.Invalidate();
@@ -1189,66 +1069,83 @@ namespace KLC_Finch {
                 return;
 
             useMultiScreen = false;
-            SetVirtual(0, 0, width, height);
 
-            this.width = width;
-            this.height = height;
-            this.stride = stride;
-            //textureLegacyWidth = width;
-            //textureLegacyHeight = height;
+            lock (lockFrameBuf) {
+                if (useMultiScreen) {
+                    #region Multi-Screen
+                    RCScreen scr = null;
+                    if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
+                        scr = currentScreen;
+                    else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
+                        scr = previousScreen;
+                    else {
+                        List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
+                        if (scrMatch.Count == 1) {
+                            scr = scrMatch[0];
+                        } else {
+                            Console.WriteLine("Forced switch from Multi-Screen to Legacy");
+                            useMultiScreen = false;
+                            LoadTextureRaw(buffer, width, height, stride);
 
-            if (bufferY == null || bufferY.Length != stride * height) {
-                bufferY = new byte[stride * height];
-                bufferU = new byte[stride * height / 4];
-                bufferV = new byte[stride * height / 4];
+                            Dispatcher.Invoke((Action)delegate {
+                                toolScreenOverview.Content = "Legacy";
+                                //toolScreenOverview.IsEnabled = false;
+                                toolZoomIn.Visibility = Visibility.Collapsed;
+                                toolZoomOut.Visibility = Visibility.Collapsed;
+                            });
+
+                            return;
+                        }
+                    }
+
+                    if (scr == null) {
+                        //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
+                        //listScreen might be empty
+                        return;
+                    }
+
+                    if (scr.rect.Width != width || scr.rect.Height != height) {
+                        scr.rect.Width = width;
+                        scr.rect.Height = height;
+                    }
+
+                    if (scr.Texture != null)
+                        scr.Texture.LoadRaw(scr.rect, buffer, stride);
+                    socketAlive = true;
+                    #endregion
+                } else {
+                    #region Legacy
+                    if (currentScreen == null)
+                        return;
+
+                    if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
+                        Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
+                        SetVirtual(0, 0, width, height);
+
+                        try {
+                            currentScreen.rect.Width = width;
+                            currentScreen.rect.Height = height;
+                            //This is a sad attempt a fixing a problem when changing left monitor's size.
+                            //However if changing a middle monitor, the right monitor will break.
+                            //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
+                            if (currentScreen.rect.X < 0)
+                                currentScreen.rect.X = width * -1;
+                        } catch (Exception ex) {
+                            Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
+                        }
+                    }
+
+                    textureLegacy.LoadRaw(new Rectangle(0, 0, width, height), buffer, stride);
+
+                    socketAlive = true;
+                    #endregion
+                }
             }
-
-            int pos = 0;
-            System.Buffer.BlockCopy(buffer, pos, bufferY, 0, bufferY.Length);
-            pos += bufferY.Length;
-            System.Buffer.BlockCopy(buffer, pos, bufferU, 0, bufferU.Length);
-            pos += bufferU.Length;
-            System.Buffer.BlockCopy(buffer, pos, bufferV, 0, bufferV.Length);
-
-            isFrameNew = true;
-
-            //textureLegacyNew = true;
-            socketAlive = true;
 
             glControl.Invalidate();
         }
 
-        void SetupTexture(int w, int h) {
-            GL.Enable(EnableCap.Texture2D);
-            for (int i = 0; i < 3; i++) {
-                if (textureIDs[i] == 0) textureIDs[i] = GL.GenTexture();
-            }
-
-            //Y
-            GL.ActiveTexture(TextureUnit.Texture1);
-            GL.BindTexture(TextureTarget.Texture2D, textureIDs[0]);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            GL.Uniform1(m_shader_sampler[0], 1);
-
-            //U
-            GL.ActiveTexture(TextureUnit.Texture2);
-            GL.BindTexture(TextureTarget.Texture2D, textureIDs[1]);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            GL.Uniform1(m_shader_sampler[1], 2);
-
-            //V
-            GL.ActiveTexture(TextureUnit.Texture3);
-            GL.BindTexture(TextureTarget.Texture2D, textureIDs[2]);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            GL.Uniform1(m_shader_sampler[2], 3);
-
-            //GL.ActiveTexture(TextureUnit.Texture0);
-            //GL.Disable(EnableCap.Texture2D);
-        }
-
+        /*
         void UpdateTexture(int w, int h, int stride) {
             //GL.Enable(EnableCap.Texture2D);
             GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride);
@@ -1256,25 +1153,26 @@ namespace KLC_Finch {
             //Y
             GL.ActiveTexture(TextureUnit.Texture1);
             GL.BindTexture(TextureTarget.Texture2D, textureIDs[0]);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, w, h, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, bufferY);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, w, h, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, textureLegacyData);
 
             GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride / 2);
 
             //U
             GL.ActiveTexture(TextureUnit.Texture2);
             GL.BindTexture(TextureTarget.Texture2D, textureIDs[1]);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, w / 2, h / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, bufferU);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, w / 2, h / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, textureLegacyDataU);
 
             //V
             GL.ActiveTexture(TextureUnit.Texture3);
             GL.BindTexture(TextureTarget.Texture2D, textureIDs[2]);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, w / 2, h / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, bufferV);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, w / 2, h / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, textureLegacyDataV);
 
             GL.PixelStore(PixelStoreParameter.UnpackRowLength, 0); //Reset stride
             //GL.Disable(EnableCap.Texture2D);
 
             GL.ActiveTexture(TextureUnit.Texture0);
         }
+        */
 
         #region Handle
         private void toolSendCtrlAltDel_Click(object sender, RoutedEventArgs e) {
@@ -1691,6 +1589,10 @@ namespace KLC_Finch {
                 return;
 
             PerformAutotype();
+        }
+
+        private void toolSwitchToLegacy_Click(object sender, RoutedEventArgs e) {
+            useMultiScreen = false;
         }
 
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
