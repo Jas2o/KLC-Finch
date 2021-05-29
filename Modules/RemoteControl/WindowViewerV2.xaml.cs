@@ -428,7 +428,7 @@ namespace KLC_Finch {
             //GL.UseProgram(0); //No shader for RGB
 
             // Setup new textures, not actually render
-            lock (lockFrameBuf) {
+            //lock (lockFrameBuf) {
                 foreach (RCScreen screen in listScreen) {
                     if (screen.Texture == null)
                         screen.Texture = new TextureScreen(Settings.UseYUVShader);
@@ -445,45 +445,7 @@ namespace KLC_Finch {
                     if (textureLegacy != null)
                         textureLegacy.RenderNew(m_shader_sampler);
                 }
-            }
-
-            #region Overlay
-            if (overlayNewMouse) {
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
-
-                GL.TexImage2D(
-                    TextureTarget.Texture2D,
-                    0, //Level
-                    PixelInternalFormat.Rgba,
-                    overlay2dMouse.Width,
-                    overlay2dMouse.Height,
-                    0, //Border
-                    OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
-                    PixelType.UnsignedByte,
-                    textureOverlayDataMouse);
-
-                overlayNewMouse = false;
-            }
-
-            if (overlayNewKeyboard) {
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
-
-                GL.TexImage2D(
-                    TextureTarget.Texture2D,
-                    0, //Level
-                    PixelInternalFormat.Rgba,
-                    overlay2dKeyboard.Width,
-                    overlay2dKeyboard.Height,
-                    0, //Border
-                    OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
-                    PixelType.UnsignedByte,
-                    textureOverlayDataKeyboard);
-
-                overlayNewKeyboard = false;
-            }
-            #endregion
+            //}
 
             switch (connectionStatus) {
                 case ConnectionStatus.FirstConnectionAttempt:
@@ -512,7 +474,7 @@ namespace KLC_Finch {
                         else
                             GL.Color3(Color.Cyan);
 
-                        if (!screen.Texture.Render(shader_program)) {
+                        if (!screen.Texture.Render(shader_program, m_shader_sampler)) {
                             GL.Disable(EnableCap.Texture2D);
                             //GL.UseProgram(0);
                             GL.Color3(Color.DimGray);
@@ -563,10 +525,10 @@ namespace KLC_Finch {
             } else {
                 //Legacy behavior
                 GL.Color3(Color.White);
-                if (!textureLegacy.Render(shader_program)) {
+                if (!textureLegacy.Render(shader_program, m_shader_sampler)) {
                     GL.Disable(EnableCap.Texture2D);
                     GL.UseProgram(0);
-                    //GL.Color3(Color.DimGray);
+                    GL.Color3(Color.DimGray);
 
                     //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
                     GL.Begin(PrimitiveType.Polygon);
@@ -589,14 +551,51 @@ namespace KLC_Finch {
             GL.Enable(EnableCap.Texture2D);
 
             #region Overlay
-            if(!useMultiScreen)
+            if (!useMultiScreen)
                 GL.Viewport(0, 0, glControl.Width, glControl.Height);
 
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
             GL.Ortho(0, glControl.Width, glControl.Height, 0, MainCamera.ZNear, MainCamera.ZFar); //Test
 
+            if (overlayNewMouse) {
+                GL.ActiveTexture(TextureUnit.Texture0);
+                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
+
+                GL.TexImage2D(
+                    TextureTarget.Texture2D,
+                    0, //Level
+                    PixelInternalFormat.Rgba,
+                    overlay2dMouse.Width,
+                    overlay2dMouse.Height,
+                    0, //Border
+                    OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
+                    PixelType.UnsignedByte,
+                    textureOverlayDataMouse);
+
+                overlayNewMouse = false;
+            }
+
+            if (overlayNewKeyboard) {
+                GL.ActiveTexture(TextureUnit.Texture0);
+                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
+
+                GL.TexImage2D(
+                    TextureTarget.Texture2D,
+                    0, //Level
+                    PixelInternalFormat.Rgba,
+                    overlay2dKeyboard.Width,
+                    overlay2dKeyboard.Height,
+                    0, //Border
+                    OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
+                    PixelType.UnsignedByte,
+                    textureOverlayDataKeyboard);
+
+                overlayNewKeyboard = false;
+            }
+
             GL.Color3(Color.White);
+            GL.UseProgram(0);
             if (Settings.DisplayOverlayMouse) {
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
@@ -622,7 +621,7 @@ namespace KLC_Finch {
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
                 GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
                 GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferCenter.Length / 2);
-            } else if(connectionStatus == ConnectionStatus.Connected && !controlEnabled) {
+            } else if (connectionStatus == ConnectionStatus.Connected && !controlEnabled) {
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dControlOff);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOtop);
@@ -969,7 +968,7 @@ namespace KLC_Finch {
         }
 
         public void LoadTexture(int width, int height, Bitmap decomp) {
-            lock (lockFrameBuf) {
+            //lock (lockFrameBuf) {
                 if (useMultiScreen) {
                     #region Multi-Screen
                     RCScreen scr = null;
@@ -1059,7 +1058,7 @@ namespace KLC_Finch {
                     socketAlive = true;
                     #endregion
                 }
-            }
+            //}
 
             glControl.Invalidate();
         }
@@ -1068,9 +1067,7 @@ namespace KLC_Finch {
             if (width * height <= 0)
                 return;
 
-            useMultiScreen = false;
-
-            lock (lockFrameBuf) {
+            //lock (lockFrameBuf) {
                 if (useMultiScreen) {
                     #region Multi-Screen
                     RCScreen scr = null;
@@ -1140,7 +1137,7 @@ namespace KLC_Finch {
                     socketAlive = true;
                     #endregion
                 }
-            }
+            //}
 
             glControl.Invalidate();
         }

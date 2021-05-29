@@ -88,6 +88,7 @@ namespace NTR {
             //--
 
             GL.Enable(EnableCap.Texture2D);
+            GL.UseProgram(0);
             GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, ID);
 
