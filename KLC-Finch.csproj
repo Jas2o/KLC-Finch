@@ -400,7 +400,7 @@
   <Import Project="..\LibKaseyaAuth\LibKaseyaAuth.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>set mydate=%25date:~10,4%25-%25date:~4,2%25-%25date:~7,2%25
+    <PreBuildEvent>set mydate=%25date:~10,4%25-%25date:~7,2%25-%25date:~4,2%25
 echo %25mydate%25 &gt; "$(ProjectDir)\Resources\BuildDate.txt"</PreBuildEvent>
   </PropertyGroup>
 </Project>
