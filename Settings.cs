@@ -23,5 +23,7 @@ namespace KLC_Finch {
         public uint RemoteControlHeight { get; set; } = 800;
         public bool MacSwapCtrlWin { get; set; } = false;
         public bool MultiAltFit { get; set; } = false;
+
+        public bool UseYUVShader { get; set; } = true;
     }
 }

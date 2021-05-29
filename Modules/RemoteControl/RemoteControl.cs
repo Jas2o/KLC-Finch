@@ -22,6 +22,7 @@ namespace KLC_Finch {
     public class RemoteControl {
 
         public WindowViewerV2 Viewer;
+        public bool UseYUVShader;
 
         private KLC.LiveConnectSession session;
         private string rcSessionId;
@@ -255,55 +256,70 @@ namespace KLC_Finch {
                     }
                     */
 
-                    Bitmap b1 = null;
-                    try {
-                        //b1 = decoder.Decode(remaining, 0);
+                    if(UseYUVShader) {
+                        try {
+                            int rawWidth = 0;
+                            int rawHeight = 0;
+                            int rawStride = 0;
+                            byte[] rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride);
 
-                        int w = 0;
-                        int h = 0;
-                        byte[] b2 = decoder.DecodeRaw(remaining, out w, out h);
-
-                        if(!File.Exists("vp8test.bin")) {
-                            FileStream fs = new FileStream("vp8test.bin", FileMode.Create);
-                            fs.Write(b2, 0, b2.Length);
-                            fs.Flush();
-                            fs.Close();
-                        }
-
-                        Console.WriteLine();
-
-                        /*
-                        //Test
-                        int b2w = 0;
-                        int b2h = 0;
-                        Vpx.Net.vpx_image_t img2 = decoder2.DecodeFrame(remaining);
-                        img2.Dispose();
-                        if (b2w != 0 && b2h != 0) {
-                            //Console.WriteLine(b2.Length);
-                            Viewer.LoadTextureRaw(b2w, b2h, b2);
-                        }
-                        */
-                    } catch (Exception ex) {
-                        Console.WriteLine("RC VP8 decode error: " + ex.ToString());
-                    } finally {
-                        if (b1 != null) {
-                            Viewer.LoadTexture(b1.Width, b1.Height, b1);
-
-                            if (captureScreen) {
-                                captureScreen = false;
-
-                                //This may cause AV to think we're malware
-                                Thread tc = new Thread(() => {
-                                    System.Windows.Forms.Clipboard.SetImage(b1);
-                                });
-                                tc.SetApartmentState(ApartmentState.STA);
-                                tc.Start();
-                                Thread.Sleep(1);
-                                tc.Join();
-                                Thread.Sleep(1);
+                            /*
+                            if (!File.Exists("vp8test.bin")) {
+                                FileStream fs = new FileStream("vp8test.bin", FileMode.Create);
+                                fs.Write(rawYUV, 0, rawYUV.Length);
+                                fs.Flush();
+                                fs.Close();
                             }
+                            */
 
-                            b1.Dispose();
+                            if (rawWidth != 0 && rawHeight != 0) {
+                                Viewer.LoadTextureRaw(rawYUV, rawWidth, rawHeight, rawStride);
+
+                                if (captureScreen) {
+                                    captureScreen = false;
+
+                                    Bitmap b1 = decoder.RawToBitmap(rawYUV, rawWidth, rawHeight, rawStride);
+
+                                    //This may cause AV to think we're malware
+                                    Thread tc = new Thread(() => {
+                                        System.Windows.Forms.Clipboard.SetImage(b1);
+                                    });
+                                    tc.SetApartmentState(ApartmentState.STA);
+                                    tc.Start();
+                                    Thread.Sleep(1);
+                                    tc.Join();
+                                    Thread.Sleep(1);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            Console.WriteLine("RC VP8 decode error: " + ex.ToString());
+                        }
+                    } else {
+                        Bitmap b1 = null;
+                        try {
+                            b1 = decoder.Decode(remaining, 0);
+                        } catch (Exception ex) {
+                            Console.WriteLine("RC VP8 decode error: " + ex.ToString());
+                        } finally {
+                            if (b1 != null) {
+                                Viewer.LoadTexture(b1.Width, b1.Height, b1);
+
+                                if (captureScreen) {
+                                    captureScreen = false;
+
+                                    //This may cause AV to think we're malware
+                                    Thread tc = new Thread(() => {
+                                        System.Windows.Forms.Clipboard.SetImage(b1);
+                                    });
+                                    tc.SetApartmentState(ApartmentState.STA);
+                                    tc.Start();
+                                    Thread.Sleep(1);
+                                    tc.Join();
+                                    Thread.Sleep(1);
+                                }
+
+                                b1.Dispose();
+                            }
                         }
                     }
 

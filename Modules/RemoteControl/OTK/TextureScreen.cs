@@ -51,6 +51,7 @@ namespace NTR {
             if (!IsNew || ID == -1 || rect == null)
                 return;
 
+            GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, ID);
 
             GL.TexImage2D(
@@ -91,6 +92,7 @@ namespace NTR {
             }
 
             GL.Enable(EnableCap.Texture2D);
+            GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, ID);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);

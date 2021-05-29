@@ -187,6 +187,7 @@
     <None Include="Modules\RemoteControl\WindowViewerV1.xaml.cs">
       <DependentUpon>WindowViewerV1.xaml</DependentUpon>
     </None>
+    <Compile Include="Modules\RemoteControl\Shaders.cs" />
     <Compile Include="Modules\RemoteControl\TSSession.cs" />
     <Compile Include="Modules\RemoteControl\WindowOptions.xaml.cs">
       <DependentUpon>WindowOptions.xaml</DependentUpon>

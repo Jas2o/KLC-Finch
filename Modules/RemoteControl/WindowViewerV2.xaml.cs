@@ -88,6 +88,25 @@ namespace KLC_Finch {
         int textureLegacyId;
         #endregion
 
+        #region YUV
+        //https://github.com/minghuam/opentk-gst/blob/master/ThreadedGLSLVideoPlayer.cs
+        int width = 0;
+        int height = 0;
+        int stride = 0;
+        byte[] bufferY = null;
+        byte[] bufferU = null;
+        byte[] bufferV = null;
+        int[] textureIDs = new int[3];
+        bool texturesOK = false;
+
+        bool isFrameNew = false;
+        object lockFrameBuf = new object();
+        int vertex_shader_object = 0;
+        int fragment_shader_object = 0;
+        int shader_program = 0;
+        int[] m_shader_sampler = new int[3];
+        #endregion
+
         private bool keyDownWin;
         private bool autotypeAlwaysConfirmed;
         private bool windowActivatedMouseMove;
@@ -136,7 +155,6 @@ namespace KLC_Finch {
 
             //Multi-screen
             MainCamera = new Camera(Vector2.Zero);
-
             //Legacy
             if(!useMultiScreen)
                 SetVirtual(0, 0, virtualWidth, virtualHeight);
@@ -145,10 +163,50 @@ namespace KLC_Finch {
             clipboardMon.OnUpdate += SyncClipboard;
         }
 
+        void CreateShaders(string vs, string fs, out int vertexObject, out int fragmentObject, out int program) {
+            int status_code;
+            string info;
+
+            vertexObject = GL.CreateShader(ShaderType.VertexShader);
+            fragmentObject = GL.CreateShader(ShaderType.FragmentShader);
+
+            // Compile vertex shader
+            GL.ShaderSource(vertexObject, vs);
+            GL.CompileShader(vertexObject);
+            GL.GetShaderInfoLog(vertexObject, out info);
+            GL.GetShader(vertexObject, ShaderParameter.CompileStatus, out status_code);
+
+            if (status_code != 1)
+                throw new ApplicationException(info);
+
+            // Compile vertex shader
+            GL.ShaderSource(fragmentObject, fs);
+            GL.CompileShader(fragmentObject);
+            GL.GetShaderInfoLog(fragmentObject, out info);
+            GL.GetShader(fragmentObject, ShaderParameter.CompileStatus, out status_code);
+
+            if (status_code != 1)
+                throw new ApplicationException(info);
+
+            program = GL.CreateProgram();
+            GL.AttachShader(program, fragmentObject);
+            GL.AttachShader(program, vertexObject);
+
+            GL.LinkProgram(program);
+            GL.UseProgram(program);
+        }
+
         private void Window_Loaded(object sender, RoutedEventArgs e) {
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+            if (shader_program != 0)
+                GL.DeleteProgram(shader_program);
+            if (fragment_shader_object != 0)
+                GL.DeleteShader(fragment_shader_object);
+            if (vertex_shader_object != 0)
+                GL.DeleteShader(vertex_shader_object);
+
             clipboardMon.OnUpdate -= SyncClipboard;
 
             if (rc != null)
@@ -384,20 +442,26 @@ namespace KLC_Finch {
 
             //--
 
-            foreach(RCScreen screen in listScreen) {
+            //GL.UseProgram(0); //No shader for RGB
+
+            /*
+            foreach (RCScreen screen in listScreen) {
                 if (screen.Texture == null) {
                     screen.Texture = new TextureScreen();
                 } else
                     screen.Texture.RenderNew();
             }
 
-            if (textureCursor == null) {
-                textureCursor = new TextureCursor();
-            } else
-                textureCursor.RenderNew();
+            if (useMultiScreen) {
+                if (textureCursor == null) {
+                    textureCursor = new TextureCursor();
+                } else
+                    textureCursor.RenderNew();
+            }
 
             if (!useMultiScreen) {
                 if (textureLegacyNew) {
+                    GL.ActiveTexture(TextureUnit.Texture0);
                     GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
 
                     GL.TexImage2D(
@@ -414,9 +478,26 @@ namespace KLC_Finch {
                     textureLegacyNew = false;
                 }
             }
+            */
+
+            //YUV
+            if (width != 0 || width != 0) {
+                if (!texturesOK) {
+                    SetupTexture(width, height);
+                    texturesOK = true;
+                } else if (isFrameNew) {
+                    lock (lockFrameBuf) {
+                        //New frame arrived, update tex
+                        UpdateTexture(width, height, stride);
+                    }
+                    isFrameNew = false;
+                }
+            }
 
             #region Overlay
+            /*
             if (overlayNewMouse) {
+                GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
 
                 GL.TexImage2D(
@@ -434,6 +515,7 @@ namespace KLC_Finch {
             }
 
             if (overlayNewKeyboard) {
+                GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
 
                 GL.TexImage2D(
@@ -449,6 +531,7 @@ namespace KLC_Finch {
 
                 overlayNewKeyboard = false;
             }
+            */
             #endregion
 
             switch (connectionStatus) {
@@ -526,15 +609,68 @@ namespace KLC_Finch {
                 */
             } else {
                 //Legacy behavior
-                GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-                GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
-                GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-                GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
+
+                if (Settings.UseYUVShader) {
+                    if (texturesOK) {
+                        GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+
+                        //GL.UseProgram(shader_program);
+                        //GL.UseProgram(0);
+
+                        float[] texcoords = {
+                            0.0f, 1.0f,
+                            1.0f, 1.0f,
+                            1.0f, 0.0f,
+                            0.0f, 0.0f
+                        };
+
+                        GL.EnableClientState(ArrayCap.VertexArray);
+                        GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
+
+                        GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+
+                        GL.ActiveTexture(TextureUnit.Texture1);
+                        GL.EnableClientState(ArrayCap.TextureCoordArray);
+                        //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
+                        //GL.BindTexture(TextureTarget.Texture2D, textureIDs[0]);
+                        //GL.Uniform1(m_shader_sampler[0], 1);
+
+                        GL.ActiveTexture(TextureUnit.Texture2);
+                        GL.EnableClientState(ArrayCap.TextureCoordArray);
+                        //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
+                        //GL.BindTexture(TextureTarget.Texture2D, textureIDs[1]);
+                        //GL.Uniform1(m_shader_sampler[1], 2);
+
+                        GL.ActiveTexture(TextureUnit.Texture3);
+                        GL.EnableClientState(ArrayCap.TextureCoordArray);
+                        //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
+                        //GL.BindTexture(TextureTarget.Texture2D, textureIDs[2]);
+                        //GL.Uniform1(m_shader_sampler[1], 3);
+
+
+                        GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
+                        GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
+
+                        //GL.UseProgram(shader_program);
+
+                        //GL.ActiveTexture(TextureUnit.Texture0);
+                        //GL.DisableClientState(ArrayCap.VertexArray);
+                        //GL.DisableClientState(ArrayCap.TextureCoordArray);
+                        //GL.UseProgram(0);
+                    }
+                } else {
+                    GL.ActiveTexture(TextureUnit.Texture0);
+                    GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+                    GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
+                    GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
+                    GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
+                }
             }
 
             //--
 
+            /*
             GL.Enable(EnableCap.Texture2D);
 
             #region Overlay
@@ -547,6 +683,7 @@ namespace KLC_Finch {
 
             GL.Color3(Color.White);
             if (Settings.DisplayOverlayMouse) {
+                GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOmouse);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
@@ -555,6 +692,7 @@ namespace KLC_Finch {
             }
 
             if (Settings.DisplayOverlayKeyboardOther || Settings.DisplayOverlayKeyboardMod) {
+                GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOkeyboard);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
@@ -563,12 +701,14 @@ namespace KLC_Finch {
             }
 
             if (connectionStatus == ConnectionStatus.Disconnected) {
+                GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dDisconnected);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOcenter);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
                 GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
                 GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferCenter.Length / 2);
             } else if(connectionStatus == ConnectionStatus.Connected && !controlEnabled) {
+                GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dControlOff);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOtop);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
@@ -576,6 +716,7 @@ namespace KLC_Finch {
                 GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferTop.Length / 2);
             }
             #endregion
+            */
 
             //--
 
@@ -591,6 +732,7 @@ namespace KLC_Finch {
             overlay2d = new Bitmap(overlayW, overlayH);
             textureOverlay2d = GL.GenTexture();
 
+            GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, textureOverlay2d);
 
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)All.Linear);
@@ -604,6 +746,7 @@ namespace KLC_Finch {
             GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
             textureLegacyId = GL.GenTexture();
 
+            GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, textureLegacyId);
             GL.TexImage2D(TextureTarget.Texture2D, 0,
                 PixelInternalFormat.Rgb,
@@ -647,6 +790,7 @@ namespace KLC_Finch {
                 overlay2dDisconnected.UnlockBits(data2);
             }
 
+            GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dDisconnected);
 
             GL.TexImage2D(
@@ -682,6 +826,7 @@ namespace KLC_Finch {
                 overlay2dControlOff.UnlockBits(data2);
             }
 
+            GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dControlOff);
 
             GL.TexImage2D(
@@ -1039,25 +1184,96 @@ namespace KLC_Finch {
             glControl.Invalidate();
         }
 
-        public void LoadTextureRaw(int width, int height, byte[] buffer) {
-            int stride = (width * 3 + 3) / 4 * 4;
+        public void LoadTextureRaw(byte[] buffer, int width, int height, int stride) {
+            if (width * height <= 0)
+                return;
 
             useMultiScreen = false;
             SetVirtual(0, 0, width, height);
 
-            textureLegacyWidth = width;
-            textureLegacyHeight = height;
+            this.width = width;
+            this.height = height;
+            this.stride = stride;
+            //textureLegacyWidth = width;
+            //textureLegacyHeight = height;
 
-            if (textureLegacyData == null || textureLegacyData.Length != Math.Abs(stride * height)) {
-                textureLegacyData = new byte[Math.Abs(stride * height)];
-                Console.WriteLine("Stuff");
+            if (bufferY == null || bufferY.Length != stride * height) {
+                bufferY = new byte[stride * height];
+                bufferU = new byte[stride * height / 4];
+                bufferV = new byte[stride * height / 4];
             }
-            System.Buffer.BlockCopy(buffer, 0, textureLegacyData, 0, buffer.Length);
 
-            textureLegacyNew = true;
+            int pos = 0;
+            System.Buffer.BlockCopy(buffer, pos, bufferY, 0, bufferY.Length);
+            pos += bufferY.Length;
+            System.Buffer.BlockCopy(buffer, pos, bufferU, 0, bufferU.Length);
+            pos += bufferU.Length;
+            System.Buffer.BlockCopy(buffer, pos, bufferV, 0, bufferV.Length);
+
+            isFrameNew = true;
+
+            //textureLegacyNew = true;
             socketAlive = true;
 
             glControl.Invalidate();
+        }
+
+        void SetupTexture(int w, int h) {
+            GL.Enable(EnableCap.Texture2D);
+            for (int i = 0; i < 3; i++) {
+                if (textureIDs[i] == 0) textureIDs[i] = GL.GenTexture();
+            }
+
+            //Y
+            GL.ActiveTexture(TextureUnit.Texture1);
+            GL.BindTexture(TextureTarget.Texture2D, textureIDs[0]);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            GL.Uniform1(m_shader_sampler[0], 1);
+
+            //U
+            GL.ActiveTexture(TextureUnit.Texture2);
+            GL.BindTexture(TextureTarget.Texture2D, textureIDs[1]);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            GL.Uniform1(m_shader_sampler[1], 2);
+
+            //V
+            GL.ActiveTexture(TextureUnit.Texture3);
+            GL.BindTexture(TextureTarget.Texture2D, textureIDs[2]);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            GL.Uniform1(m_shader_sampler[2], 3);
+
+            //GL.ActiveTexture(TextureUnit.Texture0);
+            //GL.Disable(EnableCap.Texture2D);
+        }
+
+        void UpdateTexture(int w, int h, int stride) {
+            //GL.Enable(EnableCap.Texture2D);
+            GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride);
+
+            //Y
+            GL.ActiveTexture(TextureUnit.Texture1);
+            GL.BindTexture(TextureTarget.Texture2D, textureIDs[0]);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, w, h, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, bufferY);
+
+            GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride / 2);
+
+            //U
+            GL.ActiveTexture(TextureUnit.Texture2);
+            GL.BindTexture(TextureTarget.Texture2D, textureIDs[1]);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, w / 2, h / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, bufferU);
+
+            //V
+            GL.ActiveTexture(TextureUnit.Texture3);
+            GL.BindTexture(TextureTarget.Texture2D, textureIDs[2]);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, w / 2, h / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, bufferV);
+
+            GL.PixelStore(PixelStoreParameter.UnpackRowLength, 0); //Reset stride
+            //GL.Disable(EnableCap.Texture2D);
+
+            GL.ActiveTexture(TextureUnit.Texture0);
         }
 
         #region Handle
@@ -1370,6 +1586,22 @@ namespace KLC_Finch {
         }
 
         private void glControl_Load(object sender, EventArgs e) {
+            //check GLSL
+            string version = GL.GetString(StringName.Version);
+            int major = (int)version[0];
+            if (major < 2)
+                Console.WriteLine("OpenGL 2.0 not available. GLSL not supported.");
+            else {
+                this.rc.UseYUVShader = Settings.UseYUVShader;
+
+                CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment2, out vertex_shader_object, out fragment_shader_object, out shader_program);
+                m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
+                m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
+                m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
+            }
+
+            //--
+
             InitTextures();
             RefreshVirtual();
 
