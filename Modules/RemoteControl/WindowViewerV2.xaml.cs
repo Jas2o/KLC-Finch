@@ -433,7 +433,7 @@ namespace KLC_Finch {
             //lock (lockFrameBuf) {
                 foreach (RCScreen screen in listScreen) {
                     if (screen.Texture == null)
-                        screen.Texture = new TextureScreen(Settings.UseYUVShader);
+                        screen.Texture = new TextureScreen((rc != null ? Settings.UseYUVShader : false));
                     else
                         screen.Texture.RenderNew(m_shader_sampler);
                 }
@@ -738,7 +738,7 @@ namespace KLC_Finch {
                 textureOverlayDataControlOff);
             #endregion
 
-            textureLegacy = new TextureScreen(Settings.UseYUVShader);
+            textureLegacy = new TextureScreen((rc != null ? Settings.UseYUVShader : false));
             //InitLegacyScreenTexture();
 
             GL.EnableClientState(ArrayCap.VertexArray);
@@ -1291,6 +1291,8 @@ namespace KLC_Finch {
         private void toolReconnect_Click(object sender, RoutedEventArgs e) {
             if (rc != null)
                 rc.Reconnect();
+            else
+                toolShowAlternative_Click(sender, e);
         }
 
         KeycodeV2 keyctrl = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.ControlKey);
@@ -1489,7 +1491,7 @@ namespace KLC_Finch {
             int major = (int)version[0];
             if (major < 2)
                 Console.WriteLine("OpenGL 2.0 not available. GLSL not supported.");
-            else {
+            else if(rc != null) {
                 this.rc.UseYUVShader = Settings.UseYUVShader;
                 if (Settings.UseYUVShader)
                     this.Title = Title + " (YUV)";
@@ -1601,11 +1603,11 @@ namespace KLC_Finch {
         }
 
         private void toolSettingUseYUVShader_Click(object sender, RoutedEventArgs e) {
-            Settings.UseYUVShader = !Settings.UseYUVShader;
-            Settings.Save();
-
-            if (rc != null)
+            if (rc != null) {
+                Settings.UseYUVShader = !Settings.UseYUVShader;
+                Settings.Save();
                 rc.Reconnect();
+            }
         }
 
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
