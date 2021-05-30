@@ -24,8 +24,12 @@ namespace NTR {
             rect = new Rectangle(screen_x, screen_y, screen_width, screen_height);
         }
 
+        public string StringResPos() {
+            return rect.Width + " x " + rect.Height + " at " + rect.X + ", " + rect.Y;
+        }
+
         public override string ToString() {
-            return screen_name + ": (" + rect.Width + " x " + rect.Height + " at " + rect.X + ", " + rect.Y + ")";
+            return screen_name + ": (" + StringResPos() + ")";
         }
     }
 }

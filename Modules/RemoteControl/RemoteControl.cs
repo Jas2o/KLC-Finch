@@ -192,7 +192,7 @@ namespace KLC_Finch {
                         int screen_x = (int)screen["screen_x"];
                         int screen_y = (int)screen["screen_y"];
 
-                        Viewer.AddScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
+                        Viewer.AddScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y, (screen_id == default_screen));
                         Console.WriteLine("Add Screen: " + screen_id);
 
                         lowestX = Math.Min(screen_x, lowestX);

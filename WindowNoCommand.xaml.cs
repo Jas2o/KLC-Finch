@@ -73,7 +73,7 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
             WindowViewerV2 myViewer = App.viewer = new WindowViewerV2(null, width, height);
-            myViewer.AddScreen("0", "Test Screen", height, width, 0, 0);
+            myViewer.AddScreen("0", "Test Screen", height, width, 0, 0, true);
             myViewer.SetCanvas(0, 0, width, height);
             myViewer.Show();
 

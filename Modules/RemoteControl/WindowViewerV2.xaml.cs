@@ -527,8 +527,7 @@ namespace KLC_Finch {
                 */
             } else {
                 //Legacy behavior
-                GL.Color3(Color.White);
-                if (!textureLegacy.Render(shader_program, m_shader_sampler)) {
+                if (!textureLegacy.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, Color.White)) {
                     GL.Disable(EnableCap.Texture2D);
                     GL.UseProgram(0);
                     GL.Color3(Color.DimGray);
@@ -767,7 +766,7 @@ namespace KLC_Finch {
             connectionStatus = ConnectionStatus.Connected;
         }
 
-        public void AddScreen(string screen_id, string screen_name, int screen_height, int screen_width, int screen_x, int screen_y) {
+        public void AddScreen(string screen_id, string screen_name, int screen_height, int screen_width, int screen_x, int screen_y, bool isDefault) {
             RCScreen newScreen = new RCScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
             listScreen.Add(newScreen);
             if (currentScreen == null) {
@@ -778,6 +777,7 @@ namespace KLC_Finch {
                 legacyVirtualWidth = currentScreen.rect.Width;
                 virtualRequireViewportUpdate = true;
             }
+            
 
             Dispatcher.Invoke((Action)delegate {
                 MenuItem item = new MenuItem();
@@ -788,6 +788,11 @@ namespace KLC_Finch {
 
                 //Private and Mac seem to bug out if you change screens, cause there's only one screen
                 toolScreen.IsEnabled = (listScreen.Count > 1);
+
+                if (isDefault) {
+                    toolScreen.Content = currentScreen.screen_name;
+                    toolScreen.ToolTip = currentScreen.StringResPos();
+                }
             });
         }
 
@@ -802,7 +807,8 @@ namespace KLC_Finch {
             if (useMultiScreen)
                 PositionCameraToCurrentScreen();
 
-            toolScreen.Content = currentScreen.ToString();
+            toolScreen.Content = currentScreen.screen_name;
+            toolScreen.ToolTip = currentScreen.StringResPos();
             foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
                 item.IsChecked = (item == source);
             }
@@ -817,7 +823,8 @@ namespace KLC_Finch {
                 PositionCameraToCurrentScreen();
 
             Dispatcher.Invoke((Action)delegate {
-                toolScreen.Content = screen.ToString();
+                toolScreen.Content = screen.screen_name;
+                toolScreen.ToolTip = screen.StringResPos();
 
                 foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
                     item.IsChecked = (item.Header.ToString() == screen.ToString());
@@ -942,6 +949,21 @@ namespace KLC_Finch {
             ChangeViewToOverview();
         }
 
+        private void toolSwitchToLegacy_Click(object sender, RoutedEventArgs e) {
+            SwitchToLegacyRendering();
+        }
+
+        private void SwitchToLegacyRendering() {
+            useMultiScreen = false;
+
+            Dispatcher.Invoke((Action)delegate {
+                toolScreenOverview.Content = "Legacy";
+                //toolScreenOverview.IsEnabled = false;
+                toolZoomIn.Visibility = Visibility.Collapsed;
+                toolZoomOut.Visibility = Visibility.Collapsed;
+            });
+        }
+
         private void ChangeViewToOverview() {
             if (!useMultiScreen)
                 return;
@@ -985,16 +1007,8 @@ namespace KLC_Finch {
                             scr = scrMatch[0];
                         } else {
                             Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                            useMultiScreen = false;
                             LoadTexture(width, height, decomp);
-
-                            Dispatcher.Invoke((Action)delegate {
-                                toolScreenOverview.Content = "Legacy";
-                                //toolScreenOverview.IsEnabled = false;
-                                toolZoomIn.Visibility = Visibility.Collapsed;
-                                toolZoomOut.Visibility = Visibility.Collapsed;
-                            });
-
+                            SwitchToLegacyRendering();
                             return;
                         }
                     }
@@ -1084,16 +1098,8 @@ namespace KLC_Finch {
                             scr = scrMatch[0];
                         } else {
                             Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                            useMultiScreen = false;
                             LoadTextureRaw(buffer, width, height, stride);
-
-                            Dispatcher.Invoke((Action)delegate {
-                                toolScreenOverview.Content = "Legacy";
-                                //toolScreenOverview.IsEnabled = false;
-                                toolZoomIn.Visibility = Visibility.Collapsed;
-                                toolZoomOut.Visibility = Visibility.Collapsed;
-                            });
-
+                            SwitchToLegacyRendering();
                             return;
                         }
                     }
@@ -1200,17 +1206,24 @@ namespace KLC_Finch {
             toolClipboardReceiveOnly.Visibility = (!Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
         }
 
+        private void toolClipboardSend_MouseEnter(object sender, MouseEventArgs e) {
+            clipboard = Clipboard.GetText();
+            Dispatcher.Invoke((Action)delegate {
+                toolClipboardSendText.Text = clipboard.Truncate(50); //.Replace("\r", "").Replace("\n", "").Truncate(50);
+            });
+        }
+
         private void toolClipboardSend_Click(object sender, EventArgs e) {
             if (rc == null)
                 return;
 
             clipboard = Clipboard.GetText();
             Dispatcher.Invoke((Action)delegate {
-                toolClipboardSend.ToolTip = "Send to Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(50);
+                //toolClipboardSend.ToolTip = "Send to Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(50);
                 rc.SendClipboard(clipboard);
 
                 if (Settings.ClipboardSyncEnabled)
-                    toolClipboardGet.ToolTip = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(50);
+                    toolClipboardGetText.Text = clipboard.Truncate(50); //.Replace("\r", "").Replace("\n", "").Truncate(50);
             });
         }
 
@@ -1221,7 +1234,7 @@ namespace KLC_Finch {
             clipboard = content;
             Dispatcher.Invoke((Action)delegate {
                 //try {
-                toolClipboardGet.ToolTip = "Get from Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(50);
+                toolClipboardGetText.Text = clipboard.Truncate(50); //.Replace("\r", "").Replace("\n", "").Truncate(50);
 
                 //if (clipboardSyncEnabled) { //Commented out now that we use Receive-Only mode
                 //this.BeginInvoke(new Action(() => {
@@ -1596,10 +1609,6 @@ namespace KLC_Finch {
                 return;
 
             PerformAutotype();
-        }
-
-        private void toolSwitchToLegacy_Click(object sender, RoutedEventArgs e) {
-            useMultiScreen = false;
         }
 
         private void toolSettingUseYUVShader_Click(object sender, RoutedEventArgs e) {

@@ -63,10 +63,16 @@
                 </Button.ToolTip>
                 <Image Source="/KLC-Finch;component/Resources/clipboard-arrow-down-outline.png" StretchDirection="DownOnly" />
             </Button>
-            <Button x:Name="toolClipboardSend" ToolTip="Send to Client" Click="toolClipboardSend_Click">
+            <Button x:Name="toolClipboardSend" Click="toolClipboardSend_Click" MouseEnter="toolClipboardSend_MouseEnter">
+                <Button.ToolTip>
+                    <TextBlock>Send to Client<LineBreak/><LineBreak/><Run Name="toolClipboardSendText"/></TextBlock>
+                </Button.ToolTip>
                 <Image Source="/KLC-Finch;component/Resources/tray-arrow-down.png" StretchDirection="DownOnly"/>
             </Button>
-            <Button x:Name="toolClipboardGet" ToolTip="Get from Client" Click="toolClipboardGet_Click">
+            <Button x:Name="toolClipboardGet" Click="toolClipboardGet_Click">
+                <Button.ToolTip>
+                    <TextBlock>Get from Client<LineBreak/><LineBreak/><Run Name="toolClipboardGetText"/></TextBlock>
+                </Button.ToolTip>
                 <Image Source="/KLC-Finch;component/Resources/tray-arrow-up.png" StretchDirection="DownOnly"/>
             </Button>
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
