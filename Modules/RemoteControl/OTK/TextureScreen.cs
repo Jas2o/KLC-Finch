@@ -117,6 +117,7 @@ namespace NTR {
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
                 GL.Uniform1(m_shader_sampler[2], 3);
 
+                GL.ActiveTexture(TextureUnit.Texture0);
                 GL.PixelStore(PixelStoreParameter.UnpackRowLength, 0); //Reset stride
             } else {
                 GL.ActiveTexture(TextureUnit.Texture0);
@@ -143,11 +144,11 @@ namespace NTR {
             IsNew = false;
         }
 
-        public bool Render(int programYUV, int[] m_shader_sampler) {
+        public bool Render(int programYUV, int[] m_shader_sampler, int m_shader_multiplyColor=0, Color? multiplyColor = null) {
             if (ID == -1 || Data == null || rect == null)
                 return false;
 
-            if(vertBufferScreen == null) {
+            if (vertBufferScreen == null) {
                 vertBufferScreen = new Vector2[8] {
                     new Vector2(rect.Left, rect.Bottom), new Vector2(0, 1),
                     new Vector2(rect.Right, rect.Bottom), new Vector2(1, 1),
@@ -197,8 +198,13 @@ namespace NTR {
                 //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
                 GL.BindTexture(TextureTarget.Texture2D, IDv);
                 GL.Uniform1(m_shader_sampler[2], 3);
+
+                Color color = multiplyColor ?? Color.White;
+                GL.Uniform3(m_shader_multiplyColor, new Vector3(color.R/255f, color.G / 255f, color.B / 255f));
             } else {
                 GL.UseProgram(0);
+
+                GL.Color3(multiplyColor ?? Color.White);
 
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
                 GL.ActiveTexture(TextureUnit.Texture0);
@@ -208,6 +214,9 @@ namespace NTR {
             GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
             GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
             GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
+
+            if(IsYUV)
+                GL.ActiveTexture(TextureUnit.Texture0);
 
             return true;
         }

@@ -88,6 +88,7 @@ namespace KLC_Finch {
         int fragment_shader_object = 0;
         int shader_program = 0;
         int[] m_shader_sampler = new int[3];
+        int m_shader_multiplyColor = 0;
         #endregion
 
         private bool keyDownWin;
@@ -121,6 +122,7 @@ namespace KLC_Finch {
             toolSettingStartControlEnabled.IsChecked = Settings.StartControlEnabled;
             toolSettingMacSwapCtrlWin.IsChecked = Settings.MacSwapCtrlWin;
             toolSettingMultiAltFit.IsChecked = Settings.MultiAltFit;
+            toolSettingUseYUVShader.IsChecked = Settings.UseYUVShader;
             toolDebugKeyboardMod.IsChecked = Settings.DisplayOverlayKeyboardMod;
             toolDebugKeyboardOther.IsChecked = Settings.DisplayOverlayKeyboardOther;
             toolDebugMouse.IsChecked = Settings.DisplayOverlayMouse;
@@ -467,14 +469,16 @@ namespace KLC_Finch {
             if (useMultiScreen) {
                 foreach (RCScreen screen in listScreen) {
                     if (screen.Texture != null) {
-                        if (screen == currentScreen)
-                            GL.Color3(Color.White);
-                        else if (controlEnabled || virtualViewWant == virtualCanvas) //In overview, or it's on the edge of focused screen
-                            GL.Color3(Color.Gray);
-                        else
-                            GL.Color3(Color.Cyan);
 
-                        if (!screen.Texture.Render(shader_program, m_shader_sampler)) {
+                        Color multiplyColor;
+                        if (screen == currentScreen)
+                            multiplyColor = Color.White;
+                        else if (controlEnabled || virtualViewWant == virtualCanvas) //In overview, or it's on the edge of focused screen
+                            multiplyColor = Color.Gray;
+                        else
+                            multiplyColor = Color.Cyan;
+
+                        if (!screen.Texture.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, multiplyColor)) {
                             GL.Disable(EnableCap.Texture2D);
                             //GL.UseProgram(0);
                             GL.Color3(Color.DimGray);
@@ -497,7 +501,6 @@ namespace KLC_Finch {
                 }
 
                 if (textureCursor != null) {
-                    GL.UseProgram(0);
                     GL.Color3(Color.White);
                     textureCursor.Render();
                 }
@@ -1488,11 +1491,16 @@ namespace KLC_Finch {
                 Console.WriteLine("OpenGL 2.0 not available. GLSL not supported.");
             else {
                 this.rc.UseYUVShader = Settings.UseYUVShader;
+                if (Settings.UseYUVShader)
+                    this.Title = Title + " (YUV)";
+                else
+                    this.Title = Title + " (RGB)";
 
-                CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment2, out vertex_shader_object, out fragment_shader_object, out shader_program);
+                CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
                 m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
                 m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
                 m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
+                m_shader_multiplyColor = GL.GetUniformLocation(shader_program, "multiplyColor");
             }
 
             //--
@@ -1590,6 +1598,14 @@ namespace KLC_Finch {
 
         private void toolSwitchToLegacy_Click(object sender, RoutedEventArgs e) {
             useMultiScreen = false;
+        }
+
+        private void toolSettingUseYUVShader_Click(object sender, RoutedEventArgs e) {
+            Settings.UseYUVShader = !Settings.UseYUVShader;
+            Settings.Save();
+
+            if (rc != null)
+                rc.Reconnect();
         }
 
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {

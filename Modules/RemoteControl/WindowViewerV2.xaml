@@ -92,6 +92,7 @@
                         <Separator/>
                         <MenuItem x:Name="toolSaveSettings" Header="Save Settings" Click="toolSaveSettings_Click" />
                         <Separator/>
+                        <MenuItem x:Name="toolSettingUseYUVShader" Header="[BETA] Use YUV shader (less CPU)" Click="toolSettingUseYUVShader_Click" />
                         <MenuItem x:Name="toolReconnect" Header="Soft Reconnect" Click="toolReconnect_Click" />
                     </ContextMenu>
                 </ext:DropdownButton.DropdownMenu>
