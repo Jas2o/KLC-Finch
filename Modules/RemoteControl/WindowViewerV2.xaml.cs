@@ -1007,8 +1007,8 @@ namespace KLC_Finch {
                             scr = scrMatch[0];
                         } else {
                             Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                            LoadTexture(width, height, decomp);
                             SwitchToLegacyRendering();
+                            LoadTexture(width, height, decomp);
                             return;
                         }
                     }
@@ -1097,9 +1097,9 @@ namespace KLC_Finch {
                         if (scrMatch.Count == 1) {
                             scr = scrMatch[0];
                         } else {
-                            Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                            LoadTextureRaw(buffer, width, height, stride);
+                        //Console.WriteLine("Forced switch from Multi-Screen to Legacy");
                             SwitchToLegacyRendering();
+                            LoadTextureRaw(buffer, width, height, stride);
                             return;
                         }
                     }
@@ -1569,7 +1569,11 @@ namespace KLC_Finch {
         }
 
         private void toolSaveSettings_Click(object sender, RoutedEventArgs e) {
-            Settings.Save();
+            try {
+                Settings.Save();
+            } catch(Exception ex) {
+                App.ShowUnhandledExceptionFromSrc("Seems we don't have permission to write to " + Settings.FileName + "\r\n\r\n" + ex.ToString(), "Exception for Save Settings");
+            }
         }
 
         private void Window_Drop(object sender, DragEventArgs e) {
@@ -1614,8 +1618,12 @@ namespace KLC_Finch {
         private void toolSettingUseYUVShader_Click(object sender, RoutedEventArgs e) {
             if (rc != null) {
                 Settings.UseYUVShader = !Settings.UseYUVShader;
-                Settings.Save();
-                rc.Reconnect();
+                try {
+                    Settings.Save();
+                    rc.Reconnect();
+                } catch (Exception ex) {
+                    App.ShowUnhandledExceptionFromSrc("Seems we don't have permission to write to " + Settings.FileName + "\r\n\r\n" + ex.ToString(), "Exception for Save Settings");
+                }
             }
         }
 
