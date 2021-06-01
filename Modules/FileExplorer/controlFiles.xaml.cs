@@ -23,8 +23,11 @@ namespace KLC_Finch {
 
         private WindowAlternative window;
         private FileExplorer moduleFileExplorer;
+        private Modules.FilesData filesData;
 
         public controlFiles() {
+            filesData = new Modules.FilesData();
+            this.DataContext = filesData;
             InitializeComponent();
         }
 
@@ -47,7 +50,7 @@ namespace KLC_Finch {
                 window = ((WindowAlternative)Window.GetWindow(this));
 
                 moduleFileExplorer = new FileExplorer(session);
-                moduleFileExplorer.LinkToUI(listFilesFolders, dgvFilesFiles, txtFilesPath, txtFiles, progressBar, progressText, btnFilesDownload, btnFilesUpload);
+                moduleFileExplorer.LinkToUI(listFilesFolders, txtFilesPath, progressBar, progressText, btnFilesDownload, btnFilesUpload, filesData);
                 session.ModuleFileExplorer = moduleFileExplorer;
             }
         }
@@ -64,7 +67,7 @@ namespace KLC_Finch {
             if (moduleFileExplorer == null || dgvFilesFiles.SelectedItem == null)
                 return;
 
-            string selectedFile = ((System.Data.DataRowView)dgvFilesFiles.SelectedItem).Row.ItemArray[0].ToString();
+            string selectedFile = ((KLCFile)dgvFilesFiles.SelectedItem).Name;
 
             if (selectedFile != null && selectedFile.Length > 0) {
                 SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -86,8 +89,7 @@ namespace KLC_Finch {
                 bool isValid = moduleFileExplorer.Upload(openFileDialog.FileName);
                 btnFilesDownload.IsEnabled = !isValid;
                 btnFilesUpload.IsEnabled = !isValid;
-                if (isValid)
-                    txtFiles.Text = "Starting upload: " + openFileDialog.FileName;
+                //if (isValid) txtFiles.Text = "Starting upload: " + openFileDialog.FileName;
             }
         }
 
@@ -144,7 +146,7 @@ namespace KLC_Finch {
             if (moduleFileExplorer == null || dgvFilesFiles.SelectedItem == null)
                 return;
 
-            string valueNameOld = ((System.Data.DataRowView)dgvFilesFiles.SelectedItem).Row.ItemArray[0].ToString();
+            string valueNameOld = ((KLCFile)dgvFilesFiles.SelectedItem).Name;
 
             if (valueNameOld != null && valueNameOld.Length > 0) {
                 WindowRegistryKey wrk = new WindowRegistryKey(valueNameOld);
@@ -161,8 +163,7 @@ namespace KLC_Finch {
 
             chkFilesEnableDelete.IsChecked = false;
 
-            string selectedFile = ((System.Data.DataRowView)dgvFilesFiles.SelectedItem).Row.ItemArray[0].ToString();
-            KLCFile lookup = moduleFileExplorer.GetKLCFile(selectedFile);
+            KLCFile lookup = (KLCFile)dgvFilesFiles.SelectedItem;
 
             MessageBoxResult result = MessageBox.Show(lookup.Name, "Delete file?", MessageBoxButton.YesNo);
             if(result == MessageBoxResult.Yes)

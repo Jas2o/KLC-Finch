@@ -3,14 +3,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+             xmlns:local="clr-namespace:KLC_Finch"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <CollectionViewSource Source="{Binding ListFile}" x:Key="GridItems">
+            <CollectionViewSource.SortDescriptions>
+                <scm:SortDescription PropertyName="Name" Direction="Ascending"/>
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+    </UserControl.Resources>
     <Grid Margin="5">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
             <RowDefinition/>
             <RowDefinition Height="auto"/>
-            <RowDefinition Height="60"/>
+            <!--<RowDefinition Height="60"/>-->
         </Grid.RowDefinitions>
         <Grid Grid.Row="0" Margin="0,0,0,5">
             <Grid.ColumnDefinitions>
@@ -35,7 +44,19 @@
             </Grid.ColumnDefinitions>
             <ListBox x:Name="listFilesFolders" MouseDoubleClick="listFilesFolders_MouseDoubleClick"/>
             <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" />
-            <DataGrid x:Name="dgvFilesFiles" Grid.Column="2" ItemsSource="{Binding}" IsReadOnly="True" />
+
+            <DataGrid x:Name="dgvFilesFiles" Grid.Column="2" ItemsSource="{Binding Source={StaticResource GridItems}}" IsReadOnly="True" AutoGenerateColumns="False" SelectionMode="Single">
+                <DataGrid.Resources>
+                    <local:FormatKbSizeConverter x:Key="FormatKbSizeConverter" />
+                </DataGrid.Resources>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding Name}" Header="Name"/>
+                    <DataGridTextColumn Binding="{Binding Ext}" Header="Ext"/>
+                    <DataGridTextColumn Binding="{Binding Size,Converter={StaticResource FormatKbSizeConverter}}" Header="Size"/>
+                    <DataGridTextColumn Binding="{Binding Date, StringFormat=\{0:dd/MM/yyyy hh:mm tt\}}" Header="Date Modified"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
             <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" />
             <Grid Grid.Column="4">
                 <Grid Height="30">
@@ -60,6 +81,6 @@
             <Label Content="|" Margin="0,0,5,0" VerticalAlignment="Center" />
             <CheckBox x:Name="chkFilesEnableDelete" Content="Enable Delete" VerticalAlignment="Center" Margin="0,0,5,0" Checked="chkFilesEnableDelete_Checked" Unchecked="chkFilesEnableDelete_Unchecked" />
         </StackPanel>
-        <TextBox x:Name="txtFiles" TextWrapping="Wrap" Grid.Row="3" VerticalScrollBarVisibility="Auto"/>
+        <!--<TextBox x:Name="txtFiles" TextWrapping="Wrap" Grid.Row="3" VerticalScrollBarVisibility="Auto"/>-->
     </Grid>
 </UserControl>

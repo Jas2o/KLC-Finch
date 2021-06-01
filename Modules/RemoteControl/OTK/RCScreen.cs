@@ -10,6 +10,7 @@ namespace NTR {
         //public int screen_y;
 
         public Rectangle rect;
+        public Rectangle rectFixed;
 
         public TextureScreen Texture;
 
@@ -22,6 +23,24 @@ namespace NTR {
             //this.screen_y = screen_y;
 
             rect = new Rectangle(screen_x, screen_y, screen_width, screen_height);
+
+            //--
+
+            int multiple = 4;
+            int fixedWidth = screen_width;
+            int fixedHeight = screen_height;
+
+            int rem = screen_width % multiple;
+            int result = screen_width - rem;
+            if (rem > 0)
+                fixedWidth = result + multiple;
+
+            rem = screen_height % multiple;
+            result = screen_height - rem;
+            if (rem > 0)
+                fixedHeight = result + multiple;
+
+            rectFixed = new Rectangle(screen_x, screen_y, fixedWidth, fixedHeight);
         }
 
         public string StringResPos() {

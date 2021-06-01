@@ -1,6 +1,7 @@
 ﻿using KLC;
 using LibKaseya;
 using NTR;
+using Newtonsoft.Json;
 using nucs.JsonSettings;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
@@ -141,7 +142,7 @@ namespace KLC_Finch {
             //Multi-screen
             MainCamera = new Camera(Vector2.Zero);
             //Legacy
-            if(!useMultiScreen)
+            if (!useMultiScreen)
                 SetVirtual(0, 0, virtualWidth, virtualHeight);
 
             clipboardMon = new ClipBoardMonitor();
@@ -239,8 +240,7 @@ namespace KLC_Finch {
             }
         }
 
-        public void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight)
-        {
+        public void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight) {
             if (useMultiScreen) {
                 virtualCanvas = new Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
                 SetVirtual(virtualX, virtualY, virtualCanvas.Width, virtualCanvas.Height);
@@ -250,9 +250,8 @@ namespace KLC_Finch {
             }
         }
 
-        public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight)
-        {
-            if(useMultiScreen) {
+        public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight) {
+            if (useMultiScreen) {
                 virtualViewWant = new Rectangle(virtualX, virtualY, virtualWidth, virtualHeight);
             } else {
                 this.legacyVirtualWidth = virtualWidth;
@@ -431,22 +430,22 @@ namespace KLC_Finch {
 
             // Setup new textures, not actually render
             //lock (lockFrameBuf) {
-                foreach (RCScreen screen in listScreen) {
-                    if (screen.Texture == null)
-                        screen.Texture = new TextureScreen((rc != null ? Settings.UseYUVShader : false));
-                    else
-                        screen.Texture.RenderNew(m_shader_sampler);
-                }
-                if (useMultiScreen) {
-                    if (textureCursor == null) {
-                        textureCursor = new TextureCursor();
-                    } else
-                        textureCursor.RenderNew();
-                }
-                if (!useMultiScreen) {
-                    if (textureLegacy != null)
-                        textureLegacy.RenderNew(m_shader_sampler);
-                }
+            foreach (RCScreen screen in listScreen) {
+                if (screen.Texture == null)
+                    screen.Texture = new TextureScreen((rc != null ? Settings.UseYUVShader : false));
+                else
+                    screen.Texture.RenderNew(m_shader_sampler);
+            }
+            if (useMultiScreen) {
+                if (textureCursor == null) {
+                    textureCursor = new TextureCursor();
+                } else
+                    textureCursor.RenderNew();
+            }
+            if (!useMultiScreen) {
+                if (textureLegacy != null)
+                    textureLegacy.RenderNew(m_shader_sampler);
+            }
             //}
 
             switch (connectionStatus) {
@@ -488,10 +487,10 @@ namespace KLC_Finch {
                             GL.PointSize(5f);
                             GL.LineWidth(5f);
 
-                            GL.Vertex2(screen.rect.Left, screen.rect.Bottom);
-                            GL.Vertex2(screen.rect.Left, screen.rect.Top);
-                            GL.Vertex2(screen.rect.Right, screen.rect.Top);
-                            GL.Vertex2(screen.rect.Right, screen.rect.Bottom);
+                            GL.Vertex2(screen.rectFixed.Left, screen.rectFixed.Bottom);
+                            GL.Vertex2(screen.rectFixed.Left, screen.rectFixed.Top);
+                            GL.Vertex2(screen.rectFixed.Right, screen.rectFixed.Top);
+                            GL.Vertex2(screen.rectFixed.Right, screen.rectFixed.Bottom);
 
                             //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
 
@@ -755,6 +754,61 @@ namespace KLC_Finch {
         }
 
         #region Host Desktop Configuration (Screens of current session)
+        public void UpdateScreenLayout(dynamic json, string jsonstr="") {
+            listScreen.Clear();
+            previousScreen = currentScreen = null;
+
+            string default_screen = json["default_screen"].ToString();
+            connectionStatus = ConnectionStatus.Connected;
+
+            Dispatcher.Invoke((Action)delegate {
+                toolScreen.DropdownMenu.Items.Clear();
+
+                foreach (dynamic screen in json["screens"]) {
+                    string screen_id = screen["screen_id"].ToString(); //int or BigInteger
+                    string screen_name = (string)screen["screen_name"];
+                    int screen_height = (int)screen["screen_height"];
+                    int screen_width = (int)screen["screen_width"];
+                    int screen_x = (int)screen["screen_x"];
+                    int screen_y = (int)screen["screen_y"];
+
+                    //Add Screen
+                    RCScreen newScreen = new RCScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
+                    listScreen.Add(newScreen);
+                    if (currentScreen == null) {
+                        currentScreen = newScreen;
+
+                        //Legacy
+                        legacyVirtualHeight = currentScreen.rect.Height;
+                        legacyVirtualWidth = currentScreen.rect.Width;
+                        virtualRequireViewportUpdate = true;
+                    }
+
+                    //Add to toolbar menu
+                    MenuItem item = new MenuItem();
+                    item.Header = newScreen.ToString();// screen_name + ": (" + screen_width + " x " + screen_height + " at " + screen_x + ", " + screen_y + ")";
+                    item.Click += new RoutedEventHandler(toolScreen_ItemClicked);
+
+                    toolScreen.DropdownMenu.Items.Add(item);
+
+                    //Private and Mac seem to bug out if you change screens, cause there's only one screen
+                    toolScreen.IsEnabled = (listScreen.Count > 1);
+
+                    if (screen_id == default_screen) {
+                        toolScreen.Content = currentScreen.screen_name;
+                        toolScreen.ToolTip = currentScreen.StringResPos();
+                    }
+                } 
+            });
+
+            int lowestX = listScreen.Min(x => x.rectFixed.X);
+            int lowestY = listScreen.Min(x => x.rectFixed.Y);
+            int highestX = listScreen.Max(x => x.rectFixed.Right);
+            int highestY = listScreen.Max(x => x.rectFixed.Bottom);
+            SetCanvas(lowestX, lowestY, highestX, highestY);
+        }
+
+        /*
         public void ClearScreens() {
             listScreen.Clear();
             previousScreen = currentScreen = null;
@@ -795,6 +849,7 @@ namespace KLC_Finch {
                 }
             });
         }
+        */
 
         private void toolScreen_ItemClicked(object sender, RoutedEventArgs e) {
             MenuItem source = (MenuItem)e.Source;
@@ -814,7 +869,7 @@ namespace KLC_Finch {
             }
         }
 
-        private void FromGlChangeScreen(RCScreen screen, bool moveCamera=true) {
+        private void FromGlChangeScreen(RCScreen screen, bool moveCamera = true) {
             previousScreen = currentScreen;
             currentScreen = screen;
             rc.ChangeScreen(currentScreen.screen_id);
@@ -835,7 +890,7 @@ namespace KLC_Finch {
 
         #region Host Terminal Sessions List
         //public void SetActiveTSSession(string session_id) {
-            //currentTSSession = session_id;
+        //currentTSSession = session_id;
         //}
 
         public void AddTSSession(string session_id, string session_name) {
@@ -879,13 +934,13 @@ namespace KLC_Finch {
             rc.ChangeTSSession(currentTSSession.session_id);
 
             useMultiScreen = true;
-            
+
             //Dispatcher.Invoke((Action)delegate {
-                toolTSSession.Content = currentTSSession.session_name;
-                toolScreenOverview.Content = "Overview";
-                //toolScreenOverview.IsEnabled = true;
-                toolZoomIn.Visibility = Visibility.Visible;
-                toolZoomOut.Visibility = Visibility.Visible;
+            toolTSSession.Content = currentTSSession.session_name;
+            toolScreenOverview.Content = "Overview";
+            //toolScreenOverview.IsEnabled = true;
+            toolZoomIn.Visibility = Visibility.Visible;
+            toolZoomOut.Visibility = Visibility.Visible;
             //});
 
             foreach (MenuItem item in toolTSSession.DropdownMenu.Items) {
@@ -923,17 +978,16 @@ namespace KLC_Finch {
                         adjustDown = true;
                 }
 
-                SetVirtual(currentScreen.rect.X - (adjustLeft ? 80 : 0),
-                    currentScreen.rect.Y - (adjustUp ? 80 : 0),
-                    currentScreen.rect.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
-                    currentScreen.rect.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
+                SetVirtual(currentScreen.rectFixed.X - (adjustLeft ? 80 : 0),
+                    currentScreen.rectFixed.Y - (adjustUp ? 80 : 0),
+                    currentScreen.rectFixed.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
+                    currentScreen.rectFixed.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
             } else
-                SetVirtual(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
+                SetVirtual(currentScreen.rectFixed.X, currentScreen.rectFixed.Y, currentScreen.rectFixed.Width, currentScreen.rectFixed.Height);
             glControl.Invalidate();
         }
 
-        private void toolScreenOverview_Click(object sender, RoutedEventArgs e)
-        {
+        private void toolScreenOverview_Click(object sender, RoutedEventArgs e) {
             if (!useMultiScreen) {
                 useMultiScreen = true;
                 Dispatcher.Invoke((Action)delegate {
@@ -972,11 +1026,11 @@ namespace KLC_Finch {
             int lowestY = 0;
             int highestX = 0;
             int highestY = 0;
-            foreach(RCScreen screen in listScreen) {
-                lowestX = Math.Min(screen.rect.X, lowestX);
-                lowestY = Math.Min(screen.rect.Y, lowestY);
-                highestX = Math.Max(screen.rect.X + screen.rect.Width, highestX);
-                highestY = Math.Max(screen.rect.Y + screen.rect.Height, highestY);
+            foreach (RCScreen screen in listScreen) {
+                lowestX = Math.Min(screen.rectFixed.X, lowestX);
+                lowestY = Math.Min(screen.rectFixed.Y, lowestY);
+                highestX = Math.Max(screen.rectFixed.X + screen.rectFixed.Width, highestX);
+                highestY = Math.Max(screen.rectFixed.Y + screen.rectFixed.Height, highestY);
             }
             SetCanvas(lowestX, lowestY, highestX, highestY);
 
@@ -994,87 +1048,97 @@ namespace KLC_Finch {
 
         public void LoadTexture(int width, int height, Bitmap decomp) {
             //lock (lockFrameBuf) {
-                if (useMultiScreen) {
-                    #region Multi-Screen
-                    RCScreen scr = null;
-                    if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
-                        scr = currentScreen;
-                    else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
-                        scr = previousScreen;
-                    else {
-                        List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
-                        if (scrMatch.Count == 1) {
-                            scr = scrMatch[0];
-                        } else {
-                            Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                            SwitchToLegacyRendering();
-                            LoadTexture(width, height, decomp);
-                            return;
-                        }
-                    }
-
-                    if (scr == null) {
-                        //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
-                        //listScreen might be empty
+            if (useMultiScreen) {
+                #region Multi-Screen
+                RCScreen scr = null;
+                if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
+                    scr = currentScreen;
+                else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
+                    scr = previousScreen;
+                else {
+                    List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
+                    List<RCScreen> scrMatchFixed = listScreen.FindAll(x => x.rectFixed.Width == width && x.rectFixed.Height == height);
+                    List<RCScreen> scrMatchHalf = listScreen.FindAll(x => x.rectFixed.Width == width/2 && x.rectFixed.Height == height/2);
+                    if (scrMatch.Count == 1) {
+                        scr = scrMatch[0];
+                    } else if (scrMatchFixed.Count == 1) {
+                        scr = scrMatchFixed[0];
+                    } else if (scrMatchHalf.Count == 1) {
+                        Console.WriteLine("Mac with Retina display?");
+                        scr = scrMatchHalf[0];
+                        legacyVirtualWidth = scr.rectFixed.Width = width;
+                        legacyVirtualHeight = scr.rectFixed.Height = height;
+                        PositionCameraToCurrentScreen();
+                    } else {
+                        //Console.WriteLine("Forced switch from Multi-Screen to Legacy");
+                        SwitchToLegacyRendering();
+                        LoadTexture(width, height, decomp);
                         return;
                     }
-
-                    if (scr.rect.Width != width || scr.rect.Height != height) {
-                        scr.rect.Width = width;
-                        scr.rect.Height = height;
-                    }
-
-                    if (scr.Texture != null)
-                        scr.Texture.Load(scr.rect, decomp);
-                    socketAlive = true;
-                    #endregion
-                } else {
-                    #region Legacy
-                    if (currentScreen == null)
-                        return;
-
-                    if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
-                        Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
-                        SetVirtual(0, 0, width, height);
-
-                        try {
-                            currentScreen.rect.Width = width;
-                            currentScreen.rect.Height = height;
-                            //This is a sad attempt a fixing a problem when changing left monitor's size.
-                            //However if changing a middle monitor, the right monitor will break.
-                            //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                            if (currentScreen.rect.X < 0)
-                                currentScreen.rect.X = width * -1;
-                        } catch (Exception ex) {
-                            Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
-                        }
-                    }
-
-                    textureLegacy.Load(new Rectangle(0, 0, width, height), decomp);
-
-                    /*
-                    textureLegacyWidth = width;
-                    textureLegacyHeight = height;
-
-                    BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-
-                    if (textureLegacyData != null && textureLegacyData.Length != Math.Abs(data.Stride * data.Height)) {
-                        virtualRequireViewportUpdate = true;
-                        Console.WriteLine("[LoadTexture:Legacy] Array needs to be resized");
-                    }
-
-                    if (textureLegacyData == null || virtualRequireViewportUpdate) {
-                        Console.WriteLine("Rebuilding Legacy Texture Buffer");
-                        textureLegacyData = new byte[Math.Abs(data.Stride * data.Height)];
-                    }
-                    Marshal.Copy(data.Scan0, textureLegacyData, 0, textureLegacyData.Length); //This can fail with re-taking over private remote control
-                    decomp.UnlockBits(data);
-
-                    textureLegacyNew = true;
-                    */
-                    socketAlive = true;
-                    #endregion
                 }
+
+                if (scr == null) {
+                    //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
+                    //listScreen might be empty
+                    return;
+                }
+
+                if (scr.rect.Width != width || scr.rect.Height != height) {
+                    scr.rect.Width = width;
+                    scr.rect.Height = height;
+                }
+
+                if (scr.Texture != null)
+                    scr.Texture.Load(scr.rect, decomp);
+                socketAlive = true;
+                #endregion
+            } else {
+                #region Legacy
+                if (currentScreen == null)
+                    return;
+
+                if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
+                    Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
+                    SetVirtual(0, 0, width, height);
+
+                    try {
+                        currentScreen.rect.Width = width;
+                        currentScreen.rect.Height = height;
+                        //This is a sad attempt a fixing a problem when changing left monitor's size.
+                        //However if changing a middle monitor, the right monitor will break.
+                        //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
+                        if (currentScreen.rect.X < 0)
+                            currentScreen.rect.X = width * -1;
+                    } catch (Exception ex) {
+                        Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
+                    }
+                }
+
+                textureLegacy.Load(new Rectangle(0, 0, width, height), decomp);
+
+                /*
+                textureLegacyWidth = width;
+                textureLegacyHeight = height;
+
+                BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+                if (textureLegacyData != null && textureLegacyData.Length != Math.Abs(data.Stride * data.Height)) {
+                    virtualRequireViewportUpdate = true;
+                    Console.WriteLine("[LoadTexture:Legacy] Array needs to be resized");
+                }
+
+                if (textureLegacyData == null || virtualRequireViewportUpdate) {
+                    Console.WriteLine("Rebuilding Legacy Texture Buffer");
+                    textureLegacyData = new byte[Math.Abs(data.Stride * data.Height)];
+                }
+                Marshal.Copy(data.Scan0, textureLegacyData, 0, textureLegacyData.Length); //This can fail with re-taking over private remote control
+                decomp.UnlockBits(data);
+
+                textureLegacyNew = true;
+                */
+                socketAlive = true;
+                #endregion
+            }
             //}
 
             glControl.Invalidate();
@@ -1085,67 +1149,77 @@ namespace KLC_Finch {
                 return;
 
             //lock (lockFrameBuf) {
-                if (useMultiScreen) {
-                    #region Multi-Screen
-                    RCScreen scr = null;
-                    if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
-                        scr = currentScreen;
-                    else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
-                        scr = previousScreen;
-                    else {
-                        List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
-                        if (scrMatch.Count == 1) {
-                            scr = scrMatch[0];
-                        } else {
+            if (useMultiScreen) {
+                #region Multi-Screen
+                RCScreen scr = null;
+                if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
+                    scr = currentScreen;
+                else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
+                    scr = previousScreen;
+                else {
+                    List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
+                    List<RCScreen> scrMatchFixed = listScreen.FindAll(x => x.rectFixed.Width == width && x.rectFixed.Height == height);
+                    List<RCScreen> scrMatchHalf = listScreen.FindAll(x => x.rectFixed.Width == width / 2 && x.rectFixed.Height == height / 2);
+                    if (scrMatch.Count == 1) {
+                        scr = scrMatch[0];
+                    } else if (scrMatchFixed.Count == 1) {
+                        scr = scrMatchFixed[0];
+                    } else if (scrMatchHalf.Count == 1) {
+                        Console.WriteLine("Mac with Retina display?");
+                        scr = scrMatchHalf[0];
+                        legacyVirtualWidth = scr.rectFixed.Width = width;
+                        legacyVirtualHeight = scr.rectFixed.Height = height;
+                        PositionCameraToCurrentScreen();
+                    } else {
                         //Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                            SwitchToLegacyRendering();
-                            LoadTextureRaw(buffer, width, height, stride);
-                            return;
-                        }
-                    }
-
-                    if (scr == null) {
-                        //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
-                        //listScreen might be empty
+                        SwitchToLegacyRendering();
+                        LoadTextureRaw(buffer, width, height, stride);
                         return;
                     }
-
-                    if (scr.rect.Width != width || scr.rect.Height != height) {
-                        scr.rect.Width = width;
-                        scr.rect.Height = height;
-                    }
-
-                    if (scr.Texture != null)
-                        scr.Texture.LoadRaw(scr.rect, buffer, stride);
-                    socketAlive = true;
-                    #endregion
-                } else {
-                    #region Legacy
-                    if (currentScreen == null)
-                        return;
-
-                    if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
-                        Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
-                        SetVirtual(0, 0, width, height);
-
-                        try {
-                            currentScreen.rect.Width = width;
-                            currentScreen.rect.Height = height;
-                            //This is a sad attempt a fixing a problem when changing left monitor's size.
-                            //However if changing a middle monitor, the right monitor will break.
-                            //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                            if (currentScreen.rect.X < 0)
-                                currentScreen.rect.X = width * -1;
-                        } catch (Exception ex) {
-                            Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
-                        }
-                    }
-
-                    textureLegacy.LoadRaw(new Rectangle(0, 0, width, height), buffer, stride);
-
-                    socketAlive = true;
-                    #endregion
                 }
+
+                if (scr == null) {
+                    //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
+                    //listScreen might be empty
+                    return;
+                }
+
+                if (scr.rect.Width != width || scr.rect.Height != height) {
+                    scr.rect.Width = width;
+                    scr.rect.Height = height;
+                }
+
+                if (scr.Texture != null)
+                    scr.Texture.LoadRaw(scr.rect, buffer, stride);
+                socketAlive = true;
+                #endregion
+            } else {
+                #region Legacy
+                if (currentScreen == null)
+                    return;
+
+                if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
+                    Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
+                    SetVirtual(0, 0, width, height);
+
+                    try {
+                        currentScreen.rect.Width = width;
+                        currentScreen.rect.Height = height;
+                        //This is a sad attempt a fixing a problem when changing left monitor's size.
+                        //However if changing a middle monitor, the right monitor will break.
+                        //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
+                        if (currentScreen.rect.X < 0)
+                            currentScreen.rect.X = width * -1;
+                    } catch (Exception ex) {
+                        Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
+                    }
+                }
+
+                textureLegacy.LoadRaw(new Rectangle(0, 0, width, height), buffer, stride);
+
+                socketAlive = true;
+                #endregion
+            }
             //}
 
             glControl.Invalidate();
@@ -1262,7 +1336,7 @@ namespace KLC_Finch {
 
         public void SetControlEnabled(bool value, bool isStart = false) {
             if (isStart) {
-                if(Settings.StartControlEnabled) {
+                if (Settings.StartControlEnabled) {
                     controlEnabled = value;
                     PositionCameraToCurrentScreen();
                 }
@@ -1334,7 +1408,7 @@ namespace KLC_Finch {
                         if (currentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
                             FromGlChangeScreen(screenPointingTo, false);
                         //Else
-                            //We already changed the active screen by moving the mouse
+                        //We already changed the active screen by moving the mouse
                         PositionCameraToCurrentScreen();
                     }
 
@@ -1504,7 +1578,7 @@ namespace KLC_Finch {
             int major = (int)version[0];
             if (major < 2)
                 Console.WriteLine("OpenGL 2.0 not available. GLSL not supported.");
-            else if(rc != null) {
+            else if (rc != null) {
                 this.rc.UseYUVShader = Settings.UseYUVShader;
                 if (Settings.UseYUVShader)
                     this.Title = Title + " (YUV)";
@@ -1571,7 +1645,7 @@ namespace KLC_Finch {
         private void toolSaveSettings_Click(object sender, RoutedEventArgs e) {
             try {
                 Settings.Save();
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 App.ShowUnhandledExceptionFromSrc("Seems we don't have permission to write to " + Settings.FileName + "\r\n\r\n" + ex.ToString(), "Exception for Save Settings");
             }
         }
@@ -1604,7 +1678,7 @@ namespace KLC_Finch {
 
         private void toolMachineNoteLink_Click(object sender, RoutedEventArgs e) {
             string link = toolMachineNoteLink.Header.ToString();
-            if(link.Contains("http"))
+            if (link.Contains("http"))
                 Process.Start(new ProcessStartInfo(link) { UseShellExecute = true });
         }
 
@@ -1734,7 +1808,7 @@ namespace KLC_Finch {
                 //Done on release
                 e.Handled = true;
                 return;
-            } else if(e2.KeyCode == System.Windows.Forms.Keys.Oemtilde && e2.Control) {
+            } else if (e2.KeyCode == System.Windows.Forms.Keys.Oemtilde && e2.Control) {
                 PerformAutotype();
             } else if (e2.KeyCode == System.Windows.Forms.Keys.V && e2.Control && e2.Shift) {
                 PerformAutotype();

@@ -34,18 +34,18 @@ namespace KLC_Finch {
         private ListView lvRegistryKeys;
         private DataGrid dgvRegistryValues;
         private TextBox txtRegistryPath;
-        private TextBox txtBox;
+        //private TextBox txtBox;
 
         private int selectedHive;
         private List<string> selectedPath;
         private List<string> viewKeys;
         private List<RegistryValue> viewValues;
 
-        public RegistryEditor(KLC.LiveConnectSession session, ListView lvRegistryKeys, DataGrid dgvRegistryValues, TextBox txtRegistryPath, TextBox txtBox = null) {
+        public RegistryEditor(KLC.LiveConnectSession session, ListView lvRegistryKeys, DataGrid dgvRegistryValues, TextBox txtRegistryPath) {
             this.lvRegistryKeys = lvRegistryKeys;
             this.dgvRegistryValues = dgvRegistryValues;
             this.txtRegistryPath = txtRegistryPath;
-            this.txtBox = txtBox;
+            //this.txtBox = txtBox;
 
             selectedHive = -1;
             selectedPath = new List<string>();
@@ -61,7 +61,7 @@ namespace KLC_Finch {
         }
 
         public void Receive(string message) {
-            txtBox.Dispatcher.Invoke(new Action(() => {
+            txtRegistryPath.Dispatcher.Invoke(new Action(() => {
                 dynamic temp = JsonConvert.DeserializeObject(message);
                 switch ((string)temp["action"]) {
                     case "ScriptReady":
@@ -122,7 +122,7 @@ namespace KLC_Finch {
 
                         break;
                     default:
-                        txtBox.AppendText("RegistryEditor message received: " + message + "\r\n");
+                        //txtBox.AppendText("RegistryEditor message received: " + message + "\r\n");
                         break;
                 }
             }));

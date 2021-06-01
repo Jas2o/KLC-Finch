@@ -1,5 +1,6 @@
 ﻿using LibKaseya;
 using Microsoft.Win32;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -73,8 +74,23 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
             WindowViewerV2 myViewer = App.viewer = new WindowViewerV2(null, width, height);
-            myViewer.AddScreen("0", "Test Screen", height, width, 0, 0, true);
-            myViewer.SetCanvas(0, 0, width, height);
+
+            JObject jScreen = new JObject();
+            jScreen["screen_id"] = 65539;
+            jScreen["screen_name"] = "Test Screen";
+            jScreen["screen_width"] = width;
+            jScreen["screen_height"] = height;
+            jScreen["screen_x"] = 0;
+            jScreen["screen_y"] = 0;
+            JArray jScreenArray = new JArray();
+            jScreenArray.Add(jScreen);
+            JObject jDesktop = new JObject();
+            jDesktop["default_screen"] = 65539;
+            jDesktop["screens"] = jScreenArray;
+
+            myViewer.UpdateScreenLayout(jDesktop);
+            //myViewer.AddScreen("0", "Test Screen", height, width, 0, 0, true);
+            //myViewer.SetCanvas(0, 0, width, height);
             myViewer.Show();
 
             Thread threadTest = new Thread(() => {

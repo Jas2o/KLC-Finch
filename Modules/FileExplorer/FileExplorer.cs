@@ -18,25 +18,27 @@ namespace KLC_Finch {
         private static string modulename = "files";
         private IWebSocketConnection serverB, serverBdownload, serverBupload;
 
+        private Modules.FilesData filesData;
+
         private bool IsMac;
         private ListBox listExplorerFolders;
-        private DataGrid dgvExplorerFiles;
+        //private DataGrid dgvExplorerFiles;
         private TextBox txtExplorerPath;
-        private TextBox txtBox;
+        //private TextBox txtBox;
         private ProgressBar progressBar;
         private TextBlock progressText;
         private Button btnDownload;
         private Button btnUpload;
 
         private List<string> selectedPath;
-        private List<KLCFile> viewFiles;
+        //private List<KLCFile> viewFiles;
         private List<KLCFile> viewFolders;
         private Download queuedDownload;
         private Upload queuedUpload;
 
         public FileExplorer(KLC.LiveConnectSession session) {
             selectedPath = new List<string>();
-            viewFiles = new List<KLCFile>();
+            //viewFiles = new List<KLCFile>();
             viewFolders = new List<KLCFile>();
 
             if (session != null) {
@@ -45,15 +47,17 @@ namespace KLC_Finch {
             }
         }
 
-        public void LinkToUI(ListBox listExplorerFolders, DataGrid dgvExplorerFiles, TextBox txtExplorerPath, TextBox txtBox = null, ProgressBar progressBar = null, TextBlock progressText = null, Button btnDownload = null, Button btnUpload = null) {
+        public void LinkToUI(ListBox listExplorerFolders, TextBox txtExplorerPath, ProgressBar progressBar = null, TextBlock progressText = null, Button btnDownload = null, Button btnUpload = null, Modules.FilesData filesData = null) {
             this.listExplorerFolders = listExplorerFolders;
-            this.dgvExplorerFiles = dgvExplorerFiles;
+            //this.dgvExplorerFiles = dgvExplorerFiles;
             this.txtExplorerPath = txtExplorerPath;
-            this.txtBox = txtBox;
+            //this.txtBox = txtBox;
             this.progressBar = progressBar;
             this.progressText = progressText;
             this.btnDownload = btnDownload;
             this.btnUpload = btnUpload;
+
+            this.filesData = filesData;
         }
 
         public bool IsUsable () {
@@ -81,20 +85,18 @@ namespace KLC_Finch {
             dynamic temp = JsonConvert.DeserializeObject(message);
             switch ((string)temp["action"]) {
                 case "ScriptReady":
-                    if (txtBox != null) {
-                        txtBox.Dispatcher.Invoke(new Action(() => {
+                    if (txtExplorerPath != null) {
+                        txtExplorerPath.Dispatcher.Invoke(new Action(() => {
                             Update();
                         }));
                     }
                     break;
                 case "GetDrives":
-                    if (txtBox != null) {
-                        txtBox.Dispatcher.Invoke(new Action(() => {
+                    if (txtExplorerPath != null) {
+                        txtExplorerPath.Dispatcher.Invoke(new Action(() => {
                             listExplorerFolders.Items.Clear();
                             //dgvExplorerFiles.Items.Clear();
-                            viewFiles.Clear();
-                            txtBox.Clear();
-                            txtBox.AppendText(message + "\r\n");
+                            filesData.FilesClear();
                             if ((bool)temp["success"]) {
                                 foreach (dynamic key in temp["contentsList"].Children())
                                     listExplorerFolders.Items.Add(key["name"]);
@@ -102,8 +104,6 @@ namespace KLC_Finch {
 
                                 //foreach pathArray
                             }
-
-                            UpdateDisplayFiles();
                         }));
                     }
                     break;
@@ -111,25 +111,24 @@ namespace KLC_Finch {
                 case "RenameItem":
                 case "DeleteItem":
                 case "GetFolderContents":
-                    if (txtBox != null) {
-                        txtBox.Dispatcher.Invoke(new Action(() => {
+                    if (txtExplorerPath != null) {
+                        txtExplorerPath.Dispatcher.Invoke(new Action(() => {
                             listExplorerFolders.Items.Clear();
                             //dgvExplorerFiles.Items.Clear();
-                            viewFiles.Clear();
+                            filesData.FilesClear();
                             viewFolders.Clear();
 
-                            txtBox.Clear();
-                            txtBox.AppendText(message + "\r\n");
+                            //txtBox.AppendText(message + "\r\n");
                         }));
                     }
                     if ((bool)temp["success"]) {
-                        if (txtBox != null) {
-                            txtBox.Dispatcher.Invoke(new Action(() => {
+                        if (txtExplorerPath != null) {
+                            txtExplorerPath.Dispatcher.Invoke(new Action(() => {
                                 foreach (dynamic key in temp["contentsList"].Children()) {
                                     if ((string)key["type"] == "file") {
-                                        viewFiles.Add(new KLCFile((string)key["name"], (long)key["size"], (DateTime)key["date"]));
+                                        filesData.FilesAdd(new KLCFile((string)key["name"], (ulong)key["size"], (DateTime)key["date"]));
                                     } else if ((string)key["type"] == "folder") {
-                                        viewFolders.Add(new KLCFile((string)key["name"], -1, (DateTime)key["date"]));
+                                        viewFolders.Add(new KLCFile((string)key["name"], 0, (DateTime)key["date"]));
                                         listExplorerFolders.Items.Add((string)key["name"]);
                                     } else {
                                         Console.WriteLine("The hell?");
@@ -154,16 +153,9 @@ namespace KLC_Finch {
 
                         //temp["id"] is the time the response was generated
                     }
-
-                    if (txtBox != null) {
-                        txtBox.Dispatcher.Invoke(new Action(() => {
-                            UpdateDisplayFiles();
-                        }));
-                    }
                     break;
                 default:
                     Console.WriteLine("FileExplorer message received: " + message);
-                    txtBox.Text = "FileExplorer message received: " + message;
                     break;
             }
             //}));
@@ -229,10 +221,6 @@ namespace KLC_Finch {
             serverB.Send(jDelete.ToString());
         }
 
-        public KLCFile GetKLCFile(string valueName) {
-            return viewFiles.FirstOrDefault(x => x.Name == valueName);
-        }
-
         internal KLCFile GetKLCFolder(string valueName) {
             return viewFolders.FirstOrDefault(x => x.Name == valueName);
         }
@@ -296,27 +284,6 @@ namespace KLC_Finch {
             serverB.Send(jCreate.ToString());
         }
 
-        private void UpdateDisplayFiles() {
-            dgvExplorerFiles.DataContext = null;
-
-            DataTable dt = new DataTable();
-            dt.Columns.Add("Name", typeof(string));
-            dt.Columns.Add("Size", typeof(long));
-            dt.Columns.Add("Modified", typeof(DateTime));
-
-            foreach (KLCFile value in viewFiles) {
-                DataRow row = dt.NewRow();
-                row[0] = value.Name;
-                row[1] = value.Size;
-                row[2] = value.Date;
-                dt.Rows.Add(row);
-            }
-
-            dgvExplorerFiles.DataContext = dt;
-            //dgvRegistryValues.AutoResizeColumns();
-            //dgvRegistryValues.Sort(dgvRegistryValues.Columns[0], System.ComponentModel.ListSortDirection.Ascending);
-        }
-
         public void HandleDownload(byte[] data) {
             int jsonLength = BitConverter.ToInt32(data, 0).SwapEndianness();
             string jsonstr = Encoding.UTF8.GetString(data, 4, jsonLength);
@@ -332,8 +299,8 @@ namespace KLC_Finch {
                 case "Ready":
                     //queuedDownload
 
-                    txtBox.Dispatcher.Invoke(new Action(() => {
-                        txtBox.Text = "Downloading " + queuedDownload.fileName;
+                    progressBar.Dispatcher.Invoke(new Action(() => {
+                        //txtBox.Text = "Downloading " + queuedDownload.fileName;
                         progressBar.Value = 0;
                         progressText.Text = "";
                     }));
@@ -382,7 +349,7 @@ namespace KLC_Finch {
 
                     int percentage = (int)((queuedDownload.GetCurrentSize() / (double) total) * 100);
 
-                    txtBox.Dispatcher.Invoke(new Action(() => {
+                    progressBar.Dispatcher.Invoke(new Action(() => {
                         progressBar.Value = percentage;
                         progressText.Text = "Download: " + queuedDownload.fileName + " " + percentage + "%";
                     }));
@@ -419,10 +386,10 @@ namespace KLC_Finch {
                     queuedDownload.Close();
                     serverBdownload.Close();
 
-                    txtBox.Dispatcher.Invoke(new Action(() => {
+                    progressBar.Dispatcher.Invoke(new Action(() => {
                         progressBar.Value = 0;
                         progressText.Text = queuedDownload.fileName + " downloaded!";
-                        txtBox.AppendText("\r\nDownload complete.");
+                        //txtBox.AppendText("\r\nDownload complete.");
 
                         btnDownload.IsEnabled = true;
                         btnUpload.IsEnabled = true;
@@ -454,9 +421,9 @@ namespace KLC_Finch {
 
             switch (json["action"].ToString()) {
                 case "UploadReady":
-                    if (txtBox != null) {
-                        txtBox.Dispatcher.Invoke(new Action(() => {
-                            txtBox.Text = "Uploading " + queuedUpload.fileName;
+                    if (progressBar != null) {
+                        progressBar.Dispatcher.Invoke(new Action(() => {
+                            //txtBox.Text = "Uploading " + queuedUpload.fileName;
                             progressBar.Value = 0;
                             progressText.Text = "";
                         }));
@@ -471,10 +438,10 @@ namespace KLC_Finch {
                     Console.WriteLine(jsonstr);
                     long written = (long)json["bytesWritten"];
 
-                    if (txtBox != null) {
+                    if (progressBar != null) {
                         int percentage = (int)((written / (double)queuedUpload.GetFileSize()) * 100);
 
-                        txtBox.Dispatcher.Invoke(new Action(() => {
+                        progressBar.Dispatcher.Invoke(new Action(() => {
                             progressBar.Value = percentage;
                             progressText.Text = "Upload: " + queuedUpload.fileName + " " + percentage + "%";
                         }));
@@ -489,11 +456,11 @@ namespace KLC_Finch {
                     queuedUpload.Close();
                     serverBupload.Close();
 
-                    if (txtBox != null) {
-                        txtBox.Dispatcher.Invoke(new Action(() => {
+                    if (progressBar != null) {
+                        progressBar.Dispatcher.Invoke(new Action(() => {
                             progressBar.Value = 0;
                             progressText.Text = queuedUpload.fileName + " uploaded!";
-                            txtBox.AppendText("\r\nUpload complete.");
+                            //txtBox.AppendText("\r\nUpload complete.");
 
                             btnDownload.IsEnabled = true;
                             btnUpload.IsEnabled = true;
@@ -555,14 +522,14 @@ namespace KLC_Finch {
 
             serverB.Send(jDown.ToString());
 
-            txtBox.Text = "Starting download: " + saveFile;
+            //txtBox.Text = "Starting download: " + saveFile;
         }
 
         public bool Upload(string openFile) {
             List<string> usePath = selectedPath;
 
             if (selectedPath.Count == 0) {
-                if (txtBox == null) {
+                if (progressBar == null) {
                     if(IsMac) {
                         return false;
                     } else {

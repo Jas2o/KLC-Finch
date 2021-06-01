@@ -148,6 +148,7 @@
     </Compile>
     <Compile Include="Modules\FileExplorer\Download.cs" />
     <Compile Include="Modules\FileExplorer\FileExplorer.cs" />
+    <Compile Include="Modules\FileExplorer\FilesData.cs" />
     <Compile Include="Modules\FileExplorer\KLCFile.cs" />
     <Compile Include="Modules\FileExplorer\Upload.cs" />
     <Compile Include="Modules\Processes\controlProcesses.xaml.cs">

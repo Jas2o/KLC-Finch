@@ -35,7 +35,7 @@ namespace KLC_Finch {
                 btnRegistryDeleteValue.IsEnabled = false;
                 window = ((WindowAlternative)Window.GetWindow(this));
 
-                moduleRegistry = new RegistryEditor(session, lvRegistryKeys, dgvRegistryValues, txtRegistryPath, txtRegistry);
+                moduleRegistry = new RegistryEditor(session, lvRegistryKeys, dgvRegistryValues, txtRegistryPath);
                 session.ModuleRegistryEditor = moduleRegistry;
 
                 chkRegistryEnableDelete.IsChecked = false;

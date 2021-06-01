@@ -104,7 +104,14 @@ namespace KLC_Finch {
         }
 
         public void Disconnect(string sessionId) {
-            if(timerHeartbeat != null)
+            if (decoder != null) {
+                lock (decoder) {
+                    decoder.Dispose();
+                    decoder = null;
+                }
+            }
+
+            if (timerHeartbeat != null)
                 timerHeartbeat.Stop();
             if (serverB != null)
                 serverB.Close();
@@ -174,35 +181,9 @@ namespace KLC_Finch {
                     //Private
                     //{"default_screen":65537,"screens":[{"screen_height":1080,"screen_id":65537,"screen_name":"\\\\.\\DISPLAY1","screen_width":1440,"screen_x":0,"screen_y":0}]}
 
-                    int lowestX = 0;
-                    int lowestY = 0;
-                    int highestX = 0;
-                    int highestY = 0;
-
-                    string default_screen = json["default_screen"].ToString();
-                    //activeScreenID = default_screen;
-                    Console.WriteLine("Clear Screens");
-                    Viewer.ClearScreens();
-                    foreach (dynamic screen in json["screens"]) {
-
-                        string screen_id = screen["screen_id"].ToString(); //int or BigInteger
-                        string screen_name = (string)screen["screen_name"];
-                        int screen_height = (int)screen["screen_height"];
-                        int screen_width = (int)screen["screen_width"];
-                        int screen_x = (int)screen["screen_x"];
-                        int screen_y = (int)screen["screen_y"];
-
-                        Viewer.AddScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y, (screen_id == default_screen));
-                        Console.WriteLine("Add Screen: " + screen_id);
-
-                        lowestX = Math.Min(screen_x, lowestX);
-                        lowestY = Math.Min(screen_y, lowestY);
-                        highestX = Math.Max(screen_x + screen_width, highestX);
-                        highestY = Math.Max(screen_y + screen_height, highestY);
-                    }
-
-                    Viewer.SetCanvas(lowestX, lowestY, highestX, highestY);
+                    Viewer.UpdateScreenLayout(json, jsonstr);
                     Viewer.SetControlEnabled(true, !modePrivate);
+
                 } else if (type == (byte)Enums.KaseyaMessageTypes.HostTerminalSessionsList) {
                     Console.WriteLine("HostTerminalSessionsList");
                     //{"default_session":4294967294,"sessions":[{"session_id":4294967294,"session_name":"Console JH-TEST-2016\\Hackerman"},{"session_id":1,"session_name":"JH-TEST-2016\\TestUser"}]}
@@ -261,7 +242,12 @@ namespace KLC_Finch {
                             int rawWidth = 0;
                             int rawHeight = 0;
                             int rawStride = 0;
-                            byte[] rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride);
+                            byte[] rawYUV;
+                            if (decoder == null)
+                                decoder = new VP8.Decoder(); //Due to Soft Reconnect
+                            lock (decoder) {
+                                rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride);
+                            }
 
                             /*
                             if (!File.Exists("vp8test.bin")) {
@@ -297,7 +283,9 @@ namespace KLC_Finch {
                     } else {
                         Bitmap b1 = null;
                         try {
-                            b1 = decoder.Decode(remaining, 0);
+                            lock (decoder) {
+                                b1 = decoder.Decode(remaining, 0);
+                            }
                         } catch (Exception ex) {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
                         } finally {
