@@ -1,6 +1,7 @@
 ﻿using Fleck;
 using LibKaseya;
 using Newtonsoft.Json;
+using RestSharp;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -141,16 +142,26 @@ namespace KLC_Finch {
 
             if (type == 0x27) {
                 Viewer.ClearApproval();
+
+                //This does not appear to fix the API logs (as opposed to VSA logs) issue
+                RestClient K_Client = new RestClient("https://vsa-web.company.com.au");
+                RestRequest request = new RestRequest("api/v1.0/assetmgmt/agent/" + session.agentGuid + "/KLCAuditLogEntry", Method.PUT);
+                request.AddHeader("Authorization", "Bearer " + session.shorttoken);
+                request.AddParameter("Content-Type", "application/json");
+                request.AddJsonBody("{\"UserName\":\"" + session.auth.UserName + "\",\"AgentName\":\"" + session.agent.Name + "\",\"LogMessage\":\"Remote Control Log Notes: \"}");
+                IRestResponse response = K_Client.Execute(request);
+
             } else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported) {
                 App.ShowUnhandledExceptionFromSrc("SessionNotSupported", "Remote Control");
-                Viewer.NotifySocketClosed(rcSessionId);
-                serverB.Close();
+                Disconnect(rcSessionId);
+                //Viewer.NotifySocketClosed(rcSessionId);
+                //serverB.Close();
                 //Private session failed, this is supposed to prompt the user if they want to use a Shared session
             } else if (type == (byte)Enums.KaseyaMessageTypes.PrivateSessionDisconnected) {
                 Console.WriteLine("PrivateSessionDisconnected");
-                Viewer.NotifySocketClosed(rcSessionId);
-                serverB.Close();
-                //serverB.DisconnectClient(clientB);
+                Disconnect(rcSessionId);
+                //Viewer.NotifySocketClosed(rcSessionId);
+                //serverB.Close();
             } else {
                 int jsonLength = BitConverter.ToInt32(bytes, 1).SwapEndianness();
                 string jsonstr = Encoding.UTF8.GetString(bytes, 5, jsonLength);
@@ -335,7 +346,7 @@ namespace KLC_Finch {
             Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
             Array.Copy(contentBuffer, 0, tosend, 5 + jsonLen, content.Length);
 
-            if (serverB != null)
+            if (serverB != null && serverB.IsAvailable)
                 serverB.Send(tosend);
         }
 
@@ -447,8 +458,10 @@ namespace KLC_Finch {
             tosend[4] = (byte)jsonLen;
             Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
 
-            if(serverB != null)
+            if (serverB != null && serverB.IsAvailable)
                 serverB.Send(tosend);
+            else
+                Disconnect(rcSessionId);
         }
 
 
@@ -485,6 +498,9 @@ namespace KLC_Finch {
         }
 
         public void SendPanicKeyRelease() {
+            if (serverB == null || !serverB.IsAvailable)
+                return;
+
             foreach (int jskey in KeycodeV2.ModifiersJS) {
                 KeycodeV2 key = KeycodeV2.List.Find(x => x.JavascriptKeyCode == jskey);
                 serverB.Send(MITM.GetSendKey(key, false));

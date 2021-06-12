@@ -16,7 +16,7 @@ namespace KLC {
         public WsA WebsocketA;
         public WsB WebsocketB;
 
-        private string shorttoken; //This should be moved to LibKaseya.Kaseya
+        public string shorttoken; //KLC would normally change tokens during initial connection
         public string agentGuid;
         public Agent agent;
         public KaseyaAuth auth { get; private set; }
@@ -46,6 +46,7 @@ namespace KLC {
             agent = new Agent(agentGuid, shorttoken);
 
             auth = KaseyaAuth.ApiAuthX(shorttoken);
+            shortToken = auth.Token; //Works fine without this line, but it's something KLC does.
             eal = Api15.EndpointsAdminLogin(shorttoken);
 
             JObject rcNotifyPolicy = agent.GetRemoteControlNotifyPolicyFromAPI(shortToken);

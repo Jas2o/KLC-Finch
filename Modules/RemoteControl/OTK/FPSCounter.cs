@@ -33,5 +33,9 @@ namespace NTR {
             stopwatch = Stopwatch.StartNew();
             return Math.Round((double)1000 / ((double)ticksum / MAXSAMPLES), 2); // return average
         }
+
+        public bool SeemsAlive(long compare) {
+            return (stopwatch.ElapsedMilliseconds < compare);
+        }
     }
 }

@@ -17,6 +17,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Timers;
 
 //To look into regarding the changes to Key/Keys
 //https://stackoverflow.com/questions/1153009/how-can-i-convert-system-windows-input-key-to-system-windows-forms-keys
@@ -103,6 +104,11 @@ namespace KLC_Finch {
         }
         ConnectionStatus connectionStatus;
 
+        System.Timers.Timer timerHealth;
+        FPSCounter fpsCounter;
+        double fpsLast;
+        long lastLatency;
+
         //--
 
         public WindowViewerV2(RemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, bool isMac = false) {
@@ -123,6 +129,7 @@ namespace KLC_Finch {
             toolSettingStartControlEnabled.IsChecked = Settings.StartControlEnabled;
             toolSettingMacSwapCtrlWin.IsChecked = Settings.MacSwapCtrlWin;
             toolSettingMultiAltFit.IsChecked = Settings.MultiAltFit;
+            toolSettingMultiShowCursor.IsChecked = Settings.MultiShowCursor;
             toolSettingUseYUVShader.IsChecked = Settings.UseYUVShader;
             toolDebugKeyboardMod.IsChecked = Settings.DisplayOverlayKeyboardMod;
             toolDebugKeyboardOther.IsChecked = Settings.DisplayOverlayKeyboardOther;
@@ -147,6 +154,33 @@ namespace KLC_Finch {
 
             clipboardMon = new ClipBoardMonitor();
             clipboardMon.OnUpdate += SyncClipboard;
+
+            //if (rcSessionId != null) {
+                timerHealth = new System.Timers.Timer(1000);
+                timerHealth.Elapsed += CheckHealth;
+                timerHealth.Start();
+            //}
+            fpsCounter = new FPSCounter();
+
+            WindowUtilities.ActivateWindow(this);
+        }
+
+        private void CheckHealth(object sender, ElapsedEventArgs e) {
+            Dispatcher.Invoke((Action)delegate {
+                if (connectionStatus == ConnectionStatus.Disconnected) {
+                    toolLatency.Content = "N/C";
+                    txtRcNotify.Visibility = Visibility.Collapsed;
+                    timerHealth.Stop();
+                } else {
+                    if (fpsCounter.SeemsAlive(5000)) {
+                        toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, lastLatency);
+                        toolLatency.FontWeight = FontWeights.Normal;
+                    } else {
+                        toolLatency.Content = string.Format("Frozen? | {0} ms", lastLatency);
+                        toolLatency.FontWeight = FontWeights.Bold;
+                    }
+                }
+            });
         }
 
         void CreateShaders(string vs, string fs, out int vertexObject, out int fragmentObject, out int program) {
@@ -186,17 +220,20 @@ namespace KLC_Finch {
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+            //NotifySocketClosed(sessionId);
+            if (rc != null)
+                rc.Disconnect(sessionId);
+
+            clipboardMon.OnUpdate -= SyncClipboard;
+        }
+
+        private void Window_Closed(object sender, EventArgs e) {
             if (shader_program != 0)
                 GL.DeleteProgram(shader_program);
             if (fragment_shader_object != 0)
                 GL.DeleteShader(fragment_shader_object);
             if (vertex_shader_object != 0)
                 GL.DeleteShader(vertex_shader_object);
-
-            clipboardMon.OnUpdate -= SyncClipboard;
-
-            if (rc != null)
-                rc.Disconnect(sessionId);
 
             if (App.alternative != null && App.alternative.Visibility != Visibility.Visible)
                 Environment.Exit(0);
@@ -329,11 +366,7 @@ namespace KLC_Finch {
             socketAlive = false;
             connectionStatus = ConnectionStatus.Disconnected;
 
-            rc = null;
-            Dispatcher.Invoke((Action)delegate {
-                toolLatency.Content = "N/C";
-                txtRcNotify.Visibility = Visibility.Collapsed;
-            });
+            //rc = null; //Can result in exceptions if a Send event results in a disconnection. Also stops Soft Reconnect is some situations.
 
             glControl.Invalidate();
         }
@@ -499,31 +532,33 @@ namespace KLC_Finch {
                     }
                 }
 
-                if (textureCursor != null) {
-                    GL.Color3(Color.White);
-                    textureCursor.Render();
+                if (Settings.MultiShowCursor) {
+                    if (textureCursor != null) {
+                        GL.Color3(Color.White);
+                        textureCursor.Render();
+                    }
+
+                    /*
+                    if(rectCursor != null) {
+                        GL.Disable(EnableCap.Texture2D);
+                        GL.Color3(Color.Yellow);
+
+                        //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                        GL.Begin(PrimitiveType.Polygon);
+                        GL.PointSize(5f);
+                        GL.LineWidth(5f);
+
+                        GL.Vertex2(rectCursor.Left, rectCursor.Bottom);
+                        GL.Vertex2(rectCursor.Left, rectCursor.Top);
+                        GL.Vertex2(rectCursor.Right, rectCursor.Top);
+                        GL.Vertex2(rectCursor.Right, rectCursor.Bottom);
+
+                        //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
+
+                        GL.End();
+                    }
+                    */
                 }
-
-                /*
-                if(rectCursor != null) {
-                    GL.Disable(EnableCap.Texture2D);
-                    GL.Color3(Color.Yellow);
-
-                    //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-                    GL.Begin(PrimitiveType.Polygon);
-                    GL.PointSize(5f);
-                    GL.LineWidth(5f);
-
-                    GL.Vertex2(rectCursor.Left, rectCursor.Bottom);
-                    GL.Vertex2(rectCursor.Left, rectCursor.Top);
-                    GL.Vertex2(rectCursor.Right, rectCursor.Top);
-                    GL.Vertex2(rectCursor.Right, rectCursor.Bottom);
-
-                    //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
-
-                    GL.End();
-                }
-                */
             } else {
                 //Legacy behavior
                 if (!textureLegacy.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, Color.White)) {
@@ -748,9 +783,11 @@ namespace KLC_Finch {
         }
 
         public void UpdateLatency(long ms) {
-            Dispatcher.Invoke((Action)delegate {
-                toolLatency.Content = string.Format("{0} ms", ms);
-            });
+            lastLatency = ms;
+
+            //Dipatcher.Invoke((Action)delegate {
+                //toolLatency.Content = string.Format("{0} ms", ms);
+            //});
         }
 
         #region Host Desktop Configuration (Screens of current session)
@@ -1141,6 +1178,7 @@ namespace KLC_Finch {
             }
             //}
 
+            fpsLast = fpsCounter.GetFPS();
             glControl.Invalidate();
         }
 
@@ -1222,6 +1260,7 @@ namespace KLC_Finch {
             }
             //}
 
+            fpsLast = fpsCounter.GetFPS();
             glControl.Invalidate();
         }
 
@@ -1256,7 +1295,7 @@ namespace KLC_Finch {
 
         #region Handle
         private void toolSendCtrlAltDel_Click(object sender, RoutedEventArgs e) {
-            if (!controlEnabled || rc == null)
+            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.SendSecureAttentionSequence();
@@ -1288,7 +1327,7 @@ namespace KLC_Finch {
         }
 
         private void toolClipboardSend_Click(object sender, EventArgs e) {
-            if (rc == null)
+            if (rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             clipboard = Clipboard.GetText();
@@ -1387,7 +1426,7 @@ namespace KLC_Finch {
         KeycodeV2 keywin = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.LWin);
 
         private void HandleMouseDown(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (rc == null)
+            if (rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             if (useMultiScreen) {
@@ -1472,7 +1511,7 @@ namespace KLC_Finch {
         }
 
         private void toolPanicRelease_Click(object sender, RoutedEventArgs e) {
-            if (!controlEnabled || rc == null)
+            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.SendPanicKeyRelease();
@@ -1483,7 +1522,7 @@ namespace KLC_Finch {
         }
 
         private void toolScreenshotToClipboard_Click(object sender, RoutedEventArgs e) {
-            if (rc == null)
+            if (rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.CaptureNextScreen();
@@ -1620,14 +1659,14 @@ namespace KLC_Finch {
         }
 
         private void Window_Activated(object sender, EventArgs e) {
-            if (!controlEnabled || currentScreen == null || rc == null)
+            if (!controlEnabled || currentScreen == null || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             windowActivatedMouseMove = true;
         }
 
         private void Window_Deactivated(object sender, EventArgs e) {
-            if (!controlEnabled || currentScreen == null || rc == null)
+            if (!controlEnabled || currentScreen == null || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             //Release modifier keys because the remote control window lost focus
@@ -1672,6 +1711,10 @@ namespace KLC_Finch {
             PositionCameraToCurrentScreen();
         }
 
+        private void toolSettingMultiShowCursor_Click(object sender, RoutedEventArgs e) {
+            toolSettingMultiShowCursor.IsChecked = Settings.MultiShowCursor = !Settings.MultiShowCursor;
+        }
+
         private void toolOptions_Click(object sender, RoutedEventArgs e) {
             new Modules.RemoteControl.WindowOptions().ShowDialog();
         }
@@ -1683,7 +1726,7 @@ namespace KLC_Finch {
         }
 
         private void toolClipboardAutotype_Click(object sender, RoutedEventArgs e) {
-            if (rc == null || !controlEnabled)
+            if (rc == null || !controlEnabled || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             PerformAutotype();
@@ -1701,8 +1744,12 @@ namespace KLC_Finch {
             }
         }
 
+        private void toolDisconnect_Click(object sender, RoutedEventArgs e) {
+            rc.Disconnect(sessionId);
+        }
+
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!controlEnabled || rc == null)
+            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             if (glControl.ClientRectangle.Contains(e.Location)) {
@@ -1718,7 +1765,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (currentScreen == null || rc == null)
+            if (currentScreen == null || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             windowActivatedMouseMove = false;
@@ -1784,7 +1831,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseWheel(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!controlEnabled || rc == null)
+            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.SendMouseWheel(e.Delta);
@@ -1792,7 +1839,7 @@ namespace KLC_Finch {
 
         private void OpenTkControl_PreviewKeyDown(object sender, KeyEventArgs e) {
             //Apparently preview is used because arrow keys?
-            if (rc == null)
+            if (rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
@@ -1854,14 +1901,14 @@ namespace KLC_Finch {
         }
 
         private void OpenTkControl_KeyUp(object sender, KeyEventArgs e) {
-            if (rc == null)
+            if (rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
 
             if (e2.KeyCode == System.Windows.Forms.Keys.PrintScreen) {
                 rc.CaptureNextScreen();
-            } else if (!controlEnabled || rc == null) {
+            } else if (!controlEnabled) {
                 if (e2.KeyCode == System.Windows.Forms.Keys.F2)
                     SetControlEnabled(true);
             } else if (e2.KeyCode == System.Windows.Forms.Keys.Pause) {
@@ -1915,7 +1962,7 @@ namespace KLC_Finch {
         private bool mouseHeldRight = false;
 
         private void KeyWinSet(bool set) {
-            if (!controlEnabled || rc == null || isMac)
+            if (!controlEnabled || rc == null || isMac || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             keyDownWin = set;

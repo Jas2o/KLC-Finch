@@ -116,6 +116,12 @@
     <Compile Include="AddToLib\EIRC.cs" />
     <Compile Include="AddToLib\FormatKbSizeConverter.cs" />
     <Compile Include="AddToLib\Util.cs" />
+    <Compile Include="AddToLib\WindowUtilities.cs" />
+    <Compile Include="Modules\Asset\AssetData.cs" />
+    <Compile Include="Modules\Asset\AssetValue.cs" />
+    <Compile Include="Modules\Asset\controlAsset.xaml.cs">
+      <DependentUpon>controlAsset.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Modules\Command\CommandPowershell.cs" />
     <Compile Include="Modules\Command\CommandTerminal.cs" />
     <Compile Include="Modules\Command\controlPowershell.xaml.cs">
@@ -217,6 +223,10 @@
     <None Include="WebSockets\Unused\WsY1.cs" />
     <None Include="WebSockets\Unused\WsY2.cs" />
     <None Include="WebSockets\Unused\WsZ.cs" />
+    <Page Include="Modules\Asset\controlAsset.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Modules\Command\controlPowershell.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

@@ -36,6 +36,9 @@
                     <command:controlDashboard x:Name="ctrlDashboard" Grid.Column="1" Loaded="ctrlDashboard_Loaded" Grid.RowSpan="2" />
                 </Grid>
             </TabItem>
+            <TabItem x:Name="tabAsset" Header="Asset" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Margin="0">
+                <command:controlAsset x:Name="ctrlAsset" />
+            </TabItem>
             <TabItem x:Name="tabCommand" Header="Command Prompt" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Margin="0">
                 <command:controlCommand x:Name="ctrlCommand" />
             </TabItem>

@@ -13,7 +13,7 @@
         Closing="Window_Closing"
         PreviewKeyDown="OpenTkControl_PreviewKeyDown"
         KeyUp="OpenTkControl_KeyUp"
-        KeyboardNavigation.TabNavigation="None" Activated="Window_Activated" WindowStartupLocation="CenterScreen" Deactivated="Window_Deactivated" Drop="Window_Drop" AllowDrop="True" Loaded="Window_Loaded">
+        KeyboardNavigation.TabNavigation="None" Activated="Window_Activated" WindowStartupLocation="CenterScreen" Deactivated="Window_Deactivated" Drop="Window_Drop" AllowDrop="True" Loaded="Window_Loaded" Closed="Window_Closed">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -92,6 +92,7 @@
                         <MenuItem x:Name="toolSettingStartControlEnabled" Header="Start Shared with Control Enabled" Click="toolSettingStartControlEnabled_Click" />
                         <MenuItem x:Name="toolSettingMacSwapCtrlWin" Header="Swap Ctrl/Win keys on Macs" Click="toolSettingMacSwapCtrlWin_Click" />
                         <MenuItem x:Name="toolSettingMultiAltFit" Header="Multi-Screen: Alt Fit" Click="toolSettingMultiAltFit_Click" />
+                        <MenuItem x:Name="toolSettingMultiShowCursor" Header="Multi-Screen: Show Cursor Updates" Click="toolSettingMultiShowCursor_Click" />
                         <MenuItem x:Name="toolDebugKeyboardMod" Header="Show Modifier Key Events" Click="toolDebugKeyboardMod_Click" />
                         <MenuItem x:Name="toolDebugKeyboardOther" Header="Show Other Key/Click Events" Click="toolDebugKeyboardOther_Click" />
                         <MenuItem x:Name="toolDebugMouse" Header="Show Mouse Move Events" Click="toolDebugMouse_Click" />
@@ -99,10 +100,12 @@
                         <MenuItem x:Name="toolSaveSettings" Header="Save Settings" Click="toolSaveSettings_Click" />
                         <Separator/>
                         <MenuItem x:Name="toolSettingUseYUVShader" Header="[BETA] Use YUV shader (less CPU)" Click="toolSettingUseYUVShader_Click" />
+                        <MenuItem x:Name="toolDisconnect" Header="[TEST] Disconnect" Click="toolDisconnect_Click" Visibility="Collapsed" />
                         <MenuItem x:Name="toolReconnect" Header="Soft Reconnect" Click="toolReconnect_Click" />
                     </ContextMenu>
                 </ext:DropdownButton.DropdownMenu>
             </ext:DropdownButton>
+            <Button x:Name="toolWarningFrozen" Content="Frozen?" VerticalAlignment="Stretch" Height="30" Foreground="Red" FontWeight="Bold" Visibility="Collapsed"/>
         </ToolBar>
 
         <WindowsFormsHost Grid.Row="2">

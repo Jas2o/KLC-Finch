@@ -24,6 +24,7 @@ namespace KLC_Finch {
         private string shortToken;
 
         private bool directToPrivate;
+        private bool dashLoaded;
 
         /*
         RemoteControl moduleRemoteControl;
@@ -51,6 +52,8 @@ namespace KLC_Finch {
             HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : null);
             session = new KLC.LiveConnectSession(shortToken, agentID, callback);
             this.Title = session.agent.Name + " - KLC-Finch";
+
+            WindowUtilities.ActivateWindow(this);
         }
 
         public delegate void HasConnected();
@@ -120,8 +123,16 @@ namespace KLC_Finch {
         }
 
         private void ctrlDashboard_Loaded(object sender, RoutedEventArgs e) {
-            if (session == null)
+            if (session == null || dashLoaded)
                 return;
+            dashLoaded = true;
+
+            if (session.agent.RebootLast == default(DateTime)) {
+                ctrlDashboard.txtRebootLast.Text = "Last reboot unknown";
+            } else {
+                ctrlDashboard.txtRebootLast.Text = "Last rebooted ~" + KLC.Util.FuzzyTimeAgo(session.agent.RebootLast);
+                ctrlDashboard.txtRebootLast.ToolTip = session.agent.RebootLast.ToString();
+            }
 
             ctrlDashboard.DisplayRCNotify(session.RCNotify);
             ctrlDashboard.DisplayMachineNote(session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
@@ -145,7 +156,7 @@ namespace KLC_Finch {
 
             LibKaseya.KLCCommand command = LibKaseya.KLCCommand.Example(agentID, shortToken);
             command.SetForLiveConnect();
-            command.Launch(false, false);
+            command.Launch(false, LibKaseya.LaunchExtra.None);
         }
     }
 }
