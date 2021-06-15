@@ -100,7 +100,7 @@
                         <MenuItem x:Name="toolSaveSettings" Header="Save Settings" Click="toolSaveSettings_Click" />
                         <Separator/>
                         <MenuItem x:Name="toolSettingUseYUVShader" Header="[BETA] Use YUV shader (less CPU)" Click="toolSettingUseYUVShader_Click" />
-                        <MenuItem x:Name="toolDisconnect" Header="[TEST] Disconnect" Click="toolDisconnect_Click" Visibility="Collapsed" />
+                        <MenuItem x:Name="toolDisconnect" Header="[TEST] Disconnect" Click="toolDisconnect_Click" />
                         <MenuItem x:Name="toolReconnect" Header="Soft Reconnect" Click="toolReconnect_Click" />
                     </ContextMenu>
                 </ext:DropdownButton.DropdownMenu>
@@ -108,13 +108,48 @@
             <Button x:Name="toolWarningFrozen" Content="Frozen?" VerticalAlignment="Stretch" Height="30" Foreground="Red" FontWeight="Bold" Visibility="Collapsed"/>
         </ToolBar>
 
-        <WindowsFormsHost Grid.Row="2">
-            <opentk:GLControl x:Name="glControl" Load="glControl_Load" Paint="glControl_Paint" Resize="glControl_Resize" />
+        <!--<StackPanel Grid.Row="1" Background="Black" >
+            <TextBlock x:Name="txtRcNotify" Text="Awaiting approval..." HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Foreground="White"/>
+        </StackPanel>-->
+
+        <WindowsFormsHost x:Name="winFormsHost" Grid.Row="2">
+            <opentk:GLControl x:Name="glControl" Load="glControl_Load" />
         </WindowsFormsHost>
 
-        <StackPanel Grid.Row="1" Background="Black" >
-            <TextBlock x:Name="txtRcNotify" Text="Awaiting approval..." HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Foreground="White"/>
-        </StackPanel>
-        
+        <Border x:Name="rcBorderBG" Grid.Row="2" Background="SlateGray">
+            <Viewbox x:Name="rcViewbox" ClipToBounds="True" RenderTransformOrigin="0.5,0.5">
+                <Canvas x:Name="rcCanvas" Width="1920" Height="1080">
+                    <Image x:Name="imageTest" />
+                    <Rectangle x:Name="rcRectangleExample" Width="1920" Height="1080" Fill="#FF003C83" />
+                </Canvas>
+            </Viewbox>
+        </Border>
+
+        <Grid Panel.ZIndex="1000" Grid.Row="2" IsHitTestVisible="False">
+            <TextBlock x:Name="txtDebugLeft" FontSize="32" Foreground="#FF78FF00" TextWrapping="Wrap" Width="400" LineStackingStrategy="BlockLineHeight" HorizontalAlignment="Left" TextAlignment="Left" Margin="5,0,0,0">
+                Line 1
+                <LineBreak/>
+                Line 2
+            </TextBlock>
+            <TextBlock x:Name="txtDebugRight" FontSize="32" Foreground="#FF78FF00" TextWrapping="Wrap" Width="400" LineStackingStrategy="BlockLineHeight" HorizontalAlignment="Right" TextAlignment="Right" Margin="0,0,5,0">
+                Line 1
+                <LineBreak/>
+                Line 2
+            </TextBlock>
+
+            <TextBlock x:Name="txtRcControlOff1" Text="F2 or double-click to enable control" FontSize="32" Foreground="Black" VerticalAlignment="Top" TextAlignment="Center" Width="315" TextWrapping="Wrap" LineStackingStrategy="BlockLineHeight" LineHeight="36" Margin="0,10,0,0">
+                <TextBlock.Effect>
+                    <BlurEffect KernelType="Box" Radius="2"/>
+                </TextBlock.Effect>
+            </TextBlock>
+            <TextBlock x:Name="txtRcControlOff2" Text="F2 or double-click to enable control" FontSize="32" Foreground="#BFFFFFFF" VerticalAlignment="Top" TextAlignment="Center" TextWrapping="Wrap" Width="315" LineStackingStrategy="BlockLineHeight" LineHeight="36" Margin="0,10,0,0" />
+
+            <StackPanel VerticalAlignment="Center">
+                <Label x:Name="txtRcNotify" Content="Awaiting approval" FontSize="32" Foreground="White" Background="#7F000000" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="80" FontFamily="Arial"/>
+                <Label x:Name="txtRcFrozen" Content="Frozen?" FontSize="32" Foreground="#7FFFFFFF" Background="#3F0096FF" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="250" Height="80" FontFamily="Arial"/>
+                <Label x:Name="txtRcDisconnected" Content="Disconnected" FontSize="32" Foreground="#FF78FF00" Background="#7F000000" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="250" Height="80" FontFamily="Arial"/>
+            </StackPanel>
+        </Grid>
+
     </Grid>
 </Window>

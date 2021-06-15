@@ -294,6 +294,8 @@ namespace KLC_Finch {
                     } else {
                         Bitmap b1 = null;
                         try {
+                            if (decoder == null)
+                                decoder = new VP8.Decoder(); //Due to Soft Reconnect
                             lock (decoder) {
                                 b1 = decoder.Decode(remaining, 0);
                             }
@@ -351,6 +353,7 @@ namespace KLC_Finch {
         }
 
         public void SendMouseUp(MouseButtons button) {
+            //WinForms
             if (!mouseDown)
                 return;
 
@@ -364,7 +367,23 @@ namespace KLC_Finch {
             mouseDown = false;
         }
 
+        public void SendMouseUp(MouseButton button) {
+            //WPF
+            if (!mouseDown)
+                return;
+
+            //0200000029
+            //EXo* @T¤T¯ÊJËÌR0P'Fs}.){"button":1,"button_down":false,"type":0}
+
+            int buttonID = (button == MouseButton.Right ? 3 : 1);
+            string sendjson = "{\"button\":" + buttonID + ",\"button_down\":false,\"type\":0}";
+            SendJson(Enums.KaseyaMessageTypes.Mouse, sendjson);
+
+            mouseDown = false;
+        }
+
         public void SendMouseDown(MouseButtons button) {
+            //WinForms
             if (mouseDown)
                 return;
 
@@ -372,6 +391,18 @@ namespace KLC_Finch {
             //EXo* @T¤T¯ÊJËÌR0P'Fs}.){"button":1,"button_down":true,"type":0}
 
             int buttonID = (button == MouseButtons.Right ? 3 : 1);
+            string sendjson = "{\"button\":" + buttonID + ",\"button_down\":true,\"type\":0}";
+            SendJson(Enums.KaseyaMessageTypes.Mouse, sendjson);
+
+            mouseDown = true;
+        }
+
+        public void SendMouseDown(MouseButton button) {
+            //WPF
+            if (mouseDown)
+                return;
+
+            int buttonID = (button == MouseButton.Right ? 3 : 1);
             string sendjson = "{\"button\":" + buttonID + ",\"button_down\":true,\"type\":0}";
             SendJson(Enums.KaseyaMessageTypes.Mouse, sendjson);
 
@@ -533,5 +564,6 @@ namespace KLC_Finch {
                 session.ModuleFileExplorer.Upload(file);
             }
         }
+
     }
 }

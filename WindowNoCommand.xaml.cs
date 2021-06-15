@@ -88,12 +88,15 @@ namespace KLC_Finch {
             jDesktop["default_screen"] = 65539;
             jDesktop["screens"] = jScreenArray;
 
+            myViewer.Show();
             myViewer.UpdateScreenLayout(jDesktop);
             //myViewer.AddScreen("0", "Test Screen", height, width, 0, 0, true);
             //myViewer.SetCanvas(0, 0, width, height);
-            myViewer.Show();
 
             Thread threadTest = new Thread(() => {
+                Thread.Sleep(2000);
+                myViewer.ClearApproval();
+
                 System.Drawing.Color[] colors = new System.Drawing.Color[] { //The BIT.TRIP colours!
                     System.Drawing.Color.FromArgb(251, 218, 3), //Yellow
                     System.Drawing.Color.FromArgb(255, 165, 50), //Orange
