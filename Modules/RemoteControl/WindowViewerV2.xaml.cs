@@ -106,6 +106,7 @@ namespace KLC_Finch {
             this.Width = Settings.RemoteControlWidth;
             this.Height = Settings.RemoteControlHeight;
 
+            autotypeAlwaysConfirmed = toolSettingAutotypeSkipLengthCheck.IsChecked = Settings.AutotypeSkipLengthCheck;
             toolSettingStartControlEnabled.IsChecked = Settings.StartControlEnabled;
             toolSettingMacSwapCtrlWin.IsChecked = Settings.MacSwapCtrlWin;
             toolSettingMultiAltFit.IsChecked = Settings.MultiAltFit;
@@ -177,7 +178,11 @@ namespace KLC_Finch {
                 RCScreen scr = null;
                 if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
                     scr = currentScreen;
+                else if (currentScreen != null && currentScreen.rectFixed.Width == width && currentScreen.rectFixed.Height == height)
+                    scr = currentScreen;
                 else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
+                    scr = previousScreen;
+                else if (previousScreen != null && previousScreen.rectFixed.Width == width && previousScreen.rectFixed.Height == height)
                     scr = previousScreen;
                 else {
                     List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
@@ -310,7 +315,11 @@ namespace KLC_Finch {
                 RCScreen scr = null;
                 if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
                     scr = currentScreen;
+                else if (currentScreen != null && currentScreen.rectFixed.Width == width && currentScreen.rectFixed.Height == height)
+                    scr = currentScreen;
                 else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
+                    scr = previousScreen;
+                else if (previousScreen != null && previousScreen.rectFixed.Width == width && previousScreen.rectFixed.Height == height)
                     scr = previousScreen;
                 else {
                     List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
@@ -626,8 +635,8 @@ namespace KLC_Finch {
             //check GLSL
             string version = GL.GetString(StringName.Version);
             int major = (int)version[0];
-            if (version.StartsWith("1.") || true) {
-                Console.WriteLine("OpenGL 2.0 not available. GLSL not supported.");
+            if (version.StartsWith("1.") || Settings.ForceCanvas) {
+                //Console.WriteLine("OpenGL 2.0 not available. GLSL not supported.");
                 useCanvasRGB = true;
 
                 winFormsHost.Visibility = Visibility.Collapsed;
@@ -636,7 +645,7 @@ namespace KLC_Finch {
                 rcRectangleExample.Visibility = Visibility.Hidden;
                 canvasListRectangle = new List<System.Windows.Shapes.Rectangle>();
 
-                this.Title = Title + " (Canvas RGB)";
+                this.Title = Title + " (Canvas RGB) Alpha";
 
                 this.SizeChanged += WindowViewerV2_SizeChanged;
                 rcBorderBG.MouseMove += HandleCanvasMouseMove;
@@ -738,7 +747,8 @@ namespace KLC_Finch {
             }
 
             if (e.ChangedButton == MouseButton.Middle) {
-                PerformAutotype();
+                if (e.ClickCount == 1) //Logitech bug
+                    PerformAutotype();
             } else {
                 if (windowActivatedMouseMove)
                     HandleCanvasMouseMove(sender, e);
@@ -1389,7 +1399,8 @@ namespace KLC_Finch {
             }
 
             if (e.Button == System.Windows.Forms.MouseButtons.Middle) {
-                PerformAutotype();
+                if (e.Clicks == 1) //Logitech bug
+                    PerformAutotype();
             } else {
                 if (windowActivatedMouseMove)
                     HandleMouseMove(sender, e);
@@ -1661,6 +1672,10 @@ namespace KLC_Finch {
                 return;
 
             rc.SendSecureAttentionSequence();
+        }
+
+        private void toolSettingAutotypeSkipLengthCheck_Click(object sender, RoutedEventArgs e) {
+            toolSettingAutotypeSkipLengthCheck.IsChecked = autotypeAlwaysConfirmed = Settings.AutotypeSkipLengthCheck = !Settings.AutotypeSkipLengthCheck;
         }
 
         private void toolSettingMacSwapCtrlWin_Click(object sender, RoutedEventArgs e) {

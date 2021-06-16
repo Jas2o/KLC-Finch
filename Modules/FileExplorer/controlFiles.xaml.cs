@@ -36,7 +36,7 @@ namespace KLC_Finch {
                 moduleFileExplorer.GoUp();
         }
 
-        private void btnFilesPathJump_Click(object sender, RoutedEventArgs e) {
+        public void btnFilesPathJump_Click(object sender, RoutedEventArgs e) {
             if (moduleFileExplorer != null)
                 moduleFileExplorer.GoTo(txtFilesPath.Text);
         }

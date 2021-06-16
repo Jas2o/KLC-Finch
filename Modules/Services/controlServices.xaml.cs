@@ -29,7 +29,7 @@ namespace KLC_Finch {
             }
         }
 
-        private void btnServicesRefresh_Click(object sender, RoutedEventArgs e) {
+        public void btnServicesRefresh_Click(object sender, RoutedEventArgs e) {
             if (moduleServices == null)
                 return;
 

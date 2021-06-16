@@ -31,7 +31,7 @@
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
 
-            <CheckBox x:Name="chkDoNotAsk" Content="If I continue, do not ask me again." Margin="10,0,0,0" VerticalAlignment="Center" />
+            <CheckBox x:Name="chkDoNotAsk" Content="If I continue, do not ask me again for this session." Margin="10,0,0,0" VerticalAlignment="Center" />
             
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Column="1">
                 <Button x:Name="btnCancel"

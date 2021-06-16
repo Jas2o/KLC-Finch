@@ -89,6 +89,7 @@
                         <MenuItem x:Name="toolPanicRelease" Header="Attempt mod key releases (Pause)" Click="toolPanicRelease_Click" />
                         <MenuItem x:Name="toolScreenshotToClipboard" Header="Native Res Screenshot to Clipboard" Click="toolScreenshotToClipboard_Click" />
                         <Separator/>
+                        <MenuItem x:Name="toolSettingAutotypeSkipLengthCheck" Header="Autotype: Skip Length Check" Click="toolSettingAutotypeSkipLengthCheck_Click" />
                         <MenuItem x:Name="toolSettingStartControlEnabled" Header="Start Shared with Control Enabled" Click="toolSettingStartControlEnabled_Click" />
                         <MenuItem x:Name="toolSettingMacSwapCtrlWin" Header="Swap Ctrl/Win keys on Macs" Click="toolSettingMacSwapCtrlWin_Click" />
                         <MenuItem x:Name="toolSettingMultiAltFit" Header="Multi-Screen: Alt Fit" Click="toolSettingMultiAltFit_Click" />
@@ -99,7 +100,7 @@
                         <Separator/>
                         <MenuItem x:Name="toolSaveSettings" Header="Save Settings" Click="toolSaveSettings_Click" />
                         <Separator/>
-                        <MenuItem x:Name="toolSettingUseYUVShader" Header="[BETA] Use YUV shader (less CPU)" Click="toolSettingUseYUVShader_Click" />
+                        <MenuItem x:Name="toolSettingUseYUVShader" Header="Use YUV shader (less CPU)" Click="toolSettingUseYUVShader_Click" />
                         <MenuItem x:Name="toolDisconnect" Header="[TEST] Disconnect" Click="toolDisconnect_Click" />
                         <MenuItem x:Name="toolReconnect" Header="Soft Reconnect" Click="toolReconnect_Click" />
                     </ContextMenu>

@@ -77,7 +77,7 @@ namespace KLC_Finch {
             moduleEvents.GetMoreEvents();
         }
 
-        private void btnEventsRefresh_Click(object sender, RoutedEventArgs e) {
+        public void btnEventsRefresh_Click(object sender, RoutedEventArgs e) {
             if (moduleEvents == null)
                 return;
 

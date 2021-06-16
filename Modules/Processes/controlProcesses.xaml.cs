@@ -39,7 +39,7 @@ namespace KLC_Finch {
             }
         }
 
-        private void btnProcessesRefresh_Click(object sender, RoutedEventArgs e) {
+        public void btnProcessesRefresh_Click(object sender, RoutedEventArgs e) {
             if (moduleProcesses == null)
                 return;
 

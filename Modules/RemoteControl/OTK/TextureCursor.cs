@@ -36,6 +36,11 @@ namespace NTR {
             //Marshal.Copy(data.Scan0, Data, 0, Data.Length); //This can fail with re-taking over private remote control
             this.Data = Data; //Seems more stable replacing the array rather than writing into it
 
+            //Make the cursor image a bit more transparent
+            for (int i = 3; i < this.Data.Length; i += 4) {
+                this.Data[i] = ((byte)(this.Data[i] / 3));
+            }
+
             //decomp.UnlockBits(data);
 
             IsNew = true;

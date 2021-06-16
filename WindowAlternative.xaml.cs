@@ -158,5 +158,20 @@ namespace KLC_Finch {
             command.SetForLiveConnect();
             command.Launch(false, LibKaseya.LaunchExtra.None);
         }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e) {
+            if(e.Key == Key.F5) {
+                if (tabFiles.IsSelected)
+                    ctrlFiles.btnFilesPathJump_Click(sender, null);
+                else if (tabRegistry.IsSelected)
+                    ctrlRegistry.btnRegistryPathJump_Click(sender, null);
+                else if (tabEvents.IsSelected)
+                    ctrlEvents.btnEventsRefresh_Click(sender, null);
+                else if (tabServices.IsSelected)
+                    ctrlServices.btnServicesRefresh_Click(sender, null);
+                else if (tabProcesses.IsSelected)
+                    ctrlProcesses.btnProcessesRefresh_Click(sender, null);
+            }
+        }
     }
 }

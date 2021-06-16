@@ -14,6 +14,7 @@ namespace KLC_Finch {
 
         //--
 
+        public bool AutotypeSkipLengthCheck { get; set; } = false;
         public bool StartControlEnabled { get; set; } = true;
         public bool ClipboardSyncEnabled { get; set; } = false;
         public bool DisplayOverlayMouse { get; set; } = false;
@@ -23,7 +24,8 @@ namespace KLC_Finch {
         public uint RemoteControlHeight { get; set; } = 800;
         public bool MacSwapCtrlWin { get; set; } = false;
         public bool MultiAltFit { get; set; } = false;
-        public bool MultiShowCursor { get; set; } = true;
+        public bool MultiShowCursor { get; set; } = false;
         public bool UseYUVShader { get; set; } = true;
+        public bool ForceCanvas { get; set; } = false;
     }
 }

@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:command="clr-namespace:KLC_Finch"
         mc:Ignorable="d"
-        Title="WindowAlternative" Height="450" Width="800" Loaded="Window_Loaded" Closing="Window_Closing" WindowStartupLocation="CenterScreen">
+        Title="WindowAlternative" Height="450" Width="800" Loaded="Window_Loaded" Closing="Window_Closing" WindowStartupLocation="CenterScreen" PreviewKeyDown="Window_PreviewKeyDown">
     <Grid>
         <TabControl>
             <TabItem Header="Dashboard">
@@ -36,7 +36,7 @@
                     <command:controlDashboard x:Name="ctrlDashboard" Grid.Column="1" Loaded="ctrlDashboard_Loaded" Grid.RowSpan="2" />
                 </Grid>
             </TabItem>
-            <TabItem x:Name="tabAsset" Header="Asset" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Margin="0">
+            <TabItem x:Name="tabAsset" Header="Asset" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Margin="0" Visibility="Collapsed">
                 <command:controlAsset x:Name="ctrlAsset" />
             </TabItem>
             <TabItem x:Name="tabCommand" Header="Command Prompt" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Margin="0">
@@ -46,19 +46,19 @@
                 <command:controlPowershell />
             </TabItem>
             <TabItem x:Name="tabFiles" Header="Files">
-                <command:controlFiles />
+                <command:controlFiles x:Name="ctrlFiles"  />
             </TabItem>
             <TabItem x:Name="tabRegistry" Header="Registry">
-                <command:controlRegistry />
+                <command:controlRegistry x:Name="ctrlRegistry" />
             </TabItem>
             <TabItem x:Name="tabEvents" Header="Events">
-                <command:controlEvents />
+                <command:controlEvents x:Name="ctrlEvents" />
             </TabItem>
             <TabItem x:Name="tabServices" Header="Services">
-                <command:controlServices />
+                <command:controlServices x:Name="ctrlServices" />
             </TabItem>
             <TabItem x:Name="tabProcesses" Header="Processes">
-                <command:controlProcesses />
+                <command:controlProcesses x:Name="ctrlProcesses" />
             </TabItem>
         </TabControl>
 

@@ -131,7 +131,7 @@ namespace KLC_Finch {
                 moduleRegistry.GoUp();
         }
 
-        private void btnRegistryPathJump_Click(object sender, RoutedEventArgs e) {
+        public void btnRegistryPathJump_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry != null)
                 moduleRegistry.GoTo(txtRegistryPath.Text);
         }
