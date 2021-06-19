@@ -48,6 +48,14 @@ namespace KLC {
                 };
                 socket.OnClose = () => {
                     Console.WriteLine("A Close");
+
+                    if(App.alternative != null) {
+                        App.alternative.Disconnect(Session.randSessionGuid, 0);
+                    }
+                    if (Session.ModuleRemoteControl != null) {
+                        string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "").Replace("?Y2", "");
+                        Session.ModuleRemoteControl.Disconnect(sessionId);
+                    }
                 };
                 socket.OnMessage = message => {
                     if (message.Contains("PeerOffline")) {

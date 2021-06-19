@@ -1630,7 +1630,7 @@ namespace KLC_Finch {
         }
 
         private void toolReconnect_Click(object sender, RoutedEventArgs e) {
-            if (rc != null)
+            if (rc != null && (socketAlive || App.alternative.socketActive))
                 rc.Reconnect();
             else
                 toolShowAlternative_Click(sender, e);

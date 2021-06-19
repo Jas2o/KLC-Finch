@@ -6,7 +6,16 @@
         mc:Ignorable="d"
         Title="WindowAlternative" Height="450" Width="800" Loaded="Window_Loaded" Closing="Window_Closing" WindowStartupLocation="CenterScreen" PreviewKeyDown="Window_PreviewKeyDown">
     <Grid>
-        <TabControl>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+
+        <Border x:Name="borderDisconnected" Visibility="Collapsed" Background="Maroon">
+            <TextBlock x:Name="txtDisconnected" Text="Disconnected" HorizontalAlignment="Center" Foreground="White" Margin="0,2" />
+        </Border>
+        
+        <TabControl Grid.Row="1">
             <TabItem Header="Dashboard">
                 <Grid Background="#FFE5E5E5">
                     <Grid.RowDefinitions>

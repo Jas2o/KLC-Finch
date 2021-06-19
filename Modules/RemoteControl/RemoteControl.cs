@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -344,7 +345,8 @@ namespace KLC_Finch {
 
             byte[] tosend = new byte[totalLen + 5];
             tosend[0] = (byte)Enums.KaseyaMessageTypes.Clipboard;
-            tosend[4] = (byte)jsonLen;
+            byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
+            Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
             Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
             Array.Copy(contentBuffer, 0, tosend, 5 + jsonLen, content.Length);
 
@@ -486,7 +488,8 @@ namespace KLC_Finch {
 
             byte[] tosend = new byte[jsonLen + 5];
             tosend[0] = (byte)messageType;
-            tosend[4] = (byte)jsonLen;
+            byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
+            Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
             Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
 
             if (serverB != null && serverB.IsAvailable)

@@ -173,17 +173,20 @@ namespace KLC_Finch {
 
             byte[] tosend = new byte[jsonLen + 5];
             tosend[0] = (byte)messageType;
-            tosend[4] = (byte)jsonLen;
+            byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
+            Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
             Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
 
             if (serverB != null) {
                 if (serverB.IsAvailable)
                     serverB.Send(tosend);
+                /*
                 else {
                     imgScreenPreview.Dispatcher.Invoke(new Action(() => {
                         imgScreenPreview.Source = null;
                     }));
                 }
+                */
             }
         }
 

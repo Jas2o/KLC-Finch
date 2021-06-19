@@ -57,7 +57,7 @@ namespace KLC_Finch {
 
         public void btnDashboardStartData_Click(object sender, RoutedEventArgs e) {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
-            if (session != null) {
+            if (session != null) { //Intentionally different
                 btnDashboardStartData.IsEnabled = false;
 
                 moduleDashboard = new Dashboard(session, txtDashboard, stackDisks);
@@ -80,7 +80,7 @@ namespace KLC_Finch {
 
         public void btnStaticImageStart_Click(object sender, RoutedEventArgs e) {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
-            if (session != null) {
+            if (session != null) { //Intentionally different
                 btnStaticImageStart.IsEnabled = false;
 
                 moduleStaticImage = new StaticImage(session, imgScreenPreview);

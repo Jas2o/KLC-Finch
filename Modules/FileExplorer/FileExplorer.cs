@@ -33,13 +33,20 @@ namespace KLC_Finch {
         private List<string> selectedPath;
         //private List<KLCFile> viewFiles;
         private List<KLCFile> viewFolders;
-        private Download queuedDownload;
-        private Upload queuedUpload;
+
+        private Queue<Download> queueDownload;
+        private Queue<Upload> queueUpload;
+        private Download activeDownload;
+        private Upload activeUpload;
+        private string downloadDestination;
 
         public FileExplorer(KLC.LiveConnectSession session) {
             selectedPath = new List<string>();
             //viewFiles = new List<KLCFile>();
             viewFolders = new List<KLCFile>();
+
+            queueDownload = new Queue<Download>();
+            queueUpload = new Queue<Upload>();
 
             if (session != null) {
                 IsMac = session.agent.IsMac;
@@ -60,7 +67,7 @@ namespace KLC_Finch {
             this.filesData = filesData;
         }
 
-        public bool IsUsable () {
+        public bool IsUsable() {
             return (serverB != null && serverB.IsAvailable);
         }
 
@@ -154,6 +161,45 @@ namespace KLC_Finch {
                         //temp["id"] is the time the response was generated
                     }
                     break;
+
+                case "GetFullDownloadItemList":
+                    /* {
+                         "name":[
+                            "kworking"
+                         ],
+                         "type":"folder",
+                         "size":-1,
+                         "date":"2021-06-19T02:37:28.000Z"
+                      }, */
+                    if ((bool)temp["success"]) {
+                        if (txtExplorerPath != null) {
+                            txtExplorerPath.Dispatcher.Invoke(new Action(() => {
+                                foreach (dynamic key in temp["contentsList"].Children()) {
+                                    List<string> fileParts = key["name"].ToObject<List<string>>();
+                                    string destination = downloadDestination + string.Join("\\", fileParts);
+
+                                    if ((string)key["type"] == "file") {
+                                        string selectedFile = fileParts.Last();
+                                        fileParts.RemoveAt(fileParts.Count - 1);
+                                        Download(selectedFile, destination, fileParts);
+                                        //filesData.FilesAdd(new KLCFile((string)key["name"], (ulong)key["size"], (DateTime)key["date"]));
+                                    } else if ((string)key["type"] == "folder") {
+                                        if (!System.IO.Directory.Exists(destination))
+                                            System.IO.Directory.CreateDirectory(destination);
+                                    } else {
+                                        Console.WriteLine("The hell?");
+                                        //dgvExplorerFiles.Items.Add("??? - " + (string)key["name"]);
+                                        // + " - Type: " + key["type"] + " - Size: " + key["size"] + " - Date: " + key["date"]
+                                    }
+                                }
+                            }));
+                        }
+                    } else {
+                        Console.WriteLine("The hell?");
+                    }
+
+                    break;
+
                 default:
                     Console.WriteLine("FileExplorer message received: " + message);
                     break;
@@ -219,6 +265,40 @@ namespace KLC_Finch {
             jDelete["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             serverB.Send(jDelete.ToString());
+        }
+
+        public void DownloadFolder(KLCFile klcFolder, string localPathToSaveIn) {
+            downloadDestination = localPathToSaveIn;
+            if (downloadDestination.Last() != '\\')
+                downloadDestination += "\\";
+
+            JObject jGetFull = new JObject();
+            jGetFull["action"] = "GetFullDownloadItemList";
+
+            JArray jItems = new JArray();
+            JObject jItemsObject = new JObject();
+            jItemsObject["name"] = klcFolder.Name;
+            jItemsObject["type"] = "folder";
+            jItemsObject["size"] = -1;
+            jItemsObject["date"] = klcFolder.Date;
+            jItemsObject["rowSelected"] = true;
+            jItems.Add(jItemsObject);
+            jGetFull["items"] = jItems;
+
+            JArray jGetPath = new JArray();
+            for (int i = 0; i < selectedPath.Count; i++) {
+                if (i == 0) {
+                    if (IsMac)
+                        jGetPath.Add("/");
+                    else
+                        jGetPath.Add(selectedPath[i] + "\\");
+                } else
+                    jGetPath.Add(selectedPath[i]);
+            }
+            jGetFull["path"] = jGetPath;
+            jGetFull["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            serverB.Send(jGetFull.ToString());
         }
 
         internal KLCFile GetKLCFolder(string valueName) {
@@ -309,19 +389,19 @@ namespace KLC_Finch {
 
                     jDown["action"] = "Begin";
                     JArray jDownPath = new JArray();
-                    for (int i = 0; i < queuedDownload.Path.Count; i++) {
+                    for (int i = 0; i < activeDownload.Path.Count; i++) {
                         if (i == 0) {
                             if (IsMac)
                                 jDownPath.Add("/");
                             else
-                                jDownPath.Add(selectedPath[i] + "\\");
+                                jDownPath.Add(activeDownload.Path[i] + "\\");
                         } else
-                            jDownPath.Add(selectedPath[i]);
+                            jDownPath.Add(activeDownload.Path[i]);
                     }
                     jDown["path"] = jDownPath;
-                    jDown["filename"] = queuedDownload.fileName;
+                    jDown["filename"] = activeDownload.fileName;
                     jDown["type"] = "file";
-                    jDown["fileID"] = queuedDownload.fileID;
+                    jDown["fileID"] = activeDownload.fileID;
 
                     //--
 
@@ -332,10 +412,12 @@ namespace KLC_Finch {
                     //byte[] contentBuffer = System.Text.Encoding.UTF8.GetBytes(content);
 
                     byte[] tosend = new byte[totalLen + 4];
-                    tosend[3] = (byte)jsonLen;
+                    byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
+                    Array.Copy(tosendPrefix, 0, tosend, 0, tosendPrefix.Length);
                     Array.Copy(jsonBuffer, 0, tosend, 4, jsonLen);
                     //Array.Copy(contentBuffer, 0, tosend, 4 + jsonLen, content.Length);
 
+                    activeDownload.Open();
                     if (serverBdownload != null)
                         serverBdownload.Send(tosend);
                     break;
@@ -343,15 +425,15 @@ namespace KLC_Finch {
                 case "Data":
                     //{"action":"Data","fileSize":663,"requiresAck":true}[Data]
                     Console.WriteLine(jsonstr);
-                    queuedDownload.WriteData(remaining);
+                    activeDownload.WriteData(remaining);
 
                     long total = (long)json["fileSize"];
 
-                    int percentage = (int)((queuedDownload.GetCurrentSize() / (double) total) * 100);
+                    int percentage = (int)((activeDownload.GetCurrentSize() / (double)total) * 100);
 
                     progressBar.Dispatcher.Invoke(new Action(() => {
                         progressBar.Value = percentage;
-                        progressText.Text = "Download: " + queuedDownload.fileName + " " + percentage + "%";
+                        progressText.Text = "Download: " + activeDownload.fileName + " " + percentage + "%";
                     }));
 
                     if (json["requiresAck"] != null) {
@@ -359,14 +441,15 @@ namespace KLC_Finch {
                             #region Ack
                             JObject jAck = new JObject();
                             jAck["action"] = "DataAck";
-                            jAck["filename"] = queuedDownload.fileName;
+                            jAck["filename"] = activeDownload.fileName;
                             string sendjsonAck = jAck.ToString();
                             int jsonLenAck = sendjsonAck.Length;
                             int totalLenAck = jsonLenAck;// + content.Length;
                             byte[] jsonBufferAck = System.Text.Encoding.UTF8.GetBytes(sendjsonAck);
 
                             byte[] tosendAck = new byte[totalLenAck + 4];
-                            tosendAck[3] = (byte)jsonLenAck;
+                            byte[] tosendPrefixAck = BitConverter.GetBytes(jsonLenAck).Reverse().ToArray();
+                            Array.Copy(tosendPrefixAck, 0, tosendAck, 0, tosendPrefixAck.Length);
                             Array.Copy(jsonBufferAck, 0, tosendAck, 4, jsonLenAck);
 
                             Console.WriteLine("Sending ack");
@@ -383,22 +466,25 @@ namespace KLC_Finch {
                 case "End":
                     //{"action":"End","permissions":{"isReadOnly":false,"execPerms":{"owner":0,"group":0,"others":0}},"date":"2020-12-22T06:23:42.000Z"}
                     Console.WriteLine(jsonstr);
-                    queuedDownload.Close();
+                    activeDownload.Close();
                     serverBdownload.Close();
 
                     progressBar.Dispatcher.Invoke(new Action(() => {
                         progressBar.Value = 0;
-                        progressText.Text = queuedDownload.fileName + " downloaded!";
+                        progressText.Text = activeDownload.fileName + " downloaded!";
                         //txtBox.AppendText("\r\nDownload complete.");
 
                         btnDownload.IsEnabled = true;
                         btnUpload.IsEnabled = true;
                     }));
+
+                    activeDownload = null;
+                    StartNextDownload();
                     break;
 
                 case "Error":
                     Console.WriteLine("Download failed");
-                    queuedDownload.Close();
+                    activeDownload.Close();
                     serverBdownload.Close();
                     break;
 
@@ -429,7 +515,7 @@ namespace KLC_Finch {
                         }));
                     }
                     //{"action":"UploadReady","filename":"000095 - Mission-Vision-Values Wallpapers_FA_v3_1920x1080.jpg"}
-                    queuedUpload.Open();
+                    activeUpload.Open();
                     UploadBlock();
                     break;
 
@@ -439,33 +525,36 @@ namespace KLC_Finch {
                     long written = (long)json["bytesWritten"];
 
                     if (progressBar != null) {
-                        int percentage = (int)((written / (double)queuedUpload.GetFileSize()) * 100);
+                        int percentage = (int)((written / (double)activeUpload.GetFileSize()) * 100);
 
                         progressBar.Dispatcher.Invoke(new Action(() => {
                             progressBar.Value = percentage;
-                            progressText.Text = "Upload: " + queuedUpload.fileName + " " + percentage + "%";
+                            progressText.Text = "Upload: " + activeUpload.fileName + " " + percentage + "%";
                         }));
                     }
 
-                    if (written < queuedUpload.GetFileSize())
+                    if (written < activeUpload.GetFileSize())
                         UploadBlock();
                     break;
 
                 case "UploadComplete":
                     Console.WriteLine(jsonstr);
-                    queuedUpload.Close();
+                    activeUpload.Close();
                     serverBupload.Close();
 
                     if (progressBar != null) {
                         progressBar.Dispatcher.Invoke(new Action(() => {
                             progressBar.Value = 0;
-                            progressText.Text = queuedUpload.fileName + " uploaded!";
+                            progressText.Text = activeUpload.fileName + " uploaded!";
                             //txtBox.AppendText("\r\nUpload complete.");
 
                             btnDownload.IsEnabled = true;
                             btnUpload.IsEnabled = true;
                         }));
                     }
+
+                    activeUpload = null;
+                    StartNextUpload();
                     break;
 
                 default:
@@ -477,11 +566,11 @@ namespace KLC_Finch {
         private void UploadBlock() {
             JObject jUpload = new JObject();
             jUpload["action"] = "Data";
-            jUpload["fileID"] = queuedUpload.fileID;
+            jUpload["fileID"] = activeUpload.fileID;
 
             //--
 
-            byte[] content = queuedUpload.ReadBlock();
+            byte[] content = activeUpload.ReadBlock();
 
             string sendjson = jUpload.ToString();
             int jsonLen = sendjson.Length;
@@ -489,7 +578,8 @@ namespace KLC_Finch {
             byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
 
             byte[] tosend = new byte[totalLen + 4];
-            tosend[3] = (byte)jsonLen;
+            byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
+            Array.Copy(tosendPrefix, 0, tosend, 0, tosendPrefix.Length);
             Array.Copy(jsonBuffer, 0, tosend, 4, jsonLen);
             Array.Copy(content, 0, tosend, 4 + jsonLen, content.Length);
 
@@ -497,27 +587,42 @@ namespace KLC_Finch {
                 serverBupload.Send(tosend);
         }
 
-        public void Download(string selectedFile, string saveFile) {
-            long fileID = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            queuedDownload = new Download(selectedPath, selectedFile, saveFile, fileID, "file");
+        public void Download(string selectedFile, string saveFile, List<string> appendPath = null) {
+            List<string> path = new List<string>(selectedPath);
+            if (appendPath != null) {
+                //Download folder
+                foreach (string part in appendPath)
+                    path.Add(part);
+            }
+
+            queueDownload.Enqueue(new Download(path, selectedFile, saveFile, "file"));
+            if (activeDownload == null)
+                StartNextDownload();
+        }
+
+        private void StartNextDownload() {
+            if (activeDownload != null || queueDownload.Count == 0)
+                return;
+            activeDownload = queueDownload.Dequeue();
+            activeDownload.GenFileId();
 
             JObject jDown = new JObject();
 
             jDown["action"] = "Download";
             JArray jDownPath = new JArray();
-            for (int i = 0; i < selectedPath.Count; i++) {
+            for (int i = 0; i < activeDownload.Path.Count; i++) {
                 if (i == 0) {
                     if (IsMac)
                         jDownPath.Add("/");
                     else
-                        jDownPath.Add(selectedPath[i] + "\\");
+                        jDownPath.Add(activeDownload.Path[i] + "\\");
                 } else
-                    jDownPath.Add(selectedPath[i]);
+                    jDownPath.Add(activeDownload.Path[i]);
             }
             jDown["path"] = jDownPath;
-            jDown["filename"] = selectedFile;
+            jDown["filename"] = activeDownload.fileName;
             jDown["type"] = "file";
-            jDown["fileId"] = fileID;
+            jDown["fileId"] = activeDownload.fileID;
             jDown["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             serverB.Send(jDown.ToString());
@@ -526,7 +631,7 @@ namespace KLC_Finch {
         }
 
         public bool Upload(string openFile) {
-            List<string> usePath = selectedPath;
+            List<string> usePath = new List<string>(selectedPath);
 
             if (selectedPath.Count == 0) {
                 if (progressBar == null) {
@@ -542,25 +647,36 @@ namespace KLC_Finch {
 
             string selectedFile = System.IO.Path.GetFileName(openFile);
             long fileID = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            queuedUpload = new Upload(usePath, selectedFile, openFile, fileID, "file");
+            queueUpload.Enqueue(new Upload(usePath, selectedFile, openFile, fileID, "file"));
+
+            if (activeUpload == null)
+                StartNextUpload();
+
+            return true;
+        }
+
+        private void StartNextUpload() {
+            if (queueUpload.Count == 0)
+                return;
+            activeUpload = queueUpload.Dequeue();
 
             JObject jUpload = new JObject();
 
             jUpload["action"] = "Upload";
-            jUpload["fileID"] = fileID;
+            jUpload["fileID"] = activeUpload.fileID;
             JArray jUploadPath = new JArray();
-            for (int i = 0; i < usePath.Count; i++) {
+            for (int i = 0; i < activeUpload.Path.Count; i++) {
                 if (i == 0) {
                     if (IsMac)
                         jUploadPath.Add("/");
                     else
-                        jUploadPath.Add(usePath[i] + "\\");
+                        jUploadPath.Add(activeUpload.Path[i] + "\\");
                 } else
-                    jUploadPath.Add(usePath[i]);
+                    jUploadPath.Add(activeUpload.Path[i]);
             }
             jUpload["sourcePath"] = jUploadPath;
-            jUpload["file"] = selectedFile;
-            jUpload["size"] = queuedUpload.GetFileSize();
+            jUpload["file"] = activeUpload.fileName;
+            jUpload["size"] = activeUpload.GetFileSize();
             jUpload["type"] = "file";
 
             JObject jPerm = new JObject();
@@ -576,7 +692,6 @@ namespace KLC_Finch {
             jUpload["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             serverB.Send(jUpload.ToString());
-            return true;
         }
 
         private void Update() {
@@ -725,5 +840,5 @@ namespace KLC_Finch {
                 this._downloads.channel.close().then(this._downloadCompleteForActiveFile.bind(this, !0)))
             }
         */
+            }
         }
-    }

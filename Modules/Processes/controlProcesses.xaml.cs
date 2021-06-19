@@ -30,7 +30,7 @@ namespace KLC_Finch {
 
         private void btnProcessesStart_Click(object sender, RoutedEventArgs e) {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
-            if (session != null) {
+            if (session != null && session.WebsocketB.ControlAgentIsReady()) {
                 btnProcessesStart.IsEnabled = false;
                 btnProcesseEnd.IsEnabled = false;
 

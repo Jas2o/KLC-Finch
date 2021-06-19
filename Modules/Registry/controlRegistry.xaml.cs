@@ -29,7 +29,7 @@ namespace KLC_Finch {
 
         private void btnRegistryStart_Click(object sender, RoutedEventArgs e) {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
-            if (session != null) {
+            if (session != null && session.WebsocketB.ControlAgentIsReady()) {
                 btnRegistryStart.IsEnabled = false;
                 btnRegistryDeleteKey.IsEnabled = false;
                 btnRegistryDeleteValue.IsEnabled = false;

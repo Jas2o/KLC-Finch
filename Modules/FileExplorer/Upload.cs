@@ -4,10 +4,10 @@ using System.IO;
 
 namespace KLC_Finch {
     class Upload {
-        public List<string> Path;
-        public string fileName;
-        public long fileID;
-        public string type;
+        public List<string> Path { get; private set; }
+        public string fileName { get; private set; }
+        public long fileID { get; private set; }
+        public string type { get; private set; }
 
         private string readLocation;
         private FileStream filestream;

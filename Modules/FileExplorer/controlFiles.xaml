@@ -45,7 +45,7 @@
             <ListBox x:Name="listFilesFolders" MouseDoubleClick="listFilesFolders_MouseDoubleClick"/>
             <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" />
 
-            <DataGrid x:Name="dgvFilesFiles" Grid.Column="2" ItemsSource="{Binding Source={StaticResource GridItems}}" IsReadOnly="True" AutoGenerateColumns="False" SelectionMode="Single">
+            <DataGrid x:Name="dgvFilesFiles" Grid.Column="2" ItemsSource="{Binding Source={StaticResource GridItems}}" IsReadOnly="True" AutoGenerateColumns="False" SelectedCellsChanged="dgvFilesFiles_SelectedCellsChanged">
                 <DataGrid.Resources>
                     <local:FormatKbSizeConverter x:Key="FormatKbSizeConverter" />
                 </DataGrid.Resources>
@@ -69,6 +69,7 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5">
             <Label Content="Folder:" Margin="0,0,5,0" VerticalAlignment="Center" />
             <Button x:Name="btnFilesFolderCreate" Content="Create" Margin="0,0,5,0" Height="20" Click="btnFilesFolderCreate_Click" />
+            <Button x:Name="btnFilesFolderDownload" Content="Download" Margin="0,0,5,0" Height="20" Click="btnFilesFolderDownload_Click" />
             <Button x:Name="btnFilesFolderRename" Content="Rename" Margin="0,0,5,0" Height="20" Click="btnFilesFolderRename_Click" />
             <Button x:Name="btnFilesFolderDelete" Content="Delete" Margin="0,0,5,0" Height="20" Click="btnFilesFolderDelete_Click" />
 
@@ -80,6 +81,7 @@
 
             <Label Content="|" Margin="0,0,5,0" VerticalAlignment="Center" />
             <CheckBox x:Name="chkFilesEnableDelete" Content="Enable Delete" VerticalAlignment="Center" Margin="0,0,5,0" Checked="chkFilesEnableDelete_Checked" Unchecked="chkFilesEnableDelete_Unchecked" />
+            <Label x:Name="txtFilesSelected" Content="0 files selected" Margin="0,0,5,0" VerticalAlignment="Center" />
         </StackPanel>
         <!--<TextBox x:Name="txtFiles" TextWrapping="Wrap" Grid.Row="3" VerticalScrollBarVisibility="Auto"/>-->
     </Grid>
