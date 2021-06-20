@@ -157,11 +157,12 @@ namespace KLC {
             Console.WriteLine("B Close " + socket.ConnectionInfo.Path);
 
             if(socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
-                Console.WriteLine(socket.ConnectionInfo.Path);
                 if (App.alternative != null) {
                     App.alternative.Disconnect(Session.randSessionGuid, 1);
                 }
-            } else if (socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/")) {
+            }
+            
+            if (socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/") || socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
                 if (Session.ModuleRemoteControl != null) {
                     string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "").Replace("?Y2", "");
                     Session.ModuleRemoteControl.Disconnect(sessionId);

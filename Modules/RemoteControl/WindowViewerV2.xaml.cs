@@ -552,7 +552,10 @@ namespace KLC_Finch {
 
                 if (connectionStatus == ConnectionStatus.Disconnected) {
                     toolLatency.Content = "N/C";
+                    if (App.alternative == null || !App.alternative.socketActive)
+                        toolReconnect.Header = "Hard Reconnect Required";
                     txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = txtRcNotify.Visibility = Visibility.Collapsed;
+                    txtRcFrozen.Visibility = Visibility.Collapsed;
                     txtRcDisconnected.Visibility = Visibility.Visible;
                     rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Maroon);
                     timerHealth.Stop();
