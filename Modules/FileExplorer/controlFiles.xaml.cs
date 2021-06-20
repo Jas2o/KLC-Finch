@@ -124,6 +124,9 @@ namespace KLC_Finch {
                 if (lookup == null)
                     return;
 
+
+
+
                 WindowRegistryKey wrk = new WindowRegistryKey(selectedkey);
                 wrk.Owner = window;
                 bool accepted = (bool)wrk.ShowDialog();
@@ -142,12 +145,11 @@ namespace KLC_Finch {
             if (lookup == null)
                 return;
 
-            //--
-
             using (TaskDialog dialog = new TaskDialog()) {
                 dialog.WindowTitle = "KLC-Finch: Folder";
                 dialog.MainInstruction = "Delete folder?";
-                dialog.MainIcon = TaskDialogIcon.Warning;
+                //dialog.MainIcon = TaskDialogIcon.Warning; //Overrides custom
+                dialog.CustomMainIcon = Properties.Resources.WarningRed;
                 dialog.CenterParent = true;
                 dialog.Content = selectedkey;
                 dialog.VerificationText = "Confirm";
@@ -160,6 +162,7 @@ namespace KLC_Finch {
                 dialog.Buttons.Add(tdbDelete);
                 dialog.Buttons.Add(tdbCancel);
 
+                System.Media.SystemSounds.Beep.Play(); //Custom doesn't beep
                 TaskDialogButton button = dialog.ShowDialog(App.alternative);
                 if (button == tdbDelete)
                     moduleFileExplorer.DeleteFolder(lookup);
@@ -186,13 +189,9 @@ namespace KLC_Finch {
                 return;
 
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < dgvFilesFiles.SelectedItems.Count; i++) {
-                KLCFile lookup = (KLCFile)dgvFilesFiles.SelectedItems[i];
-                if(i == 0)
-                    sb.Append(lookup.Name);
-                else
-                    sb.Append(", " + lookup.Name);
-            }
+            sb.Append(((KLCFile)dgvFilesFiles.SelectedItems[0]).Name);
+            for (int i = 1; i < dgvFilesFiles.SelectedItems.Count; i++)
+                sb.Append(", " + ((KLCFile)dgvFilesFiles.SelectedItems[i]).Name);
 
             using (TaskDialog dialog = new TaskDialog()) {
                 string word = (dgvFilesFiles.SelectedItems.Count == 1 ? "file" : "files");
@@ -213,10 +212,8 @@ namespace KLC_Finch {
 
                 TaskDialogButton button = dialog.ShowDialog(App.alternative);
                 if (button == tdbDelete) {
-                    foreach (object selectedItem in dgvFilesFiles.SelectedItems) {
-                        KLCFile lookup = (KLCFile)selectedItem;
-                        moduleFileExplorer.DeleteFile(lookup);
-                    }
+                    foreach (object selectedItem in dgvFilesFiles.SelectedItems)
+                        moduleFileExplorer.DeleteFile((KLCFile)selectedItem);
                 }
             }
         }

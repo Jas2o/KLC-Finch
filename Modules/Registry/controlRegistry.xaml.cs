@@ -1,4 +1,5 @@
 ﻿using KLC_Finch.Modules.Registry;
+using Ookii.Dialogs.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,19 +32,27 @@ namespace KLC_Finch {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null && session.WebsocketB.ControlAgentIsReady()) {
                 btnRegistryStart.IsEnabled = false;
-                btnRegistryDeleteKey.IsEnabled = false;
-                btnRegistryDeleteValue.IsEnabled = false;
                 window = ((WindowAlternative)Window.GetWindow(this));
 
                 moduleRegistry = new RegistryEditor(session, lvRegistryKeys, dgvRegistryValues, txtRegistryPath);
                 session.ModuleRegistryEditor = moduleRegistry;
-
-                chkRegistryEnableDelete.IsChecked = false;
             }
         }
 
-        private void btnRegistryCreate_Click(object sender, RoutedEventArgs e) {
-            btnRegistryCreate.ContextMenu.IsOpen = true;
+        private void btnRegistryCreateKey_Click(object sender, RoutedEventArgs e) {
+            if (moduleRegistry == null)
+                return;
+
+            WindowRegistryKey wrk = new WindowRegistryKey();
+            wrk.Owner = window;
+            bool accept = (bool)wrk.ShowDialog();
+            if (accept) {
+                moduleRegistry.CreateKey(wrk.ReturnName);
+            }
+        }
+
+        private void btnRegistryCreateValue_Click(object sender, RoutedEventArgs e) {
+            btnRegistryCreateValue.ContextMenu.IsOpen = true;
         }
 
         private void btnRegistryRenameKey_Click(object sender, RoutedEventArgs e) {
@@ -80,50 +89,81 @@ namespace KLC_Finch {
             }
         }
 
-        private void btnRegistryDeleteKey_Click(object sender, RoutedEventArgs e) {
-            if (moduleRegistry == null || !(bool)chkRegistryEnableDelete.IsChecked)
-                return;
+        private void DestructiveDialog_VerificationClicked(object sender, EventArgs e) {
+            TaskDialog td = (TaskDialog)sender;
+            td.Buttons[0].Enabled = td.IsVerificationChecked;
+        }
 
-            chkRegistryEnableDelete.IsChecked = false;
+        private void btnRegistryDeleteKey_Click(object sender, RoutedEventArgs e) {
+            if (moduleRegistry == null)
+                return;
 
             string key = moduleRegistry.GetKey();
 
-            MessageBox.Show("To delete key '" + key + "' you must type it exactly in the next window.");
+            using (TaskDialog dialog = new TaskDialog()) {
+                dialog.WindowTitle = "KLC-Finch: Registry";
+                dialog.MainInstruction = "Delete key?";
+                //dialog.MainIcon = TaskDialogIcon.Warning; //Overrides custom
+                dialog.CustomMainIcon = Properties.Resources.WarningRed;
+                dialog.CenterParent = true;
+                dialog.Content = key;
+                dialog.VerificationText = "Confirm";
+                dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
 
-            WindowRegistryKey wrk = new WindowRegistryKey();
-            wrk.Owner = window;
-            bool accepted = (bool)wrk.ShowDialog();
-            if (accepted) {
-                if (wrk.ReturnName == key)
-                    moduleRegistry.DeleteKey(wrk.ReturnName);
-                else
-                    MessageBox.Show("Did not delete key '" + key + "'.");
+                TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
+                tdbDelete.Enabled = false;
+                TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                tdbCancel.Default = true;
+                dialog.Buttons.Add(tdbDelete);
+                dialog.Buttons.Add(tdbCancel);
+
+                System.Media.SystemSounds.Beep.Play(); //Custom doesn't beep
+                TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                if (button == tdbDelete)
+                    moduleRegistry.DeleteKey(key);
             }
         }
 
         private void btnRegistryDeleteValue_Click(object sender, RoutedEventArgs e) {
-            if (moduleRegistry == null || !(bool)chkRegistryEnableDelete.IsChecked || dgvRegistryValues.SelectedItem == null)
+            if (moduleRegistry == null || dgvRegistryValues.SelectedItem == null)
                 return;
 
-            chkRegistryEnableDelete.IsChecked = false;
-
             string lookup = ((System.Data.DataRowView)dgvRegistryValues.SelectedItem).Row.ItemArray[0].ToString();
-
             RegistryValue rv = moduleRegistry.GetRegistryValue(lookup);
-            if (rv != null && rv.Name != "")
-                moduleRegistry.DeleteValue(rv.Name);
-            else
-                MessageBox.Show("It is a Kaseya bug that the (Default) value cannot be deleted.");
-        }
 
-        private void chkRegistryEnableDelete_Checked(object sender, RoutedEventArgs e) {
-            btnRegistryDeleteKey.IsEnabled = (bool)chkRegistryEnableDelete.IsChecked;
-            btnRegistryDeleteValue.IsEnabled = (bool)chkRegistryEnableDelete.IsChecked;
-        }
+            using (TaskDialog dialog = new TaskDialog()) {
+                //string word = (dgvFilesFiles.SelectedItems.Count == 1 ? "value" : "values");
+                dialog.WindowTitle = "KLC-Finch: Registry";
 
-        private void chkRegistryEnableDelete_Unchecked(object sender, RoutedEventArgs e) {
-            btnRegistryDeleteKey.IsEnabled = (bool)chkRegistryEnableDelete.IsChecked;
-            btnRegistryDeleteValue.IsEnabled = (bool)chkRegistryEnableDelete.IsChecked;
+                if (rv != null && rv.Name != "") {
+                    dialog.MainInstruction = "Delete value?";
+                    dialog.MainIcon = TaskDialogIcon.Warning;
+                    dialog.CenterParent = true;
+                    dialog.Content = string.Format("{0} ({1})", rv.Name, rv.Type);
+                    dialog.VerificationText = "Confirm";
+                    dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
+
+                    TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
+                    tdbDelete.Enabled = false;
+                    TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                    tdbCancel.Default = true;
+                    dialog.Buttons.Add(tdbDelete);
+                    dialog.Buttons.Add(tdbCancel);
+
+                    TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                    if (button == tdbDelete)
+                        moduleRegistry.DeleteValue(rv.Name);
+                } else {
+                    dialog.MainInstruction = "Can't delete value!";
+                    dialog.MainIcon = TaskDialogIcon.Information;
+                    dialog.CenterParent = true;
+                    dialog.Content = "It is a Kaseya bug that the (Default) value cannot be deleted.";
+
+                    TaskDialogButton tdbOk = new TaskDialogButton(ButtonType.Ok);
+                    dialog.Buttons.Add(tdbOk);
+                    TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                }
+            }
         }
 
         private void btnRegistryPathUp_Click(object sender, RoutedEventArgs e) {
@@ -150,18 +190,6 @@ namespace KLC_Finch {
                 } else {
                     moduleRegistry.SelectKey(selectedkey, false);
                 }
-            }
-        }
-
-        private void menuRegCreateKey_Click(object sender, RoutedEventArgs e) {
-            if (moduleRegistry == null)
-                return;
-
-            WindowRegistryKey wrk = new WindowRegistryKey();
-            wrk.Owner = window;
-            bool accept = (bool)wrk.ShowDialog();
-            if (accept) {
-                moduleRegistry.CreateKey(wrk.ReturnName);
             }
         }
 
@@ -319,5 +347,6 @@ namespace KLC_Finch {
                 e.Handled = true;
             }
         }
+
     }
 }

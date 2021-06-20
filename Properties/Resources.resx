@@ -151,4 +151,7 @@
   <data name="tray_arrow_up" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\tray-arrow-up.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="WarningRed" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\WarningRed.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

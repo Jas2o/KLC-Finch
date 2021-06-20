@@ -15,6 +15,7 @@ using System.Windows.Navigation;
 using VtNetCore.VirtualTerminal;
 using VtNetCore.XTermParser;
 using System.Windows.Shapes;
+using Ookii.Dialogs.Wpf;
 
 namespace KLC_Finch {
     /// <summary>
@@ -290,27 +291,40 @@ namespace KLC_Finch {
             txtCommand.Background = new SolidColorBrush(Colors.Indigo);
             richCommand.Background = new SolidColorBrush(Colors.Indigo);
 
-            MessageBoxResult result = MessageBox.Show("Render 2000 lines? You will not be able to interact until rendering completes, which can take a long time.", "KLC-Finch Powershell", MessageBoxButton.YesNo);
-            if(result == MessageBoxResult.Yes) {
-                richCommand.Visibility = Visibility.Hidden;
-                txtCommand.Visibility = Visibility.Visible;
+            using (TaskDialog dialog = new TaskDialog()) {
+                dialog.WindowTitle = "KLC-Finch: Powershell";
+                dialog.MainInstruction = "Render 2000 lines?";
+                dialog.MainIcon = TaskDialogIcon.Information;
+                dialog.CenterParent = true;
+                dialog.Content = "You will not be able to interact until rendering completes, which can take a long time.";
 
-                int start = Math.Max(0, vtController.BottomRow - 2000);
-                //txtCommand.Text = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim();
+                TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
+                TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                dialog.Buttons.Add(tdbYes);
+                dialog.Buttons.Add(tdbCancel);
 
-                string[] lines = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow)
-                    .TrimEnd().Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-                txtCommand.Clear();
-                foreach (string line in lines)
-                    txtCommand.AppendText(line.TrimEnd() + "\n");
+                TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                if (button == tdbYes) {
+                    richCommand.Visibility = Visibility.Hidden;
+                    txtCommand.Visibility = Visibility.Visible;
 
-                txtCommand.ScrollToEnd();
+                    int start = Math.Max(0, vtController.BottomRow - 2000);
+                    //txtCommand.Text = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim();
 
-                /*
-                richCommand.Document.Blocks.Clear();
-                richCommand.Document.Blocks.Add(new Paragraph(new Run(vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim())));
-                richCommand.ScrollToEnd();
-                */
+                    string[] lines = vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow)
+                        .TrimEnd().Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                    txtCommand.Clear();
+                    foreach (string line in lines)
+                        txtCommand.AppendText(line.TrimEnd() + "\n");
+
+                    txtCommand.ScrollToEnd();
+
+                    /*
+                    richCommand.Document.Blocks.Clear();
+                    richCommand.Document.Blocks.Add(new Paragraph(new Run(vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim())));
+                    richCommand.ScrollToEnd();
+                    */
+                }
             }
 
             txtCommand.Background = new SolidColorBrush(Colors.MidnightBlue);

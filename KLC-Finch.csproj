@@ -412,6 +412,12 @@
   <ItemGroup>
     <None Include="Resources\BuildDate.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\WarningRed.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\WarningRed.ico" />
+  </ItemGroup>
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaLiveConnect\LibKaseyaLiveConnect.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaAuth\LibKaseyaAuth.projitems" Label="Shared" />

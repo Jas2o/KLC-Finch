@@ -36,11 +36,16 @@
             <!--<TextBox x:Name="txtRegistry" TextWrapping="Wrap" Grid.Column="2" Grid.Row="1" VerticalScrollBarVisibility="Auto" Grid.ColumnSpan="2"/>-->
         </Grid>
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5,5,0" VerticalAlignment="Center">
-            <Button x:Name="btnRegistryCreate" Content="Create" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Width="75" Click="btnRegistryCreate_Click">
+            <Label Content="Key:" Margin="0,0,5,0" VerticalAlignment="Center" />
+            <Button x:Name="btnRegistryCreateKey" Content="Create" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Click="btnRegistryCreateKey_Click"/>
+            <Button x:Name="btnRegistryRenameKey" Content="Rename" Margin="0,0,5,0" Height="20" VerticalAlignment="Center"  Click="btnRegistryRenameKey_Click"/>
+            <Button x:Name="btnRegistryDeleteKey" Content="Delete" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Click="btnRegistryDeleteKey_Click"/>
+
+            <Label Content="|" VerticalAlignment="Center" />
+            <Label Content="Value:" Margin="0,0,5,0" VerticalAlignment="Center" />
+            <Button x:Name="btnRegistryCreateValue" Content="Create" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Click="btnRegistryCreateValue_Click">
                 <Button.ContextMenu>
                     <ContextMenu>
-                        <MenuItem x:Name="menuRegCreateKey" Header="Key" Click="menuRegCreateKey_Click"/>
-                        <Separator/>
                         <MenuItem x:Name="menuRegCreateString" Header="String Value" Click="menuRegCreateString_Click"/>
                         <MenuItem x:Name="menuRegCreateBinary" Header="Binary Value" Click="menuRegCreateBinary_Click"/>
                         <MenuItem x:Name="menuRegCreateDword" Header="DWORD (32-bit) Value" Click="menuRegCreateDword_Click"/>
@@ -50,13 +55,8 @@
                     </ContextMenu>
                 </Button.ContextMenu>
             </Button>
-            <Label Content="|" Margin="0,0,5,0" VerticalAlignment="Center" />
-            <Button x:Name="btnRegistryRenameKey" Content="Rename Key" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Width="85" Click="btnRegistryRenameKey_Click"/>
-            <Button x:Name="btnRegistryRenameValue" Content="Rename Value" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Width="85" Click="btnRegistryRenameValue_Click"/>
-            <Label Content="|" Margin="0,0,5,0" VerticalAlignment="Center" />
-            <Button x:Name="btnRegistryDeleteKey" Content="Delete Key" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Width="85" Click="btnRegistryDeleteKey_Click"/>
-            <Button x:Name="btnRegistryDeleteValue" Content="Delete Value" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Width="85" Click="btnRegistryDeleteValue_Click"/>
-            <CheckBox x:Name="chkRegistryEnableDelete" Content="Enable Delete" VerticalAlignment="Center" Checked="chkRegistryEnableDelete_Checked" Unchecked="chkRegistryEnableDelete_Unchecked" />
+            <Button x:Name="btnRegistryRenameValue" Content="Rename" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Click="btnRegistryRenameValue_Click"/>
+            <Button x:Name="btnRegistryDeleteValue" Content="Delete" Margin="0,0,5,0" Height="20" VerticalAlignment="Center" Click="btnRegistryDeleteValue_Click"/>
         </StackPanel>
     </Grid>
 </UserControl>
