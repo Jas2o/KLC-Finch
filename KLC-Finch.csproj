@@ -70,11 +70,8 @@
     <Reference Include="Ookii.Dialogs.Wpf, Version=3.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
       <HintPath>..\packages\Ookii.Dialogs.Wpf.3.1.0\lib\net45\Ookii.Dialogs.Wpf.dll</HintPath>
     </Reference>
-    <Reference Include="OpenTK, Version=3.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
-      <HintPath>..\packages\OpenTK.3.1.0\lib\net20\OpenTK.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenTK.GLControl, Version=3.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
-      <HintPath>..\packages\OpenTK.GLControl.3.1.0\lib\net20\OpenTK.GLControl.dll</HintPath>
+    <Reference Include="OpenTK, Version=3.3.1.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenTK.3.3.1\lib\net20\OpenTK.dll</HintPath>
     </Reference>
     <Reference Include="PresentationFramework.Aero2" />
     <Reference Include="RestSharp, Version=106.11.7.0, Culture=neutral, PublicKeyToken=598062e77f915f75, processorArchitecture=MSIL">
@@ -193,9 +190,6 @@
     <Compile Include="Modules\RemoteControl\RemoteControl.cs" />
     <Compile Include="Modules\RemoteControl\OTK\FPSCounter.cs" />
     <Compile Include="Modules\RemoteControl\OTK\RCScreen.cs" />
-    <None Include="Modules\RemoteControl\WindowViewerV1.xaml.cs">
-      <DependentUpon>WindowViewerV1.xaml</DependentUpon>
-    </None>
     <Compile Include="Modules\RemoteControl\Shaders.cs" />
     <Compile Include="Modules\RemoteControl\TSSession.cs" />
     <Compile Include="Modules\RemoteControl\WindowOptions.xaml.cs">
@@ -285,10 +279,6 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <None Include="Modules\RemoteControl\WindowViewerV1.xaml">
-      <SubType>Designer</SubType>
-      <Generator>XamlIntelliSenseFileGenerator</Generator>
-    </None>
     <Page Include="Modules\RemoteControl\WindowOptions.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -417,6 +407,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\WarningRed.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LibrariesExternal\GLWpfControl\GLWpfControl.csproj">
+      <Project>{4078f257-6bf1-42fa-bf0a-ad9f8f6116a4}</Project>
+      <Name>GLWpfControl</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaLiveConnect\LibKaseyaLiveConnect.projitems" Label="Shared" />

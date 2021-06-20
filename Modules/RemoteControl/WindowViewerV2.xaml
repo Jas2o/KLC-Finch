@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:KLC_Finch"
-        xmlns:opentk="clr-namespace:OpenTK;assembly=OpenTK.GLControl"
+        xmlns:glWpfControl="clr-namespace:OpenTK.Wpf;assembly=GLWpfControl"
         xmlns:ext="clr-namespace:System.Windows.Controls.Extensions"
         mc:Ignorable="d"
         Title="WindowViewer V2"
@@ -113,9 +113,7 @@
             <TextBlock x:Name="txtRcNotify" Text="Awaiting approval..." HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Foreground="White"/>
         </StackPanel>-->
 
-        <WindowsFormsHost x:Name="winFormsHost" Grid.Row="2">
-            <opentk:GLControl x:Name="glControl" Load="glControl_Load" />
-        </WindowsFormsHost>
+        <glWpfControl:GLWpfControl x:Name="glControl" Grid.Row="2" />
 
         <Border x:Name="rcBorderBG" Grid.Row="2" Background="SlateGray">
             <Viewbox x:Name="rcViewbox" ClipToBounds="True" RenderTransformOrigin="0.5,0.5">

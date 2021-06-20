@@ -3,7 +3,9 @@ using LibKaseya;
 using NTR;
 using nucs.JsonSettings;
 using OpenTK;
+using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -31,9 +33,6 @@ namespace KLC_Finch {
     public partial class WindowViewerV2 : Window {
         public Settings Settings;
 
-        private const int overlayHeight = 100;
-        private const int overlayWidth = 400;
-        private static Font arial = new Font("Arial", 32);
         private bool autotypeAlwaysConfirmed;
         private string clipboard = "";
         private KLC.ClipBoardMonitor clipboardMon;
@@ -55,12 +54,6 @@ namespace KLC_Finch {
         private int m_shader_multiplyColor = 0;
         private int[] m_shader_sampler = new int[3];
         private Camera MainCamera;
-        private Bitmap overlay2dControlOff;
-        private Bitmap overlay2dDisconnected;
-        private Bitmap overlay2dKeyboard;
-        private Bitmap overlay2dMouse;
-        private bool overlayNewKeyboard;
-        private bool overlayNewMouse;
         private RCScreen previousScreen = null;
         private RemoteControl rc;
         private double scaleX, scaleY;
@@ -69,19 +62,9 @@ namespace KLC_Finch {
         private bool socketAlive = false;
         private TextureCursor textureCursor = null;
         private TextureScreen textureLegacy;
-        private int textureOverlay2dControlOff;
-        private int textureOverlay2dDisconnected;
-        private int textureOverlay2dKeyboard;
-        private int textureOverlay2dMouse;
-        private byte[] textureOverlayDataControlOff;
-        private byte[] textureOverlayDataDisconnected;
-        private byte[] textureOverlayDataKeyboard;
-        private byte[] textureOverlayDataMouse;
         private System.Timers.Timer timerHealth;
         private bool useMultiScreen = true;
-        private int VBOmouse, VBOkeyboard, VBOtop, VBOcenter;
         private int VBOScreen;
-        private Vector2[] vertBufferMouse, vertBufferKeyboard, vertBufferTop, vertBufferCenter;
         private Vector2[] vertBufferScreen;
         private int vertex_shader_object = 0;
         private Rectangle virtualCanvas, virtualViewWant, virtualViewNeed;
@@ -149,6 +132,9 @@ namespace KLC_Finch {
             txtDebugRight.Text = "";
             txtRcFrozen.Visibility = Visibility.Collapsed;
             txtRcDisconnected.Visibility = Visibility.Collapsed;
+
+            GLWpfControlSettings glSettings = new GLWpfControlSettings { MajorVersion = 2, MinorVersion = 1, RenderContinuously = true };
+            glControl.Start(glSettings);
 
             WindowUtilities.ActivateWindow(this);
         }
@@ -296,11 +282,6 @@ namespace KLC_Finch {
             //}
 
             fpsLast = fpsCounter.GetFPS();
-
-            if (useCanvasRGB) {
-
-            } else
-                glControl.Invalidate();
         }
 
         public void LoadTextureRaw(byte[] buffer, int width, int height, int stride) {
@@ -392,7 +373,6 @@ namespace KLC_Finch {
             //}
 
             fpsLast = fpsCounter.GetFPS();
-            glControl.Invalidate();
         }
 
         public void NotifySocketClosed(string sessionId) {
@@ -404,8 +384,6 @@ namespace KLC_Finch {
             connectionStatus = ConnectionStatus.Disconnected;
 
             //rc = null; //Can result in exceptions if a Send event results in a disconnection. Also stops Soft Reconnect is some situations.
-
-            glControl.Invalidate();
         }
 
         public void ReceiveClipboard(string content) {
@@ -467,6 +445,8 @@ namespace KLC_Finch {
                     virtualCanvas = new Rectangle(0, 0, virtualWidth, virtualHeight);
                     SetVirtual(0, 0, virtualWidth, virtualHeight);
                 }
+
+                virtualRequireViewportUpdate = true;
             }
         }
 
@@ -488,16 +468,16 @@ namespace KLC_Finch {
 
                 toolSendCtrlAltDel.IsEnabled = controlEnabled;
 
-                if (useCanvasRGB) {
-                    if (connectionStatus != ConnectionStatus.Disconnected) {
+                if (connectionStatus != ConnectionStatus.Disconnected) {
+                    if (useCanvasRGB) {
                         if (controlEnabled)
                             rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 20, 20, 20));
                         else
                             rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.MidnightBlue);
-                        txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = (controlEnabled ? Visibility.Hidden : Visibility.Visible);
                     }
-                } else
-                    glControl.Invalidate();
+                txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = (controlEnabled ? Visibility.Hidden : Visibility.Visible);
+                }
+                
             });
         }
 
@@ -559,17 +539,16 @@ namespace KLC_Finch {
             //MainCamera.Rotation = 0f;
             MainCamera.Position = Vector2.Zero;
             MainCamera.Scale = new Vector2(1f, 1f);
-            DebugKeyboard();
+            //DebugKeyboard();
 
             virtualViewWant = virtualCanvas;
             virtualRequireViewportUpdate = true;
-            glControl.Invalidate();
         }
 
         private void CheckHealth(object sender, ElapsedEventArgs e) {
             Dispatcher.Invoke((Action)delegate {
-                txtDebugLeft.Visibility = (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
-                txtDebugRight.Visibility = (Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
+                //txtDebugLeft.Visibility = (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
+                //txtDebugRight.Visibility = (Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
 
                 if (connectionStatus == ConnectionStatus.Disconnected) {
                     toolLatency.Content = "N/C";
@@ -579,14 +558,15 @@ namespace KLC_Finch {
                     timerHealth.Stop();
                 } else {
                     if (fpsCounter.SeemsAlive(5000)) {
-                        toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, lastLatency);
-                        toolLatency.FontWeight = FontWeights.Normal;
-                        txtRcNotify.Visibility = Visibility.Collapsed;
+                        //toolLatency.FontWeight = FontWeights.Normal;
+                        txtRcFrozen.Visibility = Visibility.Collapsed;
                     } else {
-                        toolLatency.Content = string.Format("Frozen? | {0} ms", lastLatency);
-                        toolLatency.FontWeight = FontWeights.Bold;
-                        txtRcNotify.Visibility = Visibility.Visible;
+                        fpsLast = 0;
+                        //toolLatency.Content = string.Format("Frozen? | {0} ms", lastLatency);
+                        //toolLatency.FontWeight = FontWeights.Bold;
+                        txtRcFrozen.Visibility = Visibility.Visible;
                     }
+                    toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, lastLatency);
                 }
             });
         }
@@ -631,53 +611,9 @@ namespace KLC_Finch {
             GL.UseProgram(program);
         }
 
-        private void glControl_Load(object sender, EventArgs e) {
-            //check GLSL
-            string version = GL.GetString(StringName.Version);
-            int major = (int)version[0];
-            if (version.StartsWith("1.") || Settings.ForceCanvas) {
-                //Console.WriteLine("OpenGL 2.0 not available. GLSL not supported.");
-                useCanvasRGB = true;
-
-                winFormsHost.Visibility = Visibility.Collapsed;
-
-                //rcCanvas.Children.Clear();
-                rcRectangleExample.Visibility = Visibility.Hidden;
-                canvasListRectangle = new List<System.Windows.Shapes.Rectangle>();
-
-                this.Title = Title + " (Canvas RGB) Alpha";
-
-                this.SizeChanged += WindowViewerV2_SizeChanged;
-                rcBorderBG.MouseMove += HandleCanvasMouseMove;
-                rcCanvas.MouseMove += HandleCanvasMouseMove;
-                rcCanvas.MouseDown += HandleCanvasMouseDown;
-                rcCanvas.MouseUp += HandleCanvasMouseUp;
-                rcCanvas.MouseWheel += HandleCanvasMouseWheel;
-            } else if (rc != null) {
-                rcBorderBG.Visibility = Visibility.Collapsed;
-
-                this.rc.UseYUVShader = Settings.UseYUVShader;
-                if (Settings.UseYUVShader)
-                    this.Title = Title + " (YUV)";
-                else
-                    this.Title = Title + " (RGB)";
-
-                CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
-                m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
-                m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
-                m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
-                m_shader_multiplyColor = GL.GetUniformLocation(shader_program, "multiplyColor");
-
-                InitTextures();
-                RefreshVirtual();
-
-                glControl.Paint += glControl_Paint;
-                glControl.Resize += glControl_Resize;
-                glControl.MouseMove += HandleMouseMove;
-                glControl.MouseDown += HandleMouseDown;
-                glControl.MouseUp += HandleMouseUp;
-                glControl.MouseWheel += HandleMouseWheel;
-            }
+        private void GlControl_SizeChanged(object sender, SizeChangedEventArgs e) {
+            RefreshVirtual();
+            virtualRequireViewportUpdate = true;
         }
 
         private void WindowViewerV2_SizeChanged(object sender, SizeChangedEventArgs e) {
@@ -832,114 +768,7 @@ namespace KLC_Finch {
             */
         }
 
-        private void glControl_Paint(object sender, System.Windows.Forms.PaintEventArgs e) {
-            //This happens when initialized and when resized
-            Render();
-        }
-
-        private void glControl_Resize(object sender, EventArgs e) {
-            RefreshVirtual();
-            virtualRequireViewportUpdate = true;
-        }
-
-        private void InitOverlayTexture(ref Bitmap overlay2d, ref int textureOverlay2d, int overlayW = overlayWidth, int overlayH = overlayHeight) {
-            overlay2d = new Bitmap(overlayW, overlayH);
-            textureOverlay2d = GL.GenTexture();
-
-            GL.ActiveTexture(TextureUnit.Texture0);
-            GL.BindTexture(TextureTarget.Texture2D, textureOverlay2d);
-
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)All.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)All.Linear);
-
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, overlay2d.Width, overlay2d.Height, 0,
-                OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero); // just allocate memory, so we can update efficiently using TexSubImage2D
-        }
-
         private void InitTextures() {
-            //FPS/Mouse/Keyboard
-            InitOverlayTexture(ref overlay2dMouse, ref textureOverlay2dMouse);
-            InitOverlayTexture(ref overlay2dKeyboard, ref textureOverlay2dKeyboard);
-            InitOverlayTexture(ref overlay2dDisconnected, ref textureOverlay2dDisconnected, 400);
-            InitOverlayTexture(ref overlay2dControlOff, ref textureOverlay2dControlOff, 400);
-
-            #region Texture - Disconnected
-
-            using (Graphics gfx = Graphics.FromImage(overlay2dDisconnected)) {
-                //gfx.Clear(System.Drawing.Color.Transparent);
-                gfx.Clear(System.Drawing.Color.FromArgb(128, 0, 0, 0));
-
-                using (GraphicsPath gp = new GraphicsPath())
-                using (System.Drawing.Pen outline = new System.Drawing.Pen(System.Drawing.Color.Black, 4) { LineJoin = LineJoin.Round }) //outline width=1
-                using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                using (System.Drawing.Brush foreBrush = new SolidBrush(System.Drawing.Color.Lime)) {
-                    gp.AddString("Disconnected", arial.FontFamily, (int)arial.Style, arial.Size, gfx.VisibleClipBounds, sf);
-                    gfx.DrawPath(outline, gp);
-                    gfx.FillPath(foreBrush, gp);
-                }
-
-                BitmapData data2 = overlay2dDisconnected.LockBits(new System.Drawing.Rectangle(0, 0, overlay2dDisconnected.Width, overlay2dDisconnected.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                if (textureOverlayDataDisconnected == null)
-                    textureOverlayDataDisconnected = new byte[Math.Abs(data2.Stride * data2.Height)];
-                Marshal.Copy(data2.Scan0, textureOverlayDataDisconnected, 0, textureOverlayDataDisconnected.Length);
-
-                overlay2dDisconnected.UnlockBits(data2);
-            }
-
-            GL.ActiveTexture(TextureUnit.Texture0);
-            GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dDisconnected);
-
-            GL.TexImage2D(
-                TextureTarget.Texture2D,
-                0, //Level
-                PixelInternalFormat.Rgba,
-                overlay2dDisconnected.Width,
-                overlay2dDisconnected.Height,
-                0, //Border
-                OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
-                PixelType.UnsignedByte,
-                textureOverlayDataDisconnected);
-
-            #endregion Texture - Disconnected
-
-            #region Texture - Control Off
-
-            using (Graphics gfx = Graphics.FromImage(overlay2dControlOff)) {
-                gfx.Clear(System.Drawing.Color.Transparent);
-
-                using (GraphicsPath gp = new GraphicsPath())
-                using (System.Drawing.Pen outline = new System.Drawing.Pen(Color.FromArgb(128, Color.Black), 4) { LineJoin = LineJoin.Round }) //outline width=1
-                using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                using (System.Drawing.Brush foreBrush = new SolidBrush(Color.FromArgb(128, Color.White))) {
-                    gp.AddString("F2 or double-click to enable control", arial.FontFamily, (int)arial.Style, arial.Size, gfx.VisibleClipBounds, sf);
-                    gfx.DrawPath(outline, gp);
-                    gfx.FillPath(foreBrush, gp);
-                }
-
-                BitmapData data2 = overlay2dControlOff.LockBits(new System.Drawing.Rectangle(0, 0, overlay2dControlOff.Width, overlay2dControlOff.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                if (textureOverlayDataControlOff == null)
-                    textureOverlayDataControlOff = new byte[Math.Abs(data2.Stride * data2.Height)];
-                Marshal.Copy(data2.Scan0, textureOverlayDataControlOff, 0, textureOverlayDataControlOff.Length);
-
-                overlay2dControlOff.UnlockBits(data2);
-            }
-
-            GL.ActiveTexture(TextureUnit.Texture0);
-            GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dControlOff);
-
-            GL.TexImage2D(
-                TextureTarget.Texture2D,
-                0, //Level
-                PixelInternalFormat.Rgba,
-                overlay2dControlOff.Width,
-                overlay2dControlOff.Height,
-                0, //Border
-                OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
-                PixelType.UnsignedByte,
-                textureOverlayDataControlOff);
-
-            #endregion Texture - Control Off
-
             textureLegacy = new TextureScreen((rc != null ? Settings.UseYUVShader : false));
             //InitLegacyScreenTexture();
 
@@ -963,7 +792,7 @@ namespace KLC_Finch {
             //MainCamera.Rotation = 0f;
             MainCamera.Position = Vector2.Zero;
             MainCamera.Scale = new Vector2(1f, 1f);
-            DebugKeyboard();
+            //DebugKeyboard();
 
             if (Settings.MultiAltFit) {
                 bool adjustLeft = false;
@@ -991,7 +820,6 @@ namespace KLC_Finch {
                     currentScreen.rectFixed.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
             } else
                 SetVirtual(currentScreen.rectFixed.X, currentScreen.rectFixed.Y, currentScreen.rectFixed.Width, currentScreen.rectFixed.Height);
-            glControl.Invalidate();
         }
 
         private void RefreshVirtual() {
@@ -1005,57 +833,9 @@ namespace KLC_Finch {
             VBOScreen = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
             GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
-
-            vertBufferMouse = new Vector2[8] {
-                new Vector2(glControl.Width - overlayWidth,overlayHeight), new Vector2(0, 1),
-                new Vector2(glControl.Width,overlayHeight), new Vector2(1, 1),
-                new Vector2(glControl.Width,0), new Vector2(1, 0),
-                new Vector2(glControl.Width - overlayWidth,0), new Vector2(0, 0)
-            };
-
-            VBOmouse = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOmouse);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferMouse.Length), vertBufferMouse, BufferUsageHint.StaticDraw);
-
-            vertBufferKeyboard = new Vector2[8] {
-                new Vector2(0,overlayHeight), new Vector2(0, 1),
-                new Vector2(overlayWidth,overlayHeight), new Vector2(1, 1),
-                new Vector2(overlayWidth,0), new Vector2(1, 0),
-                new Vector2(0,0), new Vector2(0, 0)
-            };
-
-            VBOkeyboard = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOkeyboard);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferKeyboard.Length), vertBufferKeyboard, BufferUsageHint.StaticDraw);
-
-            int leftCenter = (glControl.Width - 400) / 2;
-            int topCenter = (glControl.Height - overlayHeight) / 2;
-            vertBufferCenter = new Vector2[8] {
-                new Vector2(leftCenter, topCenter + overlayHeight), new Vector2(0, 1),
-                new Vector2(leftCenter + 400, topCenter + overlayHeight), new Vector2(1, 1),
-                new Vector2(leftCenter + 400, topCenter), new Vector2(1, 0),
-                new Vector2(leftCenter, topCenter), new Vector2(0, 0)
-            };
-
-            VBOcenter = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOcenter);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferCenter.Length), vertBufferCenter, BufferUsageHint.StaticDraw);
-
-            vertBufferTop = new Vector2[8] {
-                new Vector2(leftCenter, overlayHeight), new Vector2(0, 1),
-                new Vector2(leftCenter + 400, overlayHeight), new Vector2(1, 1),
-                new Vector2(leftCenter + 400, 0), new Vector2(1, 0),
-                new Vector2(leftCenter, 0), new Vector2(0, 0)
-            };
-
-            VBOtop = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOtop);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferTop.Length), vertBufferTop, BufferUsageHint.StaticDraw);
         }
 
-        private void Render() {
-            glControl.MakeCurrent();
-
+        private void GlControl_Render(TimeSpan obj) {
             if (useMultiScreen)
                 RenderStartMulti();
             else
@@ -1103,6 +883,7 @@ namespace KLC_Finch {
             }
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.Finish();
 
             if (useMultiScreen) {
                 foreach (RCScreen screen in listScreen) {
@@ -1187,96 +968,7 @@ namespace KLC_Finch {
                 }
             }
 
-            //--
-
-            GL.Enable(EnableCap.Texture2D);
-
-            #region Overlay
-
-            if (!useMultiScreen)
-                GL.Viewport(0, 0, glControl.Width, glControl.Height);
-
-            GL.MatrixMode(MatrixMode.Projection);
-            GL.LoadIdentity();
-            GL.Ortho(0, glControl.Width, glControl.Height, 0, MainCamera.ZNear, MainCamera.ZFar); //Test
-
-            if (overlayNewMouse) {
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
-
-                GL.TexImage2D(
-                    TextureTarget.Texture2D,
-                    0, //Level
-                    PixelInternalFormat.Rgba,
-                    overlay2dMouse.Width,
-                    overlay2dMouse.Height,
-                    0, //Border
-                    OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
-                    PixelType.UnsignedByte,
-                    textureOverlayDataMouse);
-
-                overlayNewMouse = false;
-            }
-
-            if (overlayNewKeyboard) {
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
-
-                GL.TexImage2D(
-                    TextureTarget.Texture2D,
-                    0, //Level
-                    PixelInternalFormat.Rgba,
-                    overlay2dKeyboard.Width,
-                    overlay2dKeyboard.Height,
-                    0, //Border
-                    OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
-                    PixelType.UnsignedByte,
-                    textureOverlayDataKeyboard);
-
-                overlayNewKeyboard = false;
-            }
-
-            GL.Color3(Color.White);
-            GL.UseProgram(0);
-            if (Settings.DisplayOverlayMouse) {
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOmouse);
-                GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
-                GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-                GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferMouse.Length / 2);
-            }
-
-            if (Settings.DisplayOverlayKeyboardOther || Settings.DisplayOverlayKeyboardMod) {
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dKeyboard);
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOkeyboard);
-                GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
-                GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-                GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferKeyboard.Length / 2);
-            }
-
-            if (connectionStatus == ConnectionStatus.Disconnected) {
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dDisconnected);
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOcenter);
-                GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
-                GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-                GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferCenter.Length / 2);
-            } else if (connectionStatus == ConnectionStatus.Connected && !controlEnabled) {
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dControlOff);
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOtop);
-                GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
-                GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
-                GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferTop.Length / 2);
-            }
-
-            #endregion Overlay
-
-            //--
-
-            glControl.SwapBuffers();
+            GL.Finish();
         }
 
         private void RenderStartLegacy() {
@@ -1285,8 +977,8 @@ namespace KLC_Finch {
                 virtualRequireViewportUpdate = false;
             }
 
-            int screenWidth = glControl.Width;
-            int screenHeight = glControl.Height;
+            int screenWidth = (int)glControl.ActualWidth;
+            int screenHeight = (int)glControl.ActualHeight;
 
             float targetAspectRatio = (float)legacyVirtualWidth / (float)legacyVirtualHeight;
 
@@ -1324,7 +1016,7 @@ namespace KLC_Finch {
 
         private void RenderStartMulti() {
             if (virtualRequireViewportUpdate) {
-                float currentAspectRatio = (float)glControl.Width / (float)glControl.Height;
+                float currentAspectRatio = (float)glControl.ActualWidth / (float)glControl.ActualHeight;
                 float targetAspectRatio = (float)virtualViewWant.Width / (float)virtualViewWant.Height;
                 int width = virtualViewWant.Width;
                 int height = virtualViewWant.Height;
@@ -1341,8 +1033,8 @@ namespace KLC_Finch {
                     vpY = (height - virtualViewWant.Height) / 2;
                 }
 
-                scaleX = (double)glControl.Width / (double)width;
-                scaleY = (double)glControl.Height / (double)height;
+                scaleX = glControl.ActualWidth / (double)width;
+                scaleY = glControl.ActualHeight / (double)height;
 
                 virtualViewNeed = new Rectangle(virtualViewWant.X - vpX, virtualViewWant.Y - vpY, width, height);
 
@@ -1352,19 +1044,20 @@ namespace KLC_Finch {
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
             GL.Ortho(virtualViewNeed.Left, virtualViewNeed.Right, virtualViewNeed.Bottom, virtualViewNeed.Top, MainCamera.ZNear, MainCamera.ZFar);
-            GL.Viewport(0, 0, glControl.Width, glControl.Height);
+            GL.Viewport(0, 0, (int)glControl.ActualWidth, (int)glControl.ActualHeight);
             MainCamera.ApplyTransform();
             GL.MatrixMode(MatrixMode.Modelview);
         }
 
         #endregion OpenGL
 
-        private void HandleMouseDown(object sender, System.Windows.Forms.MouseEventArgs e) {
+        private void HandleMouseDown(object sender, MouseButtonEventArgs e) {
             if (rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
+            System.Windows.Point pointWPF = e.GetPosition(glControl);
             if (useMultiScreen) {
-                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), virtualViewNeed.X, virtualViewNeed.Y);
+                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(pointWPF.X / scaleX), (float)(pointWPF.Y / scaleY)), virtualViewNeed.X, virtualViewNeed.Y);
                 RCScreen screenPointingTo = GetScreenUsingMouse((int)point.X, (int)point.Y);
                 if (screenPointingTo == null)
                     return;
@@ -1375,9 +1068,9 @@ namespace KLC_Finch {
                         return;
                     }
                 } else {
-                    if (e.Clicks == 2) {
+                    if (e.ClickCount == 2) {
                         SetControlEnabled(true);
-                    } else if (e.Button == System.Windows.Forms.MouseButtons.Left) {
+                    } else if (e.ChangedButton == MouseButton.Left) {
                         if (currentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
                             FromGlChangeScreen(screenPointingTo, false);
                         //Else
@@ -1391,40 +1084,40 @@ namespace KLC_Finch {
                 //Use legacy behavior
 
                 if (!controlEnabled) {
-                    if (e.Clicks == 2)
+                    if (e.ClickCount == 2)
                         SetControlEnabled(true);
 
                     return;
                 }
             }
 
-            if (e.Button == System.Windows.Forms.MouseButtons.Middle) {
-                if (e.Clicks == 1) //Logitech bug
+            if (e.ChangedButton == MouseButton.Middle) {
+                if (e.ClickCount == 1) //Logitech bug
                     PerformAutotype();
             } else {
                 if (windowActivatedMouseMove)
                     HandleMouseMove(sender, e);
 
-                rc.SendMouseDown(e.Button);
+                rc.SendMouseDown(e.ChangedButton);
 
-                if (e.Button == System.Windows.Forms.MouseButtons.Left)
+                if (e.ChangedButton == MouseButton.Left)
                     mouseHeldLeft = true;
-                if (e.Button == System.Windows.Forms.MouseButtons.Right)
+                if (e.ChangedButton == MouseButton.Right)
                     mouseHeldRight = true;
 
                 DebugKeyboard();
             }
         }
 
-        private void HandleMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
+        private void HandleMouseMove(object sender, MouseEventArgs e) {
             if (currentScreen == null || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             windowActivatedMouseMove = false;
+            System.Windows.Point pointWPF = e.GetPosition(glControl);
 
             if (useMultiScreen) {
-                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), virtualViewNeed.X, virtualViewNeed.Y);
-                DebugMouseEvent((int)point.X, (int)point.Y);
+                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(pointWPF.X / scaleX), (float)(pointWPF.Y / scaleY)), virtualViewNeed.X, virtualViewNeed.Y);
 
                 RCScreen screenPointingTo = GetScreenUsingMouse((int)point.X, (int)point.Y);
                 if (screenPointingTo == null)
@@ -1442,13 +1135,14 @@ namespace KLC_Finch {
                 if (!controlEnabled || !this.IsActive)
                     return;
 
+                DebugMouseEvent((int)point.X, (int)point.Y);
                 rc.SendMousePosition((int)point.X, (int)point.Y);
             } else {
                 //Legacy behavior
                 if (!controlEnabled || !this.IsActive)
                     return;
 
-                System.Drawing.Point legacyPoint = new System.Drawing.Point(e.X - vpX, e.Y - vpY);
+                System.Drawing.Point legacyPoint = new System.Drawing.Point((int)pointWPF.X - vpX, (int)pointWPF.Y - vpY);
                 if (legacyPoint.X < 0 || legacyPoint.Y < 0)
                     if (legacyPoint.X < 0 || legacyPoint.Y < 0)
                         return;
@@ -1468,28 +1162,27 @@ namespace KLC_Finch {
                 legacyPoint.Y = legacyPoint.Y + currentScreen.rect.Y;
 
                 DebugMouseEvent(legacyPoint.X, legacyPoint.Y);
-
                 rc.SendMousePosition(legacyPoint.X, legacyPoint.Y);
             }
         }
 
-        private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
+        private void HandleMouseUp(object sender, MouseButtonEventArgs e) {
             if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
-            if (glControl.ClientRectangle.Contains(e.Location)) {
-                rc.SendMouseUp(e.Button);
+            if (glControl.IsMouseOver) {
+                rc.SendMouseUp(e.ChangedButton);
 
-                if (e.Button == System.Windows.Forms.MouseButtons.Left)
+                if (e.ChangedButton == MouseButton.Left)
                     mouseHeldLeft = false;
-                if (e.Button == System.Windows.Forms.MouseButtons.Right)
+                if (e.ChangedButton == MouseButton.Right)
                     mouseHeldRight = false;
 
                 DebugKeyboard();
             }
         }
 
-        private void HandleMouseWheel(object sender, System.Windows.Forms.MouseEventArgs e) {
+        private void HandleMouseWheel(object sender, MouseWheelEventArgs e) {
             if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
@@ -1741,8 +1434,7 @@ namespace KLC_Finch {
             virtualViewWant = new Rectangle(virtualViewWant.X + 100, virtualViewWant.Y + 100, virtualViewWant.Width - 200, virtualViewWant.Height - 200);
             virtualRequireViewportUpdate = true;
 
-            DebugKeyboard();
-            glControl.Invalidate();
+            //DebugKeyboard();
         }
 
         private void toolZoomOut_Click(object sender, RoutedEventArgs e) {
@@ -1752,8 +1444,7 @@ namespace KLC_Finch {
             virtualViewWant = new Rectangle(virtualViewWant.X - 100, virtualViewWant.Y - 100, virtualViewWant.Width + 200, virtualViewWant.Height + 200);
             virtualRequireViewportUpdate = true;
 
-            DebugKeyboard();
-            glControl.Invalidate();
+            //DebugKeyboard();
         }
 
         private void Window_Activated(object sender, EventArgs e) {
@@ -1808,6 +1499,54 @@ namespace KLC_Finch {
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
+            //check GLSL
+            string version = GL.GetString(StringName.Version);
+            int major = int.Parse(version.Substring(0, 1));
+            if (version.StartsWith("1.") || Settings.ForceCanvas) {
+                //Console.WriteLine("OpenGL 2.0 not available. GLSL not supported.");
+                useCanvasRGB = true;
+
+                glControl.Visibility = Visibility.Collapsed;
+
+                //rcCanvas.Children.Clear();
+                rcRectangleExample.Visibility = Visibility.Hidden;
+                canvasListRectangle = new List<System.Windows.Shapes.Rectangle>();
+
+                this.Title = Title + " (Canvas RGB) Alpha";
+
+                this.SizeChanged += WindowViewerV2_SizeChanged;
+                rcBorderBG.MouseMove += HandleCanvasMouseMove;
+                rcCanvas.MouseMove += HandleCanvasMouseMove;
+                rcCanvas.MouseDown += HandleCanvasMouseDown;
+                rcCanvas.MouseUp += HandleCanvasMouseUp;
+                rcCanvas.MouseWheel += HandleCanvasMouseWheel;
+            } else {
+                rcBorderBG.Visibility = Visibility.Collapsed;
+
+                if (rc != null) {
+                    rc.UseYUVShader = Settings.UseYUVShader;
+                    if (Settings.UseYUVShader)
+                        this.Title = Title + " (YUV)";
+                    else
+                        this.Title = Title + " (RGB)";
+
+                    CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
+                    m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
+                    m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
+                    m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
+                    m_shader_multiplyColor = GL.GetUniformLocation(shader_program, "multiplyColor");
+                }
+
+                InitTextures();
+                RefreshVirtual();
+
+                glControl.SizeChanged += GlControl_SizeChanged;
+                glControl.MouseMove += HandleMouseMove;
+                glControl.MouseDown += HandleMouseDown;
+                glControl.MouseUp += HandleMouseUp;
+                glControl.MouseWheel += HandleMouseWheel;
+                glControl.Render += GlControl_Render;
+            }
         }
 
         #region Host Desktop Configuration (Screens of current session)
@@ -2030,81 +1769,21 @@ namespace KLC_Finch {
                     strKeyboard = "MouseLeft" + (strKeyboard == "" ? "" : " | " + strKeyboard);
             }
 
-            if (useCanvasRGB) {
-                Dispatcher.Invoke((Action)delegate {
-                    txtDebugLeft.Text = strKeyboard;
-                });
-                return;
-            }
-
-            /*
-            // !! TEST
-            float currentAspectRatio = (float)glControl.Width / (float)glControl.Height;
-            float targetAspectRatio = (float)virtualViewWant.Width / (float)virtualViewWant.Height;
-
-            strKeyboard = string.Format("Need: {0}\r\nWant: {1}\r\nScale: {2:0.###}, {3:0.###}\r\nCam Trans: {4}\r\nCam Scale: {5}\r\nRatio: {6}\r\nor {7}",
-                virtualViewNeed.ToString(), virtualViewWant.ToString(),
-                scaleX, scaleY, MainCamera.Position.ToString(), MainCamera.Scale.X, currentAspectRatio, targetAspectRatio);
-            // !! TEST
-            */
-
-            using (Graphics gfx = Graphics.FromImage(overlay2dKeyboard)) {
-                gfx.Clear(System.Drawing.Color.Transparent);
-
-                using (GraphicsPath gp = new GraphicsPath())
-                using (System.Drawing.Pen outline = new System.Drawing.Pen(System.Drawing.Color.Black, 4) { LineJoin = LineJoin.Round }) //outline width=1
-                using (StringFormat sf = new StringFormat())
-                using (System.Drawing.Brush foreBrush = new SolidBrush(System.Drawing.Color.Lime)) {
-                    gp.AddString(strKeyboard, arial.FontFamily, (int)arial.Style, arial.Size, new PointF(0, 0), sf); //Change arial.Size to 12 for the test text above
-                    gfx.DrawPath(outline, gp);
-                    gfx.FillPath(foreBrush, gp);
-                }
-
-                BitmapData data2 = overlay2dKeyboard.LockBits(new System.Drawing.Rectangle(0, 0, overlay2dKeyboard.Width, overlay2dKeyboard.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                if (textureOverlayDataKeyboard == null)
-                    textureOverlayDataKeyboard = new byte[Math.Abs(data2.Stride * data2.Height)];
-                Marshal.Copy(data2.Scan0, textureOverlayDataKeyboard, 0, textureOverlayDataKeyboard.Length);
-
-                overlay2dKeyboard.UnlockBits(data2);
-
-                overlayNewKeyboard = true;
-            }
+            Dispatcher.Invoke((Action)delegate {
+                txtDebugLeft.Text = strKeyboard;
+            });
         }
 
         private void DebugMouseEvent(int X, int Y) {
-            string strMousePos = string.Format("X: {0}, Y: {1}", X, Y);
+            string strMousePos = "";
 
-            if (useCanvasRGB) {
-                Dispatcher.Invoke((Action)delegate {
-                    txtDebugRight.Text = strMousePos;
-                });
-                return;
+            if (Settings.DisplayOverlayMouse) {
+                strMousePos = string.Format("X: {0}, Y: {1}", X, Y);
             }
 
-            using (Graphics gfx = Graphics.FromImage(overlay2dMouse)) {
-                gfx.Clear(System.Drawing.Color.Transparent);
-
-                using (GraphicsPath gp = new GraphicsPath())
-                using (System.Drawing.Pen outline = new System.Drawing.Pen(System.Drawing.Color.Black, 4) { LineJoin = LineJoin.Round }) //outline width=1
-                using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Far })
-                using (System.Drawing.Brush foreBrush = new SolidBrush(System.Drawing.Color.Lime)) {
-                    gp.AddString(strMousePos, arial.FontFamily, (int)arial.Style, arial.Size, gfx.VisibleClipBounds, sf);
-                    gfx.DrawPath(outline, gp);
-                    gfx.FillPath(foreBrush, gp);
-                }
-
-                BitmapData data2 = overlay2dMouse.LockBits(new System.Drawing.Rectangle(0, 0, overlay2dMouse.Width, overlay2dMouse.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                if (textureOverlayDataMouse == null)
-                    textureOverlayDataMouse = new byte[Math.Abs(data2.Stride * data2.Height)];
-                Marshal.Copy(data2.Scan0, textureOverlayDataMouse, 0, textureOverlayDataMouse.Length);
-
-                //qtOverlay2d.Load(overlay2d.Width, overlay2d.Height, bData);
-                overlay2dMouse.UnlockBits(data2);
-
-                overlayNewMouse = true;
-            }
-
-            glControl.Invalidate();
+            Dispatcher.Invoke((Action)delegate {
+                txtDebugRight.Text = strMousePos;
+            });
         }
 
         private RCScreen GetScreenUsingMouse(int x, int y) {
@@ -2153,7 +1832,6 @@ namespace KLC_Finch {
                 rc.SendPanicKeyRelease();
                 listHeldKeysMod.Clear();
                 KeyWinSet(false);
-                DebugKeyboard();
             } else {
                 KeycodeV2 keykaseyaUN = KeycodeV2.ListUnhandled.Find(x => x.Key == e2.KeyCode);
                 if (keykaseyaUN != null)
@@ -2189,10 +1867,9 @@ namespace KLC_Finch {
                 } catch {
                     Console.WriteLine("Up scan: " + e2.KeyCode + " / " + e2.KeyData + " / " + e2.KeyValue);
                 }
-
-                DebugKeyboard();
             }
 
+            DebugKeyboard();
             e.Handled = true;
         }
 
