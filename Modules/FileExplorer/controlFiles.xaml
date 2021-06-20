@@ -73,14 +73,14 @@
             <Button x:Name="btnFilesFolderRename" Content="Rename" Margin="0,0,5,0" Height="20" Click="btnFilesFolderRename_Click" />
             <Button x:Name="btnFilesFolderDelete" Content="Delete" Margin="0,0,5,0" Height="20" Click="btnFilesFolderDelete_Click" />
 
-            <Label Content="| File:" Margin="0,0,5,0" VerticalAlignment="Center" />
+            <Label Content="|" VerticalAlignment="Center" />
+            <Label Content="Files:" Margin="0,0,5,0" VerticalAlignment="Center" />
             <Button x:Name="btnFilesDownload" Content="Download" Margin="0,0,5,0" Height="20" Click="btnFilesDownload_Click"/>
             <Button x:Name="btnFilesUpload" Content="Upload" Margin="0,0,5,0" Height="20" Click="btnFilesUpload_Click"/>
             <Button x:Name="btnFilesFileRename" Content="Rename" Margin="0,0,5,0" Height="20" Click="btnFilesFileRename_Click" />
-            <Button x:Name="btnFilesFileDelete" Content="Delete" Margin="0,0,5,0" Height="20" Click="btnFilesFileDelete_Click" />
+            <Button x:Name="btnFilesFileDelete" Content="Delete" Margin="0,3,5,0" Height="20" Click="btnFilesFileDelete_Click" VerticalAlignment="Top" />
 
-            <Label Content="|" Margin="0,0,5,0" VerticalAlignment="Center" />
-            <CheckBox x:Name="chkFilesEnableDelete" Content="Enable Delete" VerticalAlignment="Center" Margin="0,0,5,0" Checked="chkFilesEnableDelete_Checked" Unchecked="chkFilesEnableDelete_Unchecked" />
+            <Label Content="|" VerticalAlignment="Center" />
             <Label x:Name="txtFilesSelected" Content="0 files selected" Margin="0,0,5,0" VerticalAlignment="Center" />
         </StackPanel>
         <!--<TextBox x:Name="txtFiles" TextWrapping="Wrap" Grid.Row="3" VerticalScrollBarVisibility="Auto"/>-->

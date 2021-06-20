@@ -46,8 +46,6 @@ namespace KLC_Finch {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null && session.WebsocketB.ControlAgentIsReady()) {
                 btnFilesStart.IsEnabled = false;
-                btnFilesFolderDelete.IsEnabled = false;
-                btnFilesFileDelete.IsEnabled = false;
                 window = ((WindowAlternative)Window.GetWindow(this));
 
                 moduleFileExplorer = new FileExplorer(session);
@@ -136,25 +134,35 @@ namespace KLC_Finch {
         }
 
         private void btnFilesFolderDelete_Click(object sender, RoutedEventArgs e) {
-            if (moduleFileExplorer == null || !(bool)chkFilesEnableDelete.IsChecked)
+            if (moduleFileExplorer == null)
                 return;
-
-            chkFilesEnableDelete.IsChecked = false;
 
             string selectedkey = listFilesFolders.SelectedItem.ToString();
             KLCFile lookup = moduleFileExplorer.GetKLCFolder(selectedkey);
             if (lookup == null)
+                return;
 
-            MessageBox.Show("To delete key '" + selectedkey + "' you must type it exactly in the next window.");
+            //--
 
-            WindowRegistryKey wrk = new WindowRegistryKey();
-            wrk.Owner = window;
-            bool accepted = (bool)wrk.ShowDialog();
-            if (accepted) {
-                if (wrk.ReturnName == selectedkey)
+            using (TaskDialog dialog = new TaskDialog()) {
+                dialog.WindowTitle = "KLC-Finch: Folder";
+                dialog.MainInstruction = "Delete folder?";
+                dialog.MainIcon = TaskDialogIcon.Warning;
+                dialog.CenterParent = true;
+                dialog.Content = selectedkey;
+                dialog.VerificationText = "Confirm";
+                dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
+
+                TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
+                tdbDelete.Enabled = false;
+                TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                tdbCancel.Default = true;
+                dialog.Buttons.Add(tdbDelete);
+                dialog.Buttons.Add(tdbCancel);
+
+                TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                if (button == tdbDelete)
                     moduleFileExplorer.DeleteFolder(lookup);
-                else
-                    MessageBox.Show("Did not delete key '" + selectedkey + "'.");
             }
         }
 
@@ -174,32 +182,37 @@ namespace KLC_Finch {
         }
 
         private void btnFilesFileDelete_Click(object sender, RoutedEventArgs e) {
-            if (moduleFileExplorer == null || !(bool)chkFilesEnableDelete.IsChecked || dgvFilesFiles.SelectedItems.Count == 0)
+            if (moduleFileExplorer == null || dgvFilesFiles.SelectedItems.Count == 0)
                 return;
 
-            chkFilesEnableDelete.IsChecked = false;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < dgvFilesFiles.SelectedItems.Count; i++) {
+                KLCFile lookup = (KLCFile)dgvFilesFiles.SelectedItems[i];
+                if(i == 0)
+                    sb.Append(lookup.Name);
+                else
+                    sb.Append(", " + lookup.Name);
+            }
 
-            if (dgvFilesFiles.SelectedItems.Count == 1) {
-                KLCFile lookup = (KLCFile)dgvFilesFiles.SelectedItem;
+            using (TaskDialog dialog = new TaskDialog()) {
+                string word = (dgvFilesFiles.SelectedItems.Count == 1 ? "file" : "files");
+                dialog.WindowTitle = "KLC-Finch: Files";
+                dialog.MainInstruction = string.Format("Delete {0} {1}?", dgvFilesFiles.SelectedItems.Count, word);
+                dialog.MainIcon = TaskDialogIcon.Warning;
+                dialog.CenterParent = true;
+                dialog.Content = sb.ToString();
+                dialog.VerificationText = "Confirm";
+                dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
 
-                MessageBoxResult result = MessageBox.Show(lookup.Name, "Delete file?", MessageBoxButton.YesNo);
-                if (result == MessageBoxResult.Yes)
-                    moduleFileExplorer.DeleteFile(lookup);
-            } else {
-                StringBuilder sb = new StringBuilder();
+                TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
+                tdbDelete.Enabled = false;
+                TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                tdbCancel.Default = true;
+                dialog.Buttons.Add(tdbDelete);
+                dialog.Buttons.Add(tdbCancel);
 
-                for(int i = 0; i < dgvFilesFiles.SelectedItems.Count; i++) {
-                    KLCFile lookup = (KLCFile)dgvFilesFiles.SelectedItems[i];
-                    sb.AppendLine(lookup.Name);
-
-                    if(i == 9 && dgvFilesFiles.SelectedItems.Count != 10) {
-                        sb.AppendLine("... and " + (dgvFilesFiles.SelectedItems.Count - (i+1)) + " more.");
-                        break;
-                    }
-                }
-
-                MessageBoxResult result = MessageBox.Show(sb.ToString(), "Delete " + dgvFilesFiles.SelectedItems.Count + " files?", MessageBoxButton.YesNo);
-                if (result == MessageBoxResult.Yes) {
+                TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                if (button == tdbDelete) {
                     foreach (object selectedItem in dgvFilesFiles.SelectedItems) {
                         KLCFile lookup = (KLCFile)selectedItem;
                         moduleFileExplorer.DeleteFile(lookup);
@@ -208,14 +221,9 @@ namespace KLC_Finch {
             }
         }
 
-        private void chkFilesEnableDelete_Checked(object sender, RoutedEventArgs e) {
-            btnFilesFolderDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
-            btnFilesFileDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
-        }
-
-        private void chkFilesEnableDelete_Unchecked(object sender, RoutedEventArgs e) {
-            btnFilesFolderDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
-            btnFilesFileDelete.IsEnabled = (bool)chkFilesEnableDelete.IsChecked;
+        private void DestructiveDialog_VerificationClicked(object sender, EventArgs e) {
+            TaskDialog td = (TaskDialog)sender;
+            td.Buttons[0].Enabled = td.IsVerificationChecked;
         }
 
         private void txtFilesPath_PreviewKeyDown(object sender, KeyEventArgs e) {
