@@ -19,7 +19,6 @@
             <RowDefinition Height="auto"/>
             <RowDefinition/>
             <RowDefinition Height="auto"/>
-            <!--<RowDefinition Height="60"/>-->
         </Grid.RowDefinitions>
         <Grid Grid.Row="0" Margin="0,0,0,5">
             <Grid.ColumnDefinitions>
@@ -66,7 +65,7 @@
                 <Label Content="FILE TRANSFER PLACEHOLDER" HorizontalAlignment="Left" Margin="0" VerticalAlignment="Top"/>
             </Grid>
         </Grid>
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5,0,0">
             <Label Content="Folder:" Margin="0,0,5,0" VerticalAlignment="Center" />
             <Button x:Name="btnFilesFolderCreate" Content="Create" Margin="0,0,5,0" Height="20" Click="btnFilesFolderCreate_Click" />
             <Button x:Name="btnFilesFolderDownload" Content="Download" Margin="0,0,5,0" Height="20" Click="btnFilesFolderDownload_Click" />

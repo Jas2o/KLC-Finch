@@ -980,24 +980,27 @@ namespace KLC_Finch {
                 virtualRequireViewportUpdate = false;
             }
 
-            int screenWidth = (int)glControl.ActualWidth;
-            int screenHeight = (int)glControl.ActualHeight;
-
             float targetAspectRatio = (float)legacyVirtualWidth / (float)legacyVirtualHeight;
 
-            int width = screenWidth;
+            int width = (int)glControl.FrameBufferWidth;
             int height = (int)((float)width / targetAspectRatio/* + 0.5f*/);
 
-            if (height > screenHeight) {
+            if (height > glControl.FrameBufferHeight) {
                 //Pillarbox
-                height = screenHeight;
+                height = glControl.FrameBufferHeight;
                 width = (int)((float)height * targetAspectRatio/* + 0.5f*/);
             }
 
-            vpX = (screenWidth / 2) - (width / 2);
-            vpY = (screenHeight / 2) - (height / 2);
+            vpX = (glControl.FrameBufferWidth / 2) - (width / 2);
+            vpY = (glControl.FrameBufferHeight / 2) - (height / 2);
+
+            scaleX = glControl.ActualWidth / glControl.FrameBufferWidth;
+            scaleY = glControl.ActualHeight / glControl.FrameBufferHeight;
 
             GL.Viewport(vpX, vpY, width, height);
+
+            vpX = (int)(vpX * scaleX);
+            vpY = (int)(vpY * scaleY);
 
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
@@ -1008,9 +1011,9 @@ namespace KLC_Finch {
             //GL.PushMatrix();
 
             //Now to calculate the scale considering the screen size and virtual size
-            scaleX = (double)screenWidth / (double)legacyVirtualWidth;
-            scaleY = (double)screenHeight / (double)legacyVirtualHeight;
-            GL.Scale(scaleX, scaleY, 1.0f);
+            scaleX = (double)glControl.ActualWidth / (double)legacyVirtualWidth;
+            scaleY = (double)glControl.ActualHeight / (double)legacyVirtualHeight;
+            //GL.Scale(scaleX, scaleY, 1.0f);
 
             GL.LoadIdentity();
 
@@ -1019,7 +1022,7 @@ namespace KLC_Finch {
 
         private void RenderStartMulti() {
             if (virtualRequireViewportUpdate) {
-                float currentAspectRatio = (float)glControl.ActualWidth / (float)glControl.ActualHeight;
+                float currentAspectRatio = (float)glControl.FrameBufferWidth / (float)glControl.FrameBufferHeight;
                 float targetAspectRatio = (float)virtualViewWant.Width / (float)virtualViewWant.Height;
                 int width = virtualViewWant.Width;
                 int height = virtualViewWant.Height;
@@ -1047,7 +1050,7 @@ namespace KLC_Finch {
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
             GL.Ortho(virtualViewNeed.Left, virtualViewNeed.Right, virtualViewNeed.Bottom, virtualViewNeed.Top, MainCamera.ZNear, MainCamera.ZFar);
-            GL.Viewport(0, 0, (int)glControl.ActualWidth, (int)glControl.ActualHeight);
+            GL.Viewport(0, 0, (int)glControl.FrameBufferWidth, (int)glControl.FrameBufferHeight);
             MainCamera.ApplyTransform();
             GL.MatrixMode(MatrixMode.Modelview);
         }
