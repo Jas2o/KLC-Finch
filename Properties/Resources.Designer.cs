@@ -81,7 +81,7 @@ namespace KLC_Finch.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 2021-06-20 
+        ///   Looks up a localized string similar to 2021-06-24 
         ///.
         /// </summary>
         internal static string BuildDate {

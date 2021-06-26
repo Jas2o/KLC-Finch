@@ -47,7 +47,10 @@
                     <RowDefinition/>
                 </Grid.RowDefinitions>
 
-                <TextBlock x:Name="txtRebootLast" Grid.Row="0" Text="Last rebooted (fuzzy time) ago" TextAlignment="Center" Margin="0,0,0,5"/>
+                <StackPanel Grid.Row="0" >
+                    <TextBlock x:Name="txtRebootLast" Grid.Row="0" Text="Last rebooted (fuzzy time) ago" TextAlignment="Center" Margin="0,0,0,5"/>
+                    <TextBlock x:Name="txtUtilisationRAM" Grid.Row="0" Text="RAM % used" TextAlignment="Center" Margin="0,0,0,5"/>
+                </StackPanel>
                 <StackPanel x:Name="stackDisks" Grid.Row="1" >
                     <!--<command:controlDisk/>-->
                 </StackPanel>

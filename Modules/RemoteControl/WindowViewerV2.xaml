@@ -145,6 +145,7 @@
 
             <StackPanel VerticalAlignment="Center">
                 <Label x:Name="txtRcNotify" Content="Awaiting approval" FontSize="32" Foreground="White" Background="#7F000000" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="80" FontFamily="Arial"/>
+                <Label x:Name="txtRcConnecting" Content="Connecting" FontSize="32" Foreground="White" Background="#7F000000" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="250" Height="80" FontFamily="Arial"/>
                 <Label x:Name="txtRcFrozen" Content="Frozen?" FontSize="32" Foreground="#7FFFFFFF" Background="#3F0096FF" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="250" Height="80" FontFamily="Arial"/>
                 <Label x:Name="txtRcDisconnected" Content="Disconnected" FontSize="32" Foreground="#FF78FF00" Background="#7F000000" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="250" Height="80" FontFamily="Arial"/>
             </StackPanel>

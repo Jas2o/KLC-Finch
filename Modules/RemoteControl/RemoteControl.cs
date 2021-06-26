@@ -56,7 +56,7 @@ namespace KLC_Finch {
             }
 
             Viewer = App.viewer = new WindowViewerV2(this, 1920, 1080, session.agent.IsMac);
-            Viewer.SetTitle(session.agent.Name + "::" + (modePrivate ? "Private" : "Shared"));
+            Viewer.SetTitle(session.agent.Name, modePrivate);
             Viewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             Viewer.Show();
 
@@ -144,6 +144,7 @@ namespace KLC_Finch {
             if (type == 0x27) {
                 Viewer.ClearApproval();
 
+                /*
                 //This does not appear to fix the API logs (as opposed to VSA logs) issue
                 RestClient K_Client = new RestClient("https://vsa-web.company.com.au");
                 RestRequest request = new RestRequest("api/v1.0/assetmgmt/agent/" + session.agentGuid + "/KLCAuditLogEntry", Method.PUT);
@@ -151,7 +152,7 @@ namespace KLC_Finch {
                 request.AddParameter("Content-Type", "application/json");
                 request.AddJsonBody("{\"UserName\":\"" + session.auth.UserName + "\",\"AgentName\":\"" + session.agent.Name + "\",\"LogMessage\":\"Remote Control Log Notes: \"}");
                 IRestResponse response = K_Client.Execute(request);
-
+                */
             } else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported) {
                 App.ShowUnhandledExceptionFromSrc("SessionNotSupported", "Remote Control");
                 Disconnect(rcSessionId);

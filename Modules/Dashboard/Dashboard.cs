@@ -14,6 +14,7 @@ namespace KLC_Finch {
     public class Dashboard {
 
         private static string modulename = "dashboard";
+        private TextBlock txtRAM;
         private TextBox txtBox;
         private StackPanel stackDisks;
         private IWebSocketConnection serverB;
@@ -22,9 +23,10 @@ namespace KLC_Finch {
         System.Timers.Timer timerStart;
         System.Timers.Timer timerRefresh;
 
-        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks=null) {
+        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks=null, TextBlock txtRAM =null) {
             this.session = session;
             this.txtBox = txtBox;
+            this.txtRAM = txtRAM;
             this.stackDisks = stackDisks;
 
             timerStart = new System.Timers.Timer(1000);
@@ -110,6 +112,14 @@ namespace KLC_Finch {
 
                         break;
 
+                    case "CpuRamData":
+                        //{"action":"CpuRamData","data":{"ram":46,"cpu":1.6440618016222541},"errors":[]}
+                        string ram = temp["data"]["ram"].ToString();
+                        txtRAM.Text = "RAM: " + ram + "% used of " + session.agent.RAMinGB + " GB";
+
+                        txtBox.AppendText("Dashboard message: " + message + "\r\n");
+                        break;
+
                     case "EventsData":
                         /*{
                            "action":"EventsData",
@@ -144,10 +154,6 @@ namespace KLC_Finch {
                            ],
                            "errors":[]
                         } */
-                        //break;
-
-                    case "CpuRamData":
-                        //{"action":"CpuRamData","data":{"ram":46,"cpu":1.6440618016222541},"errors":[]}
                         //break;
 
                     default:

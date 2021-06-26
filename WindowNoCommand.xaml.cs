@@ -125,16 +125,19 @@ namespace KLC_Finch {
         private void btnLaunchThisComputer_Click(object sender, RoutedEventArgs e) {
             string val = "";
 
-            using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) {
-                RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
-                if (subkey != null)
-                    val = subkey.GetValue("AgentGUID").ToString();
-                subkey.Close();
-            }
+            try {
+                using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) {
+                    RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
+                    if (subkey != null)
+                        val = subkey.GetValue("AgentGUID").ToString();
+                    subkey.Close();
+                }
 
-            if (val.Length > 0) {
-                App.alternative = new WindowAlternative(val, txtAuthToken.Password);
-                App.alternative.Show();
+                if (val.Length > 0) {
+                    App.alternative = new WindowAlternative(val, txtAuthToken.Password);
+                    App.alternative.Show();
+                }
+            } catch(Exception) {
             }
         }
 

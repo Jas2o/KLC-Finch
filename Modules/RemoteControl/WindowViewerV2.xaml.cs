@@ -86,8 +86,9 @@ namespace KLC_Finch {
             else
                 Settings = JsonSettings.Construct<Settings>(pathSettings);
 
-            this.Width = Settings.RemoteControlWidth;
-            this.Height = Settings.RemoteControlHeight;
+            DpiScale dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+            this.Width = Settings.RemoteControlWidth / dpiScale.PixelsPerDip;
+            this.Height = Settings.RemoteControlHeight / dpiScale.PixelsPerDip;
 
             autotypeAlwaysConfirmed = toolSettingAutotypeSkipLengthCheck.IsChecked = Settings.AutotypeSkipLengthCheck;
             toolSettingStartControlEnabled.IsChecked = Settings.StartControlEnabled;
@@ -130,6 +131,7 @@ namespace KLC_Finch {
 
             txtDebugLeft.Text = "";
             txtDebugRight.Text = "";
+            //txtRcConnecting.Visibility = Visibility.Visible; //Default
             txtRcFrozen.Visibility = Visibility.Collapsed;
             txtRcDisconnected.Visibility = Visibility.Collapsed;
 
@@ -411,8 +413,11 @@ namespace KLC_Finch {
         }
 
         public void SetApprovalAndSpecialNote(int rcNotify, int machineShowToolTip, string machineNote, string machineNoteLink) {
-            if (rcNotify < 3)
+            if (rcNotify < 3) {
                 txtRcNotify.Visibility = Visibility.Collapsed;
+            } else {
+                txtRcConnecting.Visibility = Visibility.Collapsed;
+            }
 
             if (machineShowToolTip > 0 || machineNote.Length > 0 || machineNoteLink != null)
                 toolMachineNote.Visibility = Visibility.Visible;
@@ -490,8 +495,10 @@ namespace KLC_Finch {
             }
         }
 
-        public void SetTitle(string title) {
-            this.Title = title;
+        public void SetTitle(string title, bool modePrivate) {
+            this.Title = title + "::" + (modePrivate ? "Private" : "Shared");
+            if (modePrivate)
+                toolReconnect.Header = "Reconnect (lose private session)";
         }
 
         public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight) {
@@ -550,26 +557,37 @@ namespace KLC_Finch {
                 //txtDebugLeft.Visibility = (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
                 //txtDebugRight.Visibility = (Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
 
-                if (connectionStatus == ConnectionStatus.Disconnected) {
-                    toolLatency.Content = "N/C";
-                    if (App.alternative == null || !App.alternative.socketActive)
-                        toolReconnect.Header = "Hard Reconnect Required";
-                    txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = txtRcNotify.Visibility = Visibility.Collapsed;
-                    txtRcFrozen.Visibility = Visibility.Collapsed;
-                    txtRcDisconnected.Visibility = Visibility.Visible;
-                    rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Maroon);
-                    timerHealth.Stop();
-                } else {
-                    if (fpsCounter.SeemsAlive(5000)) {
-                        //toolLatency.FontWeight = FontWeights.Normal;
+                switch(connectionStatus) {
+                    case ConnectionStatus.FirstConnectionAttempt:
                         txtRcFrozen.Visibility = Visibility.Collapsed;
-                    } else {
-                        fpsLast = 0;
-                        //toolLatency.Content = string.Format("Frozen? | {0} ms", lastLatency);
-                        //toolLatency.FontWeight = FontWeights.Bold;
-                        txtRcFrozen.Visibility = Visibility.Visible;
-                    }
-                    toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, lastLatency);
+                        txtRcConnecting.Visibility = Visibility.Visible;
+                        break;
+
+                    case ConnectionStatus.Connected:
+                        txtRcConnecting.Visibility = Visibility.Collapsed;
+
+                        if (fpsCounter.SeemsAlive(5000)) {
+                            //toolLatency.FontWeight = FontWeights.Normal;
+                            txtRcFrozen.Visibility = Visibility.Collapsed;
+                        } else {
+                            fpsLast = 0;
+                            //toolLatency.Content = string.Format("Frozen? | {0} ms", lastLatency);
+                            //toolLatency.FontWeight = FontWeights.Bold;
+                            txtRcFrozen.Visibility = Visibility.Visible;
+                        }
+                        toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, lastLatency);
+                        break;
+
+                    case ConnectionStatus.Disconnected:
+                        toolLatency.Content = "N/C";
+                        if (App.alternative == null || !App.alternative.socketActive)
+                            toolReconnect.Header = "Hard Reconnect Required";
+                        txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = txtRcNotify.Visibility = Visibility.Collapsed;
+                        txtRcFrozen.Visibility = Visibility.Collapsed;
+                        txtRcDisconnected.Visibility = Visibility.Visible;
+                        rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Maroon);
+                        timerHealth.Stop();
+                        break;
                 }
             });
         }
@@ -993,12 +1011,11 @@ namespace KLC_Finch {
 
             vpX = (glControl.FrameBufferWidth / 2) - (width / 2);
             vpY = (glControl.FrameBufferHeight / 2) - (height / 2);
-
-            scaleX = glControl.ActualWidth / glControl.FrameBufferWidth;
-            scaleY = glControl.ActualHeight / glControl.FrameBufferHeight;
-
             GL.Viewport(vpX, vpY, width, height);
 
+            //Yay DPI, these values are used for mouse position
+            scaleX = glControl.ActualWidth / glControl.FrameBufferWidth;
+            scaleY = glControl.ActualHeight / glControl.FrameBufferHeight;
             vpX = (int)(vpX * scaleX);
             vpY = (int)(vpY * scaleY);
 
