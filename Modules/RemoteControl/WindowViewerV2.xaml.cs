@@ -19,6 +19,7 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 
 //To look into regarding the changes to Key/Keys
 //https://stackoverflow.com/questions/1153009/how-can-i-convert-system-windows-input-key-to-system-windows-forms-keys
@@ -43,6 +44,7 @@ namespace KLC_Finch {
         private FPSCounter fpsCounter;
         private double fpsLast;
         private int fragment_shader_object = 0;
+        private bool glSupported; //Otherwise Canvas RGB
         private bool isMac;
         private bool keyDownWin;
         private long lastLatency;
@@ -71,8 +73,6 @@ namespace KLC_Finch {
         private bool virtualRequireViewportUpdate = false;
         private int vpX, vpY;
         private bool windowActivatedMouseMove;
-
-        private bool useCanvasRGB; //Due to OpenGL support not being high enough
 
         public WindowViewerV2(RemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, bool isMac = false) {
             InitializeComponent();
@@ -135,8 +135,27 @@ namespace KLC_Finch {
             txtRcFrozen.Visibility = Visibility.Collapsed;
             txtRcDisconnected.Visibility = Visibility.Collapsed;
 
-            GLWpfControlSettings glSettings = new GLWpfControlSettings { MajorVersion = 2, MinorVersion = 1, RenderContinuously = true };
-            glControl.Start(glSettings);
+            glSupported = !Settings.ForceCanvas;
+            int renderTier = System.Windows.Media.RenderCapability.Tier;
+
+            string glVersion = string.Empty;
+            if (renderTier == 0) {
+                //Software, such as RDP
+                //GLWpfControl would crash if used without the minimum version
+                OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
+                glVersion = glSoftwareTest.Version;
+                if (glVersion.StartsWith("1."))
+                    glSupported = false;
+            }
+            if (glSupported) {
+                GLWpfControlSettings glSettings = new GLWpfControlSettings { MajorVersion = 3, MinorVersion = 1, RenderContinuously = true };
+                glControl.Start(glSettings);
+                if (renderTier != 0) {
+                    glVersion = GL.GetString(StringName.Version);
+                    if (glVersion.StartsWith("1."))
+                        glSupported = false; //This will probably never get reached
+                }
+            }
 
             WindowUtilities.ActivateWindow(this);
         }
@@ -435,13 +454,7 @@ namespace KLC_Finch {
         }
 
         public void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight) { //More like lowX, lowY, highX, highY
-            if (useCanvasRGB) {
-                Dispatcher.Invoke((Action)delegate {
-                    //rcCanvas.Width = virtualWidth;
-                    //rcCanvas.Height = virtualHeight;
-                });
-
-            } else {
+            if (glSupported) {
                 //OpenGL
                 if (useMultiScreen) {
                     virtualCanvas = new Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
@@ -452,6 +465,11 @@ namespace KLC_Finch {
                 }
 
                 virtualRequireViewportUpdate = true;
+            } else {
+                //Dispatcher.Invoke((Action)delegate {
+                    //rcCanvas.Width = virtualWidth;
+                    //rcCanvas.Height = virtualHeight;
+                //});
             }
         }
 
@@ -474,7 +492,7 @@ namespace KLC_Finch {
                 toolSendCtrlAltDel.IsEnabled = controlEnabled;
 
                 if (connectionStatus != ConnectionStatus.Disconnected) {
-                    if (useCanvasRGB) {
+                    if (!glSupported) {
                         if (controlEnabled)
                             rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 20, 20, 20));
                         else
@@ -536,10 +554,10 @@ namespace KLC_Finch {
                 highestY = Math.Max(screen.rectFixed.Y + screen.rectFixed.Height, highestY);
             }
 
-            if (useCanvasRGB)
-                SetCanvas(lowestX, lowestY, Math.Abs(lowestX) + highestX, Math.Abs(lowestY) + highestY);
-            else
+            if (glSupported)
                 SetCanvas(lowestX, lowestY, highestX, highestY);
+            else
+                SetCanvas(lowestX, lowestY, Math.Abs(lowestX) + highestX, Math.Abs(lowestY) + highestY);
 
             //--
 
@@ -802,7 +820,7 @@ namespace KLC_Finch {
         }
 
         private void PositionCameraToCurrentScreen() {
-            if (useCanvasRGB) {
+            if (!glSupported) {
                 SetCanvas(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
                 return;
             }
@@ -1522,28 +1540,7 @@ namespace KLC_Finch {
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
-            //check GLSL
-            string version = GL.GetString(StringName.Version);
-            int major = int.Parse(version.Substring(0, 1));
-            if (version.StartsWith("1.") || Settings.ForceCanvas) {
-                //Console.WriteLine("OpenGL 2.0 not available. GLSL not supported.");
-                useCanvasRGB = true;
-
-                glControl.Visibility = Visibility.Collapsed;
-
-                //rcCanvas.Children.Clear();
-                rcRectangleExample.Visibility = Visibility.Hidden;
-                canvasListRectangle = new List<System.Windows.Shapes.Rectangle>();
-
-                this.Title = Title + " (Canvas RGB) Alpha";
-
-                this.SizeChanged += WindowViewerV2_SizeChanged;
-                rcBorderBG.MouseMove += HandleCanvasMouseMove;
-                rcCanvas.MouseMove += HandleCanvasMouseMove;
-                rcCanvas.MouseDown += HandleCanvasMouseDown;
-                rcCanvas.MouseUp += HandleCanvasMouseUp;
-                rcCanvas.MouseWheel += HandleCanvasMouseWheel;
-            } else {
+            if (glSupported) {
                 rcBorderBG.Visibility = Visibility.Collapsed;
 
                 if (rc != null) {
@@ -1558,6 +1555,8 @@ namespace KLC_Finch {
                     m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
                     m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
                     m_shader_multiplyColor = GL.GetUniformLocation(shader_program, "multiplyColor");
+                } else {
+                    this.Title = Title + " (RGB)";
                 }
 
                 InitTextures();
@@ -1569,6 +1568,21 @@ namespace KLC_Finch {
                 glControl.MouseUp += HandleMouseUp;
                 glControl.MouseWheel += HandleMouseWheel;
                 glControl.Render += GlControl_Render;
+            } else {
+                glControl.Visibility = Visibility.Collapsed;
+
+                //rcCanvas.Children.Clear();
+                rcRectangleExample.Visibility = Visibility.Hidden;
+                canvasListRectangle = new List<System.Windows.Shapes.Rectangle>();
+
+                this.Title = Title + " (Canvas RGB) Alpha";
+
+                this.SizeChanged += WindowViewerV2_SizeChanged;
+                rcBorderBG.MouseMove += HandleCanvasMouseMove;
+                rcCanvas.MouseMove += HandleCanvasMouseMove;
+                rcCanvas.MouseDown += HandleCanvasMouseDown;
+                rcCanvas.MouseUp += HandleCanvasMouseUp;
+                rcCanvas.MouseWheel += HandleCanvasMouseWheel;
             }
         }
 
@@ -1651,12 +1665,12 @@ namespace KLC_Finch {
             currentScreen = screen;
             rc.ChangeScreen(currentScreen.screen_id);
 
-            if (useCanvasRGB) {
-                if (useMultiScreen && moveCamera)
-                    SetCanvas(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
-            } else {
+            if (glSupported) {
                 if (useMultiScreen && moveCamera)
                     PositionCameraToCurrentScreen();
+            } else {
+                if (useMultiScreen && moveCamera)
+                    SetCanvas(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
             }
 
             Dispatcher.Invoke((Action)delegate {

@@ -186,6 +186,7 @@
     <Compile Include="Modules\Registry\WindowRegistryString.xaml.cs">
       <DependentUpon>WindowRegistryString.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Modules\RemoteControl\OpenGLSoftwareTest.cs" />
     <Compile Include="Modules\RemoteControl\OTK\Camera.cs" />
     <Compile Include="Modules\RemoteControl\MITM.cs" />
     <Compile Include="Modules\RemoteControl\OTK\TextureCursor.cs" />
