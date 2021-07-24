@@ -4,7 +4,7 @@ using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 
 namespace NTR {
-    internal class RCScreen {
+    public class RCScreen {
         public string screen_id;
         public string screen_name;
         //public int screen_height;

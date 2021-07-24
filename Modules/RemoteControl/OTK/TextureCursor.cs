@@ -19,6 +19,7 @@ namespace NTR {
         private Rectangle rect; //Kinda silly we have this twice
 
         private int VBOScreen;
+        private bool vertBufferNeedUpdate;
         private Vector2[] vertBufferScreen;
 
         /// <summary>
@@ -29,6 +30,8 @@ namespace NTR {
         }
 
         public void Load(Rectangle rect, byte[] Data) {
+            if (this.rect.Width != rect.Width || this.rect.Height != rect.Height)
+                vertBufferNeedUpdate = true;
             this.rect = rect;
 
             //BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
@@ -77,18 +80,21 @@ namespace NTR {
             if (ID == -1 || Data == null || rect == null)
                 return false;
 
-            if (vertBufferScreen == null)
-                VBOScreen = GL.GenBuffer();
+            if (vertBufferNeedUpdate) {
+                vertBufferNeedUpdate = false;
+                if (vertBufferScreen == null)
+                    VBOScreen = GL.GenBuffer();
 
-            vertBufferScreen = new Vector2[8] {
-                new Vector2(rect.Left, rect.Bottom), new Vector2(0, 1),
-                new Vector2(rect.Right, rect.Bottom), new Vector2(1, 1),
-                new Vector2(rect.Right, rect.Top), new Vector2(1, 0),
-                new Vector2(rect.Left, rect.Top), new Vector2(0, 0)
-            };
-    
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
+                vertBufferScreen = new Vector2[8] {
+                    new Vector2(rect.Left, rect.Bottom), new Vector2(0, 1),
+                    new Vector2(rect.Right, rect.Bottom), new Vector2(1, 1),
+                    new Vector2(rect.Right, rect.Top), new Vector2(1, 0),
+                    new Vector2(rect.Left, rect.Top), new Vector2(0, 0)
+                };
+
+                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+                GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
+            }
 
             //--
 

@@ -87,6 +87,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Security" />
     <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
@@ -186,6 +187,8 @@
     <Compile Include="Modules\Registry\WindowRegistryString.xaml.cs">
       <DependentUpon>WindowRegistryString.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Modules\RemoteControl\IRemoteControl.cs" />
+    <Compile Include="Modules\RemoteControl\KeyboardHook.cs" />
     <Compile Include="Modules\RemoteControl\OpenGLSoftwareTest.cs" />
     <Compile Include="Modules\RemoteControl\OTK\Camera.cs" />
     <Compile Include="Modules\RemoteControl\MITM.cs" />
@@ -195,10 +198,17 @@
     <Compile Include="Modules\RemoteControl\RemoteControl.cs" />
     <Compile Include="Modules\RemoteControl\OTK\FPSCounter.cs" />
     <Compile Include="Modules\RemoteControl\OTK\RCScreen.cs" />
+    <Compile Include="Modules\RemoteControl\RemoteControlTest.cs" />
     <Compile Include="Modules\RemoteControl\Shaders.cs" />
     <Compile Include="Modules\RemoteControl\TSSession.cs" />
     <Compile Include="Modules\RemoteControl\WindowOptions.xaml.cs">
       <DependentUpon>WindowOptions.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\WindowRCTest.xaml.cs">
+      <DependentUpon>WindowRCTest.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\WindowScreens.xaml.cs">
+      <DependentUpon>WindowScreens.xaml</DependentUpon>
     </Compile>
     <Compile Include="Modules\RemoteControl\WindowViewerV2.xaml.cs">
       <DependentUpon>WindowViewerV2.xaml</DependentUpon>
@@ -286,6 +296,14 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Modules\RemoteControl\WindowOptions.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\RemoteControl\WindowRCTest.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\RemoteControl\WindowScreens.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

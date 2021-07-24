@@ -18,14 +18,14 @@ using System.Windows.Threading;
 namespace KLC_Finch {
     public class StaticImage {
 
-        private static string modulename = "staticimage";
-        private Image imgScreenPreview;
+        //private static readonly string modulename = "staticimage";
+        private readonly Image imgScreenPreview;
         private IWebSocketConnection serverB;
 
-        private KLC.LiveConnectSession session;
-        System.Timers.Timer timerStart;
-        System.Timers.Timer timerRefresh;
-        private List<RCScreen> listScreen = new List<RCScreen>();
+        private readonly KLC.LiveConnectSession session;
+        private readonly System.Timers.Timer timerStart;
+        private readonly System.Timers.Timer timerRefresh;
+        private readonly List<RCScreen> listScreen = new List<RCScreen>();
         private RCScreen currentScreen = null;
         private int requestWidth, requestHeight;
 
@@ -62,7 +62,9 @@ namespace KLC_Finch {
             byte type = bytes[0];
 
             if (type == 0x27) {
+#if DEBUG
                 Console.WriteLine("Connected StaticImage?");
+#endif
             } else {
                 int jsonLength = BitConverter.ToInt32(bytes, 1).SwapEndianness();
                 string jsonstr = Encoding.UTF8.GetString(bytes, 5, jsonLength);
@@ -76,11 +78,12 @@ namespace KLC_Finch {
                     Array.Copy(bytes, remStart, remaining, 0, remLength);
 
                 if (type == (byte)Enums.KaseyaMessageTypes.HostDesktopConfiguration) {
+#if DEBUG
                     Console.WriteLine("StaticImage - HostDesktopConfiguration");
                     //Console.WriteLine(jsonstr);
+#endif
 
                     int default_screen = (int)json["default_screen"];
-                    //Console.WriteLine("StaticImage - Clear Screens");
                     ClearScreens();
 
                     foreach (dynamic screen in json["screens"]) {
@@ -92,7 +95,9 @@ namespace KLC_Finch {
                         int screen_y = (int)screen["screen_y"];
 
                         AddScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
+#if DEBUG
                         Console.WriteLine("StaticImage - Add Screen: " + screen_id);
+#endif
 
                         if(screen["screen_id"].ToString() == json["default_screen"].ToString()) { //int or BigInteger
                             //Same as how it's done in Kaseya's rc-screenshot.html
@@ -119,8 +124,11 @@ namespace KLC_Finch {
                     }));
                 } else if (type == (byte)Enums.KaseyaMessageTypes.Clipboard) {
                     //Yes this is a thing...
+#if DEBUG
                     Console.WriteLine("StaticImage - Ignoring clipboard event");
+#endif
                 } else {
+#if DEBUG
                     Console.WriteLine("StaticImage - Unknown: " + type);
                     Console.WriteLine(jsonstr);
 
@@ -131,6 +139,7 @@ namespace KLC_Finch {
                         string remainingstr = Encoding.UTF8.GetString(bytes, 5 + jsonLength, remLength);
                         Console.WriteLine("StaticImage - Remaining: " + remainingHex);
                     }
+#endif
                 }
             }
         }

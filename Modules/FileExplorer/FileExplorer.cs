@@ -15,12 +15,12 @@ using System.Windows.Controls;
 namespace KLC_Finch {
     public class FileExplorer {
 
-        private static string modulename = "files";
+        private static readonly string modulename = "files";
         private IWebSocketConnection serverB, serverBdownload, serverBupload;
 
         private Modules.FilesData filesData;
 
-        private bool IsMac;
+        private readonly bool IsMac;
         private ListBox listExplorerFolders;
         //private DataGrid dgvExplorerFiles;
         private TextBox txtExplorerPath;
@@ -32,10 +32,10 @@ namespace KLC_Finch {
 
         private List<string> selectedPath;
         //private List<KLCFile> viewFiles;
-        private List<KLCFile> viewFolders;
+        private readonly List<KLCFile> viewFolders;
 
-        private Queue<Download> queueDownload;
-        private Queue<Upload> queueUpload;
+        private readonly Queue<Download> queueDownload;
+        private readonly Queue<Upload> queueUpload;
         private Download activeDownload;
         private Upload activeUpload;
         private string downloadDestination;
@@ -208,19 +208,6 @@ namespace KLC_Finch {
         }
 
         public void DeleteFolder(KLCFile klcFolder) {
-            JObject jDelete = new JObject();
-            jDelete["action"] = "DeleteItem";
-
-            JArray jItems = new JArray();
-            JObject jItemsObject = new JObject();
-            jItemsObject["name"] = klcFolder.Name;
-            jItemsObject["type"] = "folder";
-            jItemsObject["size"] = -1;
-            jItemsObject["date"] = klcFolder.Date;
-            jItemsObject["rowSelected"] = true;
-            jItems.Add(jItemsObject);
-            jDelete["items"] = jItems;
-
             JArray jGetPath = new JArray();
             for (int i = 0; i < selectedPath.Count; i++) {
                 if (i == 0) {
@@ -231,25 +218,37 @@ namespace KLC_Finch {
                 } else
                     jGetPath.Add(selectedPath[i]);
             }
-            jDelete["path"] = jGetPath;
-            jDelete["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+            JObject jDelete = new JObject {
+                ["action"] = "DeleteItem",
+                ["items"] = new JArray {
+                    new JObject {
+                        ["name"] = klcFolder.Name,
+                        ["type"] = "folder",
+                        ["size"] = -1,
+                        ["date"] = klcFolder.Date,
+                        ["rowSelected"] = true
+                    }
+                },
+                ["path"] = jGetPath,
+                ["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
             serverB.Send(jDelete.ToString());
         }
 
         public void DeleteFile(KLCFile klcFile) {
-            JObject jDelete = new JObject();
-            jDelete["action"] = "DeleteItem";
-
-            JArray jItems = new JArray();
-            JObject jItemsObject = new JObject();
-            jItemsObject["name"] = klcFile.Name;
-            jItemsObject["type"] = "file";
-            jItemsObject["size"] = klcFile.Size;
-            jItemsObject["date"] = klcFile.Date;
-            jItemsObject["rowSelected"] = true;
-            jItems.Add(jItemsObject);
-            jDelete["items"] = jItems;
+            JObject jDelete = new JObject {
+                ["action"] = "DeleteItem",
+                ["items"] = new JArray {
+                    new JObject {
+                        ["name"] = klcFile.Name,
+                        ["type"] = "file",
+                        ["size"] = klcFile.Size,
+                        ["date"] = klcFile.Date,
+                        ["rowSelected"] = true
+                    }
+                }
+            };
 
             JArray jGetPath = new JArray();
             for (int i = 0; i < selectedPath.Count; i++) {
@@ -272,19 +271,6 @@ namespace KLC_Finch {
             if (downloadDestination.Last() != '\\')
                 downloadDestination += "\\";
 
-            JObject jGetFull = new JObject();
-            jGetFull["action"] = "GetFullDownloadItemList";
-
-            JArray jItems = new JArray();
-            JObject jItemsObject = new JObject();
-            jItemsObject["name"] = klcFolder.Name;
-            jItemsObject["type"] = "folder";
-            jItemsObject["size"] = -1;
-            jItemsObject["date"] = klcFolder.Date;
-            jItemsObject["rowSelected"] = true;
-            jItems.Add(jItemsObject);
-            jGetFull["items"] = jItems;
-
             JArray jGetPath = new JArray();
             for (int i = 0; i < selectedPath.Count; i++) {
                 if (i == 0) {
@@ -295,8 +281,21 @@ namespace KLC_Finch {
                 } else
                     jGetPath.Add(selectedPath[i]);
             }
-            jGetFull["path"] = jGetPath;
-            jGetFull["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            JObject jGetFull = new JObject {
+                ["action"] = "GetFullDownloadItemList",
+                ["items"] = new JArray {
+                    new JObject {
+                        ["name"] = klcFolder.Name,
+                        ["type"] = "folder",
+                        ["size"] = -1,
+                        ["date"] = klcFolder.Date,
+                        ["rowSelected"] = true
+                    }
+                },
+                ["path"] = jGetPath,
+                ["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
 
             serverB.Send(jGetFull.ToString());
         }
@@ -311,8 +310,6 @@ namespace KLC_Finch {
             if (selectedPath.Count < 2)
                 return;
 
-            JObject jRename = new JObject();
-            jRename["action"] = "RenameItem";
             JArray jSourcePath = new JArray();
             JArray jDestinationPath = new JArray();
             for (int i = 0; i < selectedPath.Count; i++) {
@@ -332,10 +329,12 @@ namespace KLC_Finch {
             jSourcePath.Add(oldName);
             jDestinationPath.Add(newName);
 
-            jRename["sourcePath"] = jSourcePath;
-            jRename["destinationPath"] = jDestinationPath;
-            jRename["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
+            JObject jRename = new JObject {
+                ["action"] = "RenameItem",
+                ["sourcePath"] = jSourcePath,
+                ["destinationPath"] = jDestinationPath,
+                ["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
             serverB.Send(jRename.ToString());
         }
 
@@ -345,8 +344,6 @@ namespace KLC_Finch {
 
             //{ "action": "CreateFolder", "path": [ "C:\\", "temp", "TestFolder" ], "id": 1615078749826 }
 
-            JObject jCreate = new JObject();
-            jCreate["action"] = "CreateFolder";
             JArray jGetPath = new JArray();
             for (int i = 0; i < selectedPath.Count; i++) {
                 if (i == 0) {
@@ -358,9 +355,12 @@ namespace KLC_Finch {
                     jGetPath.Add(selectedPath[i]);
             }
             jGetPath.Add(newFolder);
-            jCreate["path"] = jGetPath;
-            jCreate["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+            JObject jCreate = new JObject {
+                ["action"] = "CreateFolder",
+                ["path"] = jGetPath,
+                ["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
             serverB.Send(jCreate.ToString());
         }
 
@@ -385,9 +385,6 @@ namespace KLC_Finch {
                         progressText.Text = "";
                     }));
 
-                    JObject jDown = new JObject();
-
-                    jDown["action"] = "Begin";
                     JArray jDownPath = new JArray();
                     for (int i = 0; i < activeDownload.Path.Count; i++) {
                         if (i == 0) {
@@ -398,12 +395,14 @@ namespace KLC_Finch {
                         } else
                             jDownPath.Add(activeDownload.Path[i]);
                     }
-                    jDown["path"] = jDownPath;
-                    jDown["filename"] = activeDownload.fileName;
-                    jDown["type"] = "file";
-                    jDown["fileID"] = activeDownload.fileID;
 
-                    //--
+                    JObject jDown = new JObject {
+                        ["action"] = "Begin",
+                        ["path"] = jDownPath,
+                        ["filename"] = activeDownload.fileName,
+                        ["type"] = "file",
+                        ["fileID"] = activeDownload.fileID
+                    };
 
                     string sendjson = jDown.ToString();
                     int jsonLen = sendjson.Length;
@@ -439,9 +438,10 @@ namespace KLC_Finch {
                     if (json["requiresAck"] != null) {
                         if ((bool)json["requiresAck"] == true) {
                             #region Ack
-                            JObject jAck = new JObject();
-                            jAck["action"] = "DataAck";
-                            jAck["filename"] = activeDownload.fileName;
+                            JObject jAck = new JObject {
+                                ["action"] = "DataAck",
+                                ["filename"] = activeDownload.fileName
+                            };
                             string sendjsonAck = jAck.ToString();
                             int jsonLenAck = sendjsonAck.Length;
                             int totalLenAck = jsonLenAck;// + content.Length;
@@ -564,9 +564,10 @@ namespace KLC_Finch {
         }
 
         private void UploadBlock() {
-            JObject jUpload = new JObject();
-            jUpload["action"] = "Data";
-            jUpload["fileID"] = activeUpload.fileID;
+            JObject jUpload = new JObject {
+                ["action"] = "Data",
+                ["fileID"] = activeUpload.fileID
+            };
 
             //--
 
@@ -606,9 +607,6 @@ namespace KLC_Finch {
             activeDownload = queueDownload.Dequeue();
             activeDownload.GenFileId();
 
-            JObject jDown = new JObject();
-
-            jDown["action"] = "Download";
             JArray jDownPath = new JArray();
             for (int i = 0; i < activeDownload.Path.Count; i++) {
                 if (i == 0) {
@@ -619,12 +617,15 @@ namespace KLC_Finch {
                 } else
                     jDownPath.Add(activeDownload.Path[i]);
             }
-            jDown["path"] = jDownPath;
-            jDown["filename"] = activeDownload.fileName;
-            jDown["type"] = "file";
-            jDown["fileId"] = activeDownload.fileID;
-            jDown["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+            JObject jDown = new JObject {
+                ["action"] = "Download",
+                ["path"] = jDownPath,
+                ["filename"] = activeDownload.fileName,
+                ["type"] = "file",
+                ["fileId"] = activeDownload.fileID,
+                ["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            };
             serverB.Send(jDown.ToString());
 
             //txtBox.Text = "Starting download: " + saveFile;
@@ -660,10 +661,6 @@ namespace KLC_Finch {
                 return;
             activeUpload = queueUpload.Dequeue();
 
-            JObject jUpload = new JObject();
-
-            jUpload["action"] = "Upload";
-            jUpload["fileID"] = activeUpload.fileID;
             JArray jUploadPath = new JArray();
             for (int i = 0; i < activeUpload.Path.Count; i++) {
                 if (i == 0) {
@@ -674,22 +671,25 @@ namespace KLC_Finch {
                 } else
                     jUploadPath.Add(activeUpload.Path[i]);
             }
-            jUpload["sourcePath"] = jUploadPath;
-            jUpload["file"] = activeUpload.fileName;
-            jUpload["size"] = activeUpload.GetFileSize();
-            jUpload["type"] = "file";
 
-            JObject jPerm = new JObject();
-            JObject jPermExec = new JObject();
-            jPermExec["owner"] = 0;
-            jPermExec["group"] = 0;
-            jPermExec["others"] = 0;
-            jPerm["isReadOnly"] = false;
-            jPerm["execPerms"] = jPermExec;
-            jUpload["permissions"] = jPerm;
-
-            jUpload["date"] = DateTimeOffset.UtcNow.ToString("s") + "Z";
-            jUpload["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            JObject jUpload = new JObject {
+                ["action"] = "Upload",
+                ["fileID"] = activeUpload.fileID,
+                ["sourcePath"] = jUploadPath,
+                ["file"] = activeUpload.fileName,
+                ["size"] = activeUpload.GetFileSize(),
+                ["type"] = "file",
+                ["permissions"] = new JObject {
+                    ["isReadOnly"] = false,
+                    ["execPerms"] = new JObject {
+                        ["owner"] = 0,
+                        ["group"] = 0,
+                        ["others"] = 0
+                    },
+                },
+                ["date"] = DateTimeOffset.UtcNow.ToString("s") + "Z",
+                ["id"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
 
             serverB.Send(jUpload.ToString());
         }
@@ -699,7 +699,6 @@ namespace KLC_Finch {
                 return;
 
             //{"action":"GetFolderContents","path":["C:\\","temp"],"id":1582283274052}
-            JObject jGet = new JObject();
 
             if (txtExplorerPath != null) {
                 if (IsMac) {
@@ -719,10 +718,10 @@ namespace KLC_Finch {
                 }
             }
 
+            JObject jGet;
             if (selectedPath.Count == 0) {
-                jGet["action"] = "GetDrives";
+                jGet = new JObject { ["action"] = "GetDrives" };
             } else {
-                jGet["action"] = "GetFolderContents";
                 JArray jGetPath = new JArray();
                 for (int i = 0; i < selectedPath.Count; i++) {
                     if (i == 0) {
@@ -733,8 +732,11 @@ namespace KLC_Finch {
                     } else
                         jGetPath.Add(selectedPath[i]);
                 }
-                jGet["path"] = jGetPath;
-                jGet["id"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                jGet = new JObject {
+                    ["action"] = "GetFolderContents",
+                    ["path"] = jGetPath,
+                    ["id"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                };
             }
 
             serverB.Send(jGet.ToString());

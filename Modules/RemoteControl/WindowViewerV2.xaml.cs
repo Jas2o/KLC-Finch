@@ -2,24 +2,19 @@
 using LibKaseya;
 using NTR;
 using nucs.JsonSettings;
+using Ookii.Dialogs.Wpf;
 using OpenTK;
-using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Interop;
 
 //To look into regarding the changes to Key/Keys
 //https://stackoverflow.com/questions/1153009/how-can-i-convert-system-windows-input-key-to-system-windows-forms-keys
@@ -36,36 +31,37 @@ namespace KLC_Finch {
 
         private bool autotypeAlwaysConfirmed;
         private string clipboard = "";
-        private KLC.ClipBoardMonitor clipboardMon;
+        private readonly ClipBoardMonitor clipboardMon;
         private ConnectionStatus connectionStatus;
         private bool controlEnabled = false;
-        private RCScreen currentScreen = null;
+        public RCScreen CurrentScreen { get; private set; }
         private TSSession currentTSSession = null;
-        private FPSCounter fpsCounter;
+        private readonly FPSCounter fpsCounter;
         private double fpsLast;
         private int fragment_shader_object = 0;
-        private bool glSupported; //Otherwise Canvas RGB
-        private bool isMac;
+        private readonly bool glSupported; //Otherwise Canvas RGB
+        private readonly bool isMac;
         private bool keyDownWin;
         private long lastLatency;
         private int legacyVirtualWidth, legacyVirtualHeight;
-        private List<RCScreen> listScreen = new List<RCScreen>();
-        private List<TSSession> listTSSession = new List<TSSession>();
-        private RCScreen legacyScreen;
-        private object lockFrameBuf = new object();
+        public List<RCScreen> ListScreen { get; private set; }
+        private readonly List<TSSession> listTSSession = new List<TSSession>();
+        private readonly RCScreen legacyScreen;
+        private readonly object lockFrameBuf = new object();
         private int m_shader_multiplyColor = 0;
-        private int[] m_shader_sampler = new int[3];
-        private Camera MainCamera;
+        private readonly int[] m_shader_sampler = new int[3];
+        private readonly Camera MainCamera;
         private RCScreen previousScreen = null;
-        private RemoteControl rc;
+        private readonly IRemoteControl rc;
         private double scaleX, scaleY;
         private string sessionId;
         private int shader_program = 0;
         private bool socketAlive = false;
         private TextureCursor textureCursor = null;
         private TextureScreen textureLegacy;
-        private System.Timers.Timer timerHealth;
-        private bool useMultiScreen = true;
+        private readonly Timer timerHealth;
+        private bool useMultiScreen;
+        private bool useMultiScreenOverview;
         private int VBOScreen;
         private Vector2[] vertBufferScreen;
         private int vertex_shader_object = 0;
@@ -74,14 +70,23 @@ namespace KLC_Finch {
         private int vpX, vpY;
         private bool windowActivatedMouseMove;
 
-        public WindowViewerV2(RemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, bool isMac = false) {
+        private readonly WindowScreens winScreens;
+        private readonly KeyboardHook keyHook;
+        private bool keyHookAllow;
+
+        public WindowViewerV2(IRemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, bool isMac = false) {
             InitializeComponent();
+            ListScreen = new List<RCScreen>();
+            winScreens = new WindowScreens();
+            keyHook = new KeyboardHook();
+            keyHook.KeyDown += KeyHook_KeyDown;
+            keyHook.KeyUp += KeyHook_KeyUp;
             toolVersion.Header = "Build date: " + App.Version;
 
             this.isMac = isMac;
 
             string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
-            if (File.Exists(pathSettings))
+            if (System.IO.File.Exists(pathSettings))
                 Settings = JsonSettings.Load<Settings>(pathSettings);
             else
                 Settings = JsonSettings.Construct<Settings>(pathSettings);
@@ -89,19 +94,7 @@ namespace KLC_Finch {
             DpiScale dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this);
             this.Width = Settings.RemoteControlWidth / dpiScale.PixelsPerDip;
             this.Height = Settings.RemoteControlHeight / dpiScale.PixelsPerDip;
-
-            autotypeAlwaysConfirmed = toolSettingAutotypeSkipLengthCheck.IsChecked = Settings.AutotypeSkipLengthCheck;
-            toolSettingStartControlEnabled.IsChecked = Settings.StartControlEnabled;
-            toolSettingMacSwapCtrlWin.IsChecked = Settings.MacSwapCtrlWin;
-            toolSettingMultiAltFit.IsChecked = Settings.MultiAltFit;
-            toolSettingMultiShowCursor.IsChecked = Settings.MultiShowCursor;
-            toolSettingUseYUVShader.IsChecked = Settings.UseYUVShader;
-            toolDebugKeyboardMod.IsChecked = Settings.DisplayOverlayKeyboardMod;
-            toolDebugKeyboardOther.IsChecked = Settings.DisplayOverlayKeyboardOther;
-            toolDebugMouse.IsChecked = Settings.DisplayOverlayMouse;
-            // This repetition needs to be fixed
-            toolClipboardSync.Visibility = (Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
-            toolClipboardReceiveOnly.Visibility = (!Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
+            LoadSettings(true);
 
             if (isMac && Settings.MacSwapCtrlWin)
                 toolKeyWin.Visibility = Visibility.Collapsed;
@@ -160,6 +153,63 @@ namespace KLC_Finch {
             WindowUtilities.ActivateWindow(this);
         }
 
+        private void KeyHook_KeyUp(KeyboardHook.VKeys key) {
+            Window_KeyUp2(new System.Windows.Forms.KeyEventArgs((System.Windows.Forms.Keys)key));
+        }
+
+        private void KeyHook_KeyDown(KeyboardHook.VKeys key) {
+            Window_PreviewKeyDown2(new System.Windows.Forms.KeyEventArgs((System.Windows.Forms.Keys)key));
+        }
+
+        private void LoadSettings(bool isStart=false) {
+            if (isStart) {
+                useMultiScreen = Settings.StartMultiScreen;
+                if (useMultiScreen) {
+                    /*
+                    if (Settings.StartControlEnabled)
+                        PositionCameraToCurrentScreen();
+                    else
+                        ChangeViewToOverview();
+                    */
+                    toolScreenMode.Content = "Multi";
+                    toolScreenOverview.Visibility = Visibility.Visible;
+                    toolZoomIn.Visibility = Visibility.Visible;
+                    toolZoomOut.Visibility = Visibility.Visible;
+                } else {
+                    toolScreenMode.Content = "Legacy";
+                    toolScreenOverview.Visibility = Visibility.Collapsed;
+                    toolZoomIn.Visibility = Visibility.Collapsed;
+                    toolZoomOut.Visibility = Visibility.Collapsed;
+                }
+                //SetControlEnabled(Settings.StartControlEnabled, true);
+            }
+
+            autotypeAlwaysConfirmed = Settings.AutotypeSkipLengthCheck;
+            keyHookAllow = Settings.KeyboardHook;
+            KeyHookSet(false);
+            // This repetition needs to be fixed
+            toolClipboardSync.Visibility = (Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
+            toolClipboardReceiveOnly.Visibility = !Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed;
+        }
+        private void KeyHookSet(bool canCheckKeyboard=false) {
+            if (canCheckKeyboard) {
+                keyHookAllow = Keyboard.IsKeyToggled(Key.Scroll) || Settings.KeyboardHook;
+                if (!IsActive)
+                    keyHookAllow = false;
+            }
+
+            if (!controlEnabled || !keyHookAllow) {
+                if (keyHook.IsActive)
+                    keyHook.Uninstall();
+            } else {
+                if (!keyHook.IsActive)
+                    keyHook.Install();
+            }
+
+            if (canCheckKeyboard) //More like canUpdateUI
+                txtRcHookOn.Visibility = (keyHook.IsActive && Settings.DisplayOverlayKeyboardHook ? Visibility.Visible : Visibility.Collapsed);
+        }
+
         private enum ConnectionStatus {
             FirstConnectionAttempt,
             Connected,
@@ -183,24 +233,24 @@ namespace KLC_Finch {
                 #region Multi-Screen
 
                 RCScreen scr = null;
-                if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
-                    scr = currentScreen;
-                else if (currentScreen != null && currentScreen.rectFixed.Width == width && currentScreen.rectFixed.Height == height)
-                    scr = currentScreen;
+                if (CurrentScreen != null && CurrentScreen.rect.Width == width && CurrentScreen.rect.Height == height)
+                    scr = CurrentScreen;
+                else if (CurrentScreen != null && CurrentScreen.rectFixed.Width == width && CurrentScreen.rectFixed.Height == height)
+                    scr = CurrentScreen;
                 else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
                     scr = previousScreen;
                 else if (previousScreen != null && previousScreen.rectFixed.Width == width && previousScreen.rectFixed.Height == height)
                     scr = previousScreen;
                 else {
-                    List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
-                    List<RCScreen> scrMatchFixed = listScreen.FindAll(x => x.rectFixed.Width == width && x.rectFixed.Height == height);
-                    List<RCScreen> scrMatchHalf = listScreen.FindAll(x => x.rectFixed.Width == width / 2 && x.rectFixed.Height == height / 2);
+                    List<RCScreen> scrMatch = ListScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
+                    List<RCScreen> scrMatchFixed = ListScreen.FindAll(x => x.rectFixed.Width == width && x.rectFixed.Height == height);
+                    List<RCScreen> scrMatchHalf = ListScreen.FindAll(x => x.rectFixed.Width == width / 2 && x.rectFixed.Height == height / 2);
                     if (scrMatch.Count == 1) {
                         scr = scrMatch[0];
                     } else if (scrMatchFixed.Count == 1) {
                         scr = scrMatchFixed[0];
                     } else if (scrMatchHalf.Count == 1) {
-                        Console.WriteLine("Mac with Retina display?");
+                        //Console.WriteLine("Mac with Retina display?");
                         scr = scrMatchHalf[0];
                         legacyVirtualWidth = scr.rectFixed.Width = width;
                         legacyVirtualHeight = scr.rectFixed.Height = height;
@@ -243,21 +293,23 @@ namespace KLC_Finch {
 
                 #region Legacy
 
-                if (currentScreen == null)
+                if (CurrentScreen == null)
                     return;
 
                 if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
+#if DEBUG
                     Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
+#endif
                     SetVirtual(0, 0, width, height);
 
                     try {
-                        currentScreen.rect.Width = width;
-                        currentScreen.rect.Height = height;
+                        CurrentScreen.rect.Width = width;
+                        CurrentScreen.rect.Height = height;
                         //This is a sad attempt a fixing a problem when changing left monitor's size.
                         //However if changing a middle monitor, the right monitor will break.
                         //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                        if (currentScreen.rect.X < 0)
-                            currentScreen.rect.X = width * -1;
+                        if (CurrentScreen.rect.X < 0)
+                            CurrentScreen.rect.X = width * -1;
                     } catch (Exception ex) {
                         Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
                     }
@@ -315,24 +367,24 @@ namespace KLC_Finch {
                 #region Multi-Screen
 
                 RCScreen scr = null;
-                if (currentScreen != null && currentScreen.rect.Width == width && currentScreen.rect.Height == height)
-                    scr = currentScreen;
-                else if (currentScreen != null && currentScreen.rectFixed.Width == width && currentScreen.rectFixed.Height == height)
-                    scr = currentScreen;
+                if (CurrentScreen != null && CurrentScreen.rect.Width == width && CurrentScreen.rect.Height == height)
+                    scr = CurrentScreen;
+                else if (CurrentScreen != null && CurrentScreen.rectFixed.Width == width && CurrentScreen.rectFixed.Height == height)
+                    scr = CurrentScreen;
                 else if (previousScreen != null && previousScreen.rect.Width == width && previousScreen.rect.Height == height)
                     scr = previousScreen;
                 else if (previousScreen != null && previousScreen.rectFixed.Width == width && previousScreen.rectFixed.Height == height)
                     scr = previousScreen;
                 else {
-                    List<RCScreen> scrMatch = listScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
-                    List<RCScreen> scrMatchFixed = listScreen.FindAll(x => x.rectFixed.Width == width && x.rectFixed.Height == height);
-                    List<RCScreen> scrMatchHalf = listScreen.FindAll(x => x.rectFixed.Width == width / 2 && x.rectFixed.Height == height / 2);
+                    List<RCScreen> scrMatch = ListScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
+                    List<RCScreen> scrMatchFixed = ListScreen.FindAll(x => x.rectFixed.Width == width && x.rectFixed.Height == height);
+                    List<RCScreen> scrMatchHalf = ListScreen.FindAll(x => x.rectFixed.Width == width / 2 && x.rectFixed.Height == height / 2);
                     if (scrMatch.Count == 1) {
                         scr = scrMatch[0];
                     } else if (scrMatchFixed.Count == 1) {
                         scr = scrMatchFixed[0];
                     } else if (scrMatchHalf.Count == 1) {
-                        Console.WriteLine("Mac with Retina display?");
+                        //Console.WriteLine("Mac with Retina display?");
                         scr = scrMatchHalf[0];
                         legacyVirtualWidth = scr.rectFixed.Width = width;
                         legacyVirtualHeight = scr.rectFixed.Height = height;
@@ -365,21 +417,23 @@ namespace KLC_Finch {
 
                 #region Legacy
 
-                if (currentScreen == null)
+                if (CurrentScreen == null)
                     return;
 
                 if (legacyVirtualWidth != width || legacyVirtualHeight != height) {
+#if DEBUG
                     Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
+#endif
                     SetVirtual(0, 0, width, height);
 
                     try {
-                        currentScreen.rect.Width = width;
-                        currentScreen.rect.Height = height;
-                        //This is a sad attempt a fixing a problem when changing left monitor's size.
-                        //However if changing a middle monitor, the right monitor will break.
-                        //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                        if (currentScreen.rect.X < 0)
-                            currentScreen.rect.X = width * -1;
+                        CurrentScreen.rect.Width = CurrentScreen.rectFixed.Width = width;
+                        CurrentScreen.rect.Height = CurrentScreen.rectFixed.Height = height;
+                        ////This is a sad attempt a fixing a problem when changing left monitor's size.
+                        ////However if changing a middle monitor, the right monitor will break.
+                        ////The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
+                        //if (currentScreen.rect.X < 0)
+                            //currentScreen.rect.X = width * -1;
                     } catch (Exception ex) {
                         Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
                     }
@@ -475,10 +529,11 @@ namespace KLC_Finch {
 
         public void SetControlEnabled(bool value, bool isStart = false) {
             if (isStart) {
-                if (Settings.StartControlEnabled) {
-                    controlEnabled = value;
+                controlEnabled = Settings.StartControlEnabled;
+                if (Settings.StartMultiScreen && controlEnabled)
                     PositionCameraToCurrentScreen();
-                }
+                else
+                    useMultiScreenOverview = true;
             } else
                 controlEnabled = value;
 
@@ -500,7 +555,8 @@ namespace KLC_Finch {
                     }
                 txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = (controlEnabled ? Visibility.Hidden : Visibility.Visible);
                 }
-                
+
+                KeyHookSet(true);
             });
         }
 
@@ -543,11 +599,13 @@ namespace KLC_Finch {
             if (!useMultiScreen)
                 return;
 
+            useMultiScreenOverview = true;
+
             int lowestX = 0;
             int lowestY = 0;
             int highestX = 0;
             int highestY = 0;
-            foreach (RCScreen screen in listScreen) {
+            foreach (RCScreen screen in ListScreen) {
                 lowestX = Math.Min(screen.rectFixed.X, lowestX);
                 lowestY = Math.Min(screen.rectFixed.Y, lowestY);
                 highestX = Math.Max(screen.rectFixed.X + screen.rectFixed.Width, highestX);
@@ -572,10 +630,16 @@ namespace KLC_Finch {
 
         private void CheckHealth(object sender, ElapsedEventArgs e) {
             Dispatcher.Invoke((Action)delegate {
+#if DEBUG
+                if (keyHook.IsActive && !IsActive) {
+                    MessageBox.Show("[RC:CheckHealth] Keyhook active but not RC window.");
+                }
+#endif
+
                 //txtDebugLeft.Visibility = (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
                 //txtDebugRight.Visibility = (Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
 
-                switch(connectionStatus) {
+                switch (connectionStatus) {
                     case ConnectionStatus.FirstConnectionAttempt:
                         txtRcFrozen.Visibility = Visibility.Collapsed;
                         txtRcConnecting.Visibility = Visibility.Visible;
@@ -604,6 +668,12 @@ namespace KLC_Finch {
                         txtRcFrozen.Visibility = Visibility.Collapsed;
                         txtRcDisconnected.Visibility = Visibility.Visible;
                         rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Maroon);
+
+                        if (keyHook.IsActive) {
+                            keyHook.Uninstall();
+                            txtRcHookOn.Visibility = Visibility.Collapsed;
+                        }
+
                         timerHealth.Stop();
                         break;
                 }
@@ -618,17 +688,14 @@ namespace KLC_Finch {
         #region OpenGL
 
         private void CreateShaders(string vs, string fs, out int vertexObject, out int fragmentObject, out int program) {
-            int status_code;
-            string info;
-
             vertexObject = GL.CreateShader(ShaderType.VertexShader);
             fragmentObject = GL.CreateShader(ShaderType.FragmentShader);
 
             // Compile vertex shader
             GL.ShaderSource(vertexObject, vs);
             GL.CompileShader(vertexObject);
-            GL.GetShaderInfoLog(vertexObject, out info);
-            GL.GetShader(vertexObject, ShaderParameter.CompileStatus, out status_code);
+            GL.GetShaderInfoLog(vertexObject, out string info);
+            GL.GetShader(vertexObject, ShaderParameter.CompileStatus, out int status_code);
 
             if (status_code != 1)
                 throw new ApplicationException(info);
@@ -651,23 +718,20 @@ namespace KLC_Finch {
         }
 
         private void GlControl_SizeChanged(object sender, SizeChangedEventArgs e) {
+            //Does this do anything anymore?
             RefreshVirtual();
             virtualRequireViewportUpdate = true;
         }
 
-        private void WindowViewerV2_SizeChanged(object sender, SizeChangedEventArgs e) {
-            Console.WriteLine(e.NewSize.ToString());
-        }
-
         private void HandleCanvasMouseWheel(object sender, MouseWheelEventArgs e) {
-            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (!controlEnabled || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.SendMouseWheel(e.Delta);
         }
 
         private void HandleCanvasMouseUp(object sender, MouseButtonEventArgs e) {
-            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (!controlEnabled || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             //if (rcCanvas.Contains(e.GetPosition((Canvas)sender))) {
@@ -683,7 +747,7 @@ namespace KLC_Finch {
         }
 
         private void HandleCanvasMouseDown(object sender, MouseButtonEventArgs e) {
-            if (rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (connectionStatus != ConnectionStatus.Connected)
                 return;
 
             if (useMultiScreen) {
@@ -693,7 +757,7 @@ namespace KLC_Finch {
                     return;
 
                 if (controlEnabled) {
-                    if (virtualViewWant != virtualCanvas && screenPointingTo != currentScreen) {
+                    if (virtualViewWant != virtualCanvas && screenPointingTo != CurrentScreen) {
                         FromGlChangeScreen(screenPointingTo, true);
                         return;
                     }
@@ -701,7 +765,7 @@ namespace KLC_Finch {
                     if (e.ClickCount == 2) {
                         SetControlEnabled(true);
                     } else if (e.ChangedButton == MouseButton.Left) {
-                        if (currentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
+                        if (CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
                             FromGlChangeScreen(screenPointingTo, false);
                         //Else
                         //We already changed the active screen by moving the mouse
@@ -740,7 +804,7 @@ namespace KLC_Finch {
         }
 
         private void HandleCanvasMouseMove(object sender, MouseEventArgs e) {
-            if (currentScreen == null || rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (CurrentScreen == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             windowActivatedMouseMove = false;
@@ -755,7 +819,7 @@ namespace KLC_Finch {
                 if (screenPointingTo == null)
                     return;
 
-                if (virtualViewWant == virtualCanvas && currentScreen.screen_id != screenPointingTo.screen_id) {
+                if (virtualViewWant == virtualCanvas && CurrentScreen.screen_id != screenPointingTo.screen_id) {
                     //We are in overview, change which screen gets texture updates
                     FromGlChangeScreen(screenPointingTo, false);
                 }
@@ -797,7 +861,7 @@ namespace KLC_Finch {
             }
 
             /*
-            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (!controlEnabled || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             System.Windows.Point point = e.GetPosition((Canvas)sender);
@@ -808,7 +872,7 @@ namespace KLC_Finch {
         }
 
         private void InitTextures() {
-            textureLegacy = new TextureScreen((rc != null ? Settings.UseYUVShader : false));
+            textureLegacy = new TextureScreen(rc.UseYUVShader);
             //InitLegacyScreenTexture();
 
             GL.EnableClientState(ArrayCap.VertexArray);
@@ -821,12 +885,14 @@ namespace KLC_Finch {
 
         private void PositionCameraToCurrentScreen() {
             if (!glSupported) {
-                SetCanvas(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
+                SetCanvas(CurrentScreen.rect.X, CurrentScreen.rect.Y, CurrentScreen.rect.Width, CurrentScreen.rect.Height);
                 return;
             }
 
             if (!useMultiScreen)
                 return;
+
+            useMultiScreenOverview = false;
 
             //MainCamera.Rotation = 0f;
             MainCamera.Position = Vector2.Zero;
@@ -839,26 +905,26 @@ namespace KLC_Finch {
                 bool adjustRight = false;
                 bool adjustDown = false;
 
-                foreach (RCScreen screen in listScreen) {
-                    if (screen == currentScreen)
+                foreach (RCScreen screen in ListScreen) {
+                    if (screen == CurrentScreen)
                         continue;
 
-                    if (screen.rect.Right <= currentScreen.rect.Left)
+                    if (screen.rect.Right <= CurrentScreen.rect.Left)
                         adjustLeft = true;
-                    if (screen.rect.Bottom <= currentScreen.rect.Top)
+                    if (screen.rect.Bottom <= CurrentScreen.rect.Top)
                         adjustUp = true;
-                    if (screen.rect.Left >= currentScreen.rect.Right)
+                    if (screen.rect.Left >= CurrentScreen.rect.Right)
                         adjustRight = true;
-                    if (screen.rect.Top >= currentScreen.rect.Bottom)
+                    if (screen.rect.Top >= CurrentScreen.rect.Bottom)
                         adjustDown = true;
                 }
 
-                SetVirtual(currentScreen.rectFixed.X - (adjustLeft ? 80 : 0),
-                    currentScreen.rectFixed.Y - (adjustUp ? 80 : 0),
-                    currentScreen.rectFixed.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
-                    currentScreen.rectFixed.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
+                SetVirtual(CurrentScreen.rectFixed.X - (adjustLeft ? 80 : 0),
+                    CurrentScreen.rectFixed.Y - (adjustUp ? 80 : 0),
+                    CurrentScreen.rectFixed.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
+                    CurrentScreen.rectFixed.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
             } else
-                SetVirtual(currentScreen.rectFixed.X, currentScreen.rectFixed.Y, currentScreen.rectFixed.Width, currentScreen.rectFixed.Height);
+                SetVirtual(CurrentScreen.rectFixed.X, CurrentScreen.rectFixed.Y, CurrentScreen.rectFixed.Width, CurrentScreen.rectFixed.Height);
         }
 
         private void RefreshVirtual() {
@@ -886,9 +952,9 @@ namespace KLC_Finch {
 
             // Setup new textures, not actually render
             //lock (lockFrameBuf) {
-            foreach (RCScreen screen in listScreen) {
+            foreach (RCScreen screen in ListScreen) {
                 if (screen.Texture == null)
-                    screen.Texture = new TextureScreen((rc != null ? Settings.UseYUVShader : false));
+                    screen.Texture = new TextureScreen(rc.UseYUVShader);
                 else
                     screen.Texture.RenderNew(m_shader_sampler);
             }
@@ -925,10 +991,10 @@ namespace KLC_Finch {
             GL.Finish();
 
             if (useMultiScreen) {
-                foreach (RCScreen screen in listScreen) {
+                foreach (RCScreen screen in ListScreen) {
                     if (screen.Texture != null) {
                         Color multiplyColor;
-                        if (screen == currentScreen)
+                        if (screen == CurrentScreen)
                             multiplyColor = Color.White;
                         else if (controlEnabled || virtualViewWant == virtualCanvas) //In overview, or it's on the edge of focused screen
                             multiplyColor = Color.Gray;
@@ -1040,6 +1106,7 @@ namespace KLC_Finch {
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
             GL.Ortho(0, legacyVirtualWidth, legacyVirtualHeight, 0, -1, 1);//Upsidedown
+            //GL.Ortho(0, legacyVirtualWidth, legacyVirtualHeight, 0, -1, 1);//Upsidedown
             //GL.Ortho(0, legacyVirtualWidth, 0, legacyVirtualHeight, -1, 1);
 
             GL.MatrixMode(MatrixMode.Modelview);
@@ -1093,7 +1160,7 @@ namespace KLC_Finch {
         #endregion OpenGL
 
         private void HandleMouseDown(object sender, MouseButtonEventArgs e) {
-            if (rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (connectionStatus != ConnectionStatus.Connected)
                 return;
 
             System.Windows.Point pointWPF = e.GetPosition(glControl);
@@ -1104,7 +1171,7 @@ namespace KLC_Finch {
                     return;
 
                 if (controlEnabled) {
-                    if (virtualViewWant != virtualCanvas && screenPointingTo != currentScreen) {
+                    if (virtualViewWant != virtualCanvas && screenPointingTo != CurrentScreen) {
                         FromGlChangeScreen(screenPointingTo, true);
                         return;
                     }
@@ -1112,7 +1179,7 @@ namespace KLC_Finch {
                     if (e.ClickCount == 2) {
                         SetControlEnabled(true);
                     } else if (e.ChangedButton == MouseButton.Left) {
-                        if (currentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
+                        if (CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
                             FromGlChangeScreen(screenPointingTo, false);
                         //Else
                         //We already changed the active screen by moving the mouse
@@ -1151,7 +1218,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseMove(object sender, MouseEventArgs e) {
-            if (currentScreen == null || rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (CurrentScreen == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             windowActivatedMouseMove = false;
@@ -1164,7 +1231,7 @@ namespace KLC_Finch {
                 if (screenPointingTo == null)
                     return;
 
-                if (virtualViewWant == virtualCanvas && currentScreen.screen_id != screenPointingTo.screen_id) {
+                if (virtualViewWant == virtualCanvas && CurrentScreen.screen_id != screenPointingTo.screen_id) {
                     //We are in overview, change which screen gets texture updates
                     FromGlChangeScreen(screenPointingTo, false);
 
@@ -1199,8 +1266,8 @@ namespace KLC_Finch {
                 if (legacyPoint.X > legacyVirtualWidth || legacyPoint.Y > legacyVirtualHeight)
                     return;
 
-                legacyPoint.X = legacyPoint.X + currentScreen.rect.X;
-                legacyPoint.Y = legacyPoint.Y + currentScreen.rect.Y;
+                legacyPoint.X += CurrentScreen.rect.X;
+                legacyPoint.Y += CurrentScreen.rect.Y;
 
                 DebugMouseEvent(legacyPoint.X, legacyPoint.Y);
                 rc.SendMousePosition(legacyPoint.X, legacyPoint.Y);
@@ -1208,7 +1275,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseUp(object sender, MouseButtonEventArgs e) {
-            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (!controlEnabled || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             if (glControl.IsMouseOver) {
@@ -1224,7 +1291,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseWheel(object sender, MouseWheelEventArgs e) {
-            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (!controlEnabled || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.SendMouseWheel(e.Delta);
@@ -1253,16 +1320,19 @@ namespace KLC_Finch {
                     rc.SendAutotype(text);
                 }
             } else {
+#if DEBUG
                 Console.WriteLine("Autotype blocked: too long or had a new line character");
+#endif
             }
         }
 
         private void SwitchToLegacyRendering() {
             useMultiScreen = false;
+            virtualRequireViewportUpdate = true;
 
             Dispatcher.Invoke((Action)delegate {
-                toolScreenOverview.Content = "Legacy";
-                //toolScreenOverview.IsEnabled = false;
+                toolScreenMode.Content = "Legacy";
+                toolScreenOverview.Visibility = Visibility.Collapsed;
                 toolZoomIn.Visibility = Visibility.Collapsed;
                 toolZoomOut.Visibility = Visibility.Collapsed;
             });
@@ -1271,28 +1341,32 @@ namespace KLC_Finch {
         private void SyncClipboard(object sender, EventArgs e) {
             try {
                 if (Settings.ClipboardSyncEnabled) {
-                    this.toolClipboardSend_Click(sender, e);
+                    this.ToolClipboardSend_Click(sender, e);
+#if DEBUG
                     Console.WriteLine("[Clipboard sync] Success?");
+#endif
                 }
             } catch (Exception) {
+#if DEBUG
                 Console.WriteLine("[Clipboard sync] Fail");
+#endif
             }
         }
 
-        private void toolClipboardAutotype_Click(object sender, RoutedEventArgs e) {
-            if (rc == null || !controlEnabled || connectionStatus != ConnectionStatus.Connected)
+        private void ToolClipboardAutotype_Click(object sender, RoutedEventArgs e) {
+            if (!controlEnabled || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             PerformAutotype();
         }
 
-        private void toolClipboardGet_Click(object sender, RoutedEventArgs e) {
+        private void ToolClipboardGet_Click(object sender, RoutedEventArgs e) {
             if (clipboard.Length > 0)
-                Clipboard.SetText(clipboard);
+                Clipboard.SetDataObject(clipboard);
         }
 
-        private void toolClipboardSend_Click(object sender, EventArgs e) {
-            if (rc == null || connectionStatus != ConnectionStatus.Connected)
+        private void ToolClipboardSend_Click(object sender, EventArgs e) {
+            if (connectionStatus != ConnectionStatus.Connected)
                 return;
 
             clipboard = Clipboard.GetText();
@@ -1305,55 +1379,49 @@ namespace KLC_Finch {
             });
         }
 
-        private void toolClipboardSend_MouseEnter(object sender, MouseEventArgs e) {
+        private void ToolClipboardSend_MouseEnter(object sender, MouseEventArgs e) {
             clipboard = Clipboard.GetText();
             Dispatcher.Invoke((Action)delegate {
                 toolClipboardSendText.Text = clipboard.Truncate(50); //.Replace("\r", "").Replace("\n", "").Truncate(50);
             });
         }
 
-        private void toolClipboardSync_Click(object sender, RoutedEventArgs e) {
+        private void ToolClipboardSync_Click(object sender, RoutedEventArgs e) {
             Settings.ClipboardSyncEnabled = !Settings.ClipboardSyncEnabled;
 
             toolClipboardSync.Visibility = (Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
             toolClipboardReceiveOnly.Visibility = (!Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
         }
 
-        private void toolDebugKeyboardMod_Click(object sender, RoutedEventArgs e) {
-            toolDebugKeyboardMod.IsChecked = Settings.DisplayOverlayKeyboardMod = !Settings.DisplayOverlayKeyboardMod;
+        private void ToolDisconnect_Click(object sender, RoutedEventArgs e) {
+            //if (sessionId == null)
+                //NotifySocketClosed(null);
+            //else
+            rc.Disconnect(sessionId);
         }
 
-        private void toolDebugKeyboardOther_Click(object sender, RoutedEventArgs e) {
-            toolDebugKeyboardOther.IsChecked = Settings.DisplayOverlayKeyboardOther = !Settings.DisplayOverlayKeyboardOther;
-        }
-
-        private void toolDebugMouse_Click(object sender, RoutedEventArgs e) {
-            toolDebugMouse.IsChecked = Settings.DisplayOverlayMouse = !Settings.DisplayOverlayMouse;
-        }
-
-        private void toolDisconnect_Click(object sender, RoutedEventArgs e) {
-            if (sessionId == null)
-                NotifySocketClosed(null);
-            else
-                rc.Disconnect(sessionId);
-        }
-
-        private void toolKeyWin_Click(object sender, RoutedEventArgs e) {
+        private void ToolKeyWin_Click(object sender, RoutedEventArgs e) {
             KeyWinSet(!keyDownWin);
         }
 
-        private void toolMachineNoteLink_Click(object sender, RoutedEventArgs e) {
+        private void ToolMachineNoteLink_Click(object sender, RoutedEventArgs e) {
             string link = toolMachineNoteLink.Header.ToString();
             if (link.Contains("http"))
                 Process.Start(new ProcessStartInfo(link) { UseShellExecute = true });
         }
 
-        private void toolOptions_Click(object sender, RoutedEventArgs e) {
-            new Modules.RemoteControl.WindowOptions().ShowDialog();
+        private void ToolOptions_Click(object sender, RoutedEventArgs e) {
+            Modules.RemoteControl.WindowOptions winOptions = new Modules.RemoteControl.WindowOptions(ref Settings) {
+                Owner = this
+            };
+            winOptions.ShowDialog();
+            LoadSettings();
+            if(virtualViewWant != virtualCanvas) //Not in Overview?
+                PositionCameraToCurrentScreen(); //Multi-Screen Alt Fit
         }
 
-        private void toolPanicRelease_Click(object sender, RoutedEventArgs e) {
-            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
+        private void ToolPanicRelease_Click(object sender, RoutedEventArgs e) {
+            if (!controlEnabled || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.SendPanicKeyRelease();
@@ -1363,93 +1431,48 @@ namespace KLC_Finch {
             DebugKeyboard();
         }
 
-        private void toolReconnect_Click(object sender, RoutedEventArgs e) {
-            if (rc != null && (socketAlive || App.alternative.socketActive))
+        private void ToolReconnect_Click(object sender, RoutedEventArgs e) {
+            //if (App.alternative != null && (socketAlive || App.alternative.socketActive))
+            if (socketAlive)
                 rc.Reconnect();
             else
-                toolShowAlternative_Click(sender, e);
+                ToolShowAlternative_Click(sender, e);
         }
 
-        private void toolSaveSettings_Click(object sender, RoutedEventArgs e) {
-            try {
-                Settings.Save();
-            } catch (Exception ex) {
-                App.ShowUnhandledExceptionFromSrc("Seems we don't have permission to write to " + Settings.FileName + "\r\n\r\n" + ex.ToString(), "Exception for Save Settings");
+        private void ToolScreenOverview_Click(object sender, RoutedEventArgs e) {
+            useMultiScreenOverview = !useMultiScreenOverview;
+            if (useMultiScreenOverview) {
+                SetControlEnabled(false);
+                ChangeViewToOverview();
+            } else {
+                PositionCameraToCurrentScreen();
             }
         }
 
-        private void toolScreenOverview_Click(object sender, RoutedEventArgs e) {
-            if (!useMultiScreen) {
-                useMultiScreen = true;
-                Dispatcher.Invoke((Action)delegate {
-                    toolScreenOverview.Content = "Overview";
-                    //toolScreenOverview.IsEnabled = true;
-                    toolZoomIn.Visibility = Visibility.Visible;
-                    toolZoomOut.Visibility = Visibility.Visible;
-                });
-                //return;
-            }
-
-            SetControlEnabled(false);
-            ChangeViewToOverview();
-        }
-
-        private void toolScreenshotToClipboard_Click(object sender, RoutedEventArgs e) {
-            if (rc == null || connectionStatus != ConnectionStatus.Connected)
+        private void ToolScreenshotToClipboard_Click(object sender, RoutedEventArgs e) {
+            if (connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.CaptureNextScreen();
         }
 
-        private void toolSendCtrlAltDel_Click(object sender, RoutedEventArgs e) {
-            if (!controlEnabled || rc == null || connectionStatus != ConnectionStatus.Connected)
+        private void ToolSendCtrlAltDel_Click(object sender, RoutedEventArgs e) {
+            if (!controlEnabled || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.SendSecureAttentionSequence();
         }
 
-        private void toolSettingAutotypeSkipLengthCheck_Click(object sender, RoutedEventArgs e) {
-            toolSettingAutotypeSkipLengthCheck.IsChecked = autotypeAlwaysConfirmed = Settings.AutotypeSkipLengthCheck = !Settings.AutotypeSkipLengthCheck;
-        }
-
-        private void toolSettingMacSwapCtrlWin_Click(object sender, RoutedEventArgs e) {
-            toolSettingMacSwapCtrlWin.IsChecked = Settings.MacSwapCtrlWin = !Settings.MacSwapCtrlWin;
-        }
-
-        private void toolSettingMultiAltFit_Click(object sender, RoutedEventArgs e) {
-            toolSettingMultiAltFit.IsChecked = Settings.MultiAltFit = !Settings.MultiAltFit;
-
-            PositionCameraToCurrentScreen();
-        }
-
-        private void toolSettingMultiShowCursor_Click(object sender, RoutedEventArgs e) {
-            toolSettingMultiShowCursor.IsChecked = Settings.MultiShowCursor = !Settings.MultiShowCursor;
-        }
-
-        private void toolSettingStartControlEnabled_Click(object sender, RoutedEventArgs e) {
-            toolSettingStartControlEnabled.IsChecked = Settings.StartControlEnabled = !Settings.StartControlEnabled;
-        }
-
-        private void toolSettingUseYUVShader_Click(object sender, RoutedEventArgs e) {
-            if (rc != null) {
-                Settings.UseYUVShader = !Settings.UseYUVShader;
-                try {
-                    Settings.Save();
-                    rc.Reconnect();
-                } catch (Exception ex) {
-                    App.ShowUnhandledExceptionFromSrc("Seems we don't have permission to write to " + Settings.FileName + "\r\n\r\n" + ex.ToString(), "Exception for Save Settings");
-                }
-            }
-        }
-
-        private void toolShowAlternative_Click(object sender, RoutedEventArgs e) {
+        private void ToolShowAlternative_Click(object sender, RoutedEventArgs e) {
             if (App.alternative == null)
                 return;
 
+            if (App.alternative.WindowState == System.Windows.WindowState.Minimized)
+                App.alternative.WindowState = System.Windows.WindowState.Normal;
             App.alternative.Visibility = Visibility.Visible;
             App.alternative.Focus();
 
-            foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens) {
+                    foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens) {
                 if (screen.Bounds.IntersectsWith(new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height))) {
                     App.alternative.Left = screen.Bounds.X + ((screen.Bounds.Width - App.alternative.Width) / 2);
                     App.alternative.Top = screen.Bounds.Y + ((screen.Bounds.Height - App.alternative.Height) / 2);
@@ -1458,15 +1481,11 @@ namespace KLC_Finch {
             }
         }
 
-        private void toolSwitchToLegacy_Click(object sender, RoutedEventArgs e) {
-            SwitchToLegacyRendering();
-        }
-
-        private void toolToggleControl_Click(object sender, RoutedEventArgs e) {
+        private void ToolToggleControl_Click(object sender, RoutedEventArgs e) {
             SetControlEnabled(!controlEnabled);
         }
 
-        private void toolZoomIn_Click(object sender, RoutedEventArgs e) {
+        private void ToolZoomIn_Click(object sender, RoutedEventArgs e) {
             if (!useMultiScreen)
                 return;
             if (virtualViewWant.Width - 200 < 0 || virtualViewWant.Height - 200 < 0)
@@ -1478,7 +1497,7 @@ namespace KLC_Finch {
             //DebugKeyboard();
         }
 
-        private void toolZoomOut_Click(object sender, RoutedEventArgs e) {
+        private void ToolZoomOut_Click(object sender, RoutedEventArgs e) {
             if (!useMultiScreen)
                 return;
 
@@ -1489,9 +1508,10 @@ namespace KLC_Finch {
         }
 
         private void Window_Activated(object sender, EventArgs e) {
-            if (!controlEnabled || currentScreen == null || rc == null || connectionStatus != ConnectionStatus.Connected)
+            if (!controlEnabled || CurrentScreen == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
+            KeyHookSet(true);
             windowActivatedMouseMove = true;
         }
 
@@ -1508,15 +1528,18 @@ namespace KLC_Finch {
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+            if (keyHook.IsActive)
+                keyHook.Uninstall();
+
             //NotifySocketClosed(sessionId);
-            if (rc != null)
-                rc.Disconnect(sessionId);
+            rc.Disconnect(sessionId);
 
             clipboardMon.OnUpdate -= SyncClipboard;
         }
 
         private void Window_Deactivated(object sender, EventArgs e) {
-            if (!controlEnabled || currentScreen == null || rc == null || connectionStatus != ConnectionStatus.Connected)
+            KeyHookSet(true);
+            if (!controlEnabled || CurrentScreen == null || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             //Release modifier keys because the remote control window lost focus
@@ -1534,30 +1557,45 @@ namespace KLC_Finch {
         private void Window_Drop(object sender, DragEventArgs e) {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                //Console.WriteLine(files[0]);
-                rc.UploadDrop(files[0]);
+
+                using (TaskDialog dialog = new TaskDialog()) {
+                    dialog.WindowTitle = "KLC-Finch: Upload File";
+                    dialog.MainInstruction = "Upload dropped file to c:\\temp?";
+                    dialog.MainIcon = TaskDialogIcon.Information;
+                    dialog.CenterParent = true;
+                    dialog.Content = files[0];
+
+                    TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
+                    TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                    dialog.Buttons.Add(tdbYes);
+                    dialog.Buttons.Add(tdbCancel);
+
+                    TaskDialogButton button = dialog.ShowDialog(this);
+                    if (button == tdbYes) {
+                        rc.UploadDrop(files[0]);
+                    }
+                }
             }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
+            winScreens.Owner = this;
+            KeyHookSet(true);
+
             if (glSupported) {
                 rcBorderBG.Visibility = Visibility.Collapsed;
 
-                if (rc != null) {
-                    rc.UseYUVShader = Settings.UseYUVShader;
-                    if (Settings.UseYUVShader)
-                        this.Title = Title + " (YUV)";
-                    else
-                        this.Title = Title + " (RGB)";
-
-                    CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
-                    m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
-                    m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
-                    m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
-                    m_shader_multiplyColor = GL.GetUniformLocation(shader_program, "multiplyColor");
-                } else {
+                rc.UseYUVShader = Settings.UseYUVShader;
+                if (rc.UseYUVShader)
+                    this.Title = Title + " (YUV)";
+                else
                     this.Title = Title + " (RGB)";
-                }
+
+                CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
+                m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
+                m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
+                m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
+                m_shader_multiplyColor = GL.GetUniformLocation(shader_program, "multiplyColor");
 
                 InitTextures();
                 RefreshVirtual();
@@ -1577,7 +1615,6 @@ namespace KLC_Finch {
 
                 this.Title = Title + " (Canvas RGB) Alpha";
 
-                this.SizeChanged += WindowViewerV2_SizeChanged;
                 rcBorderBG.MouseMove += HandleCanvasMouseMove;
                 rcCanvas.MouseMove += HandleCanvasMouseMove;
                 rcCanvas.MouseDown += HandleCanvasMouseDown;
@@ -1589,8 +1626,8 @@ namespace KLC_Finch {
         #region Host Desktop Configuration (Screens of current session)
 
         public void UpdateScreenLayout(dynamic json, string jsonstr = "") {
-            listScreen.Clear();
-            previousScreen = currentScreen = null;
+            ListScreen.Clear();
+            previousScreen = CurrentScreen = null;
 
             string default_screen = json["default_screen"].ToString();
             connectionStatus = ConnectionStatus.Connected;
@@ -1608,37 +1645,38 @@ namespace KLC_Finch {
 
                     //Add Screen
                     RCScreen newScreen = new RCScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
-                    listScreen.Add(newScreen);
-                    if (currentScreen == null) {
-                        currentScreen = newScreen;
+                    ListScreen.Add(newScreen);
+                    if (CurrentScreen == null) {
+                        CurrentScreen = newScreen;
 
                         //Legacy
-                        legacyVirtualHeight = currentScreen.rect.Height;
-                        legacyVirtualWidth = currentScreen.rect.Width;
+                        legacyVirtualHeight = CurrentScreen.rect.Height;
+                        legacyVirtualWidth = CurrentScreen.rect.Width;
                         virtualRequireViewportUpdate = true;
                     }
 
                     //Add to toolbar menu
-                    MenuItem item = new MenuItem();
-                    item.Header = newScreen.ToString();// screen_name + ": (" + screen_width + " x " + screen_height + " at " + screen_x + ", " + screen_y + ")";
-                    item.Click += new RoutedEventHandler(toolScreen_ItemClicked);
+                    MenuItem item = new MenuItem {
+                        Header = newScreen.ToString()// screen_name + ": (" + screen_width + " x " + screen_height + " at " + screen_x + ", " + screen_y + ")";
+                    };
+                    item.Click += new RoutedEventHandler(ToolScreen_ItemClicked);
 
                     toolScreen.DropdownMenu.Items.Add(item);
 
                     //Private and Mac seem to bug out if you change screens, cause there's only one screen
-                    toolScreen.IsEnabled = (listScreen.Count > 1);
+                    toolScreen.Opacity = (ListScreen.Count > 1 ? 1.0 : 0.6);
 
                     if (screen_id == default_screen) {
-                        toolScreen.Content = currentScreen.screen_name;
-                        toolScreen.ToolTip = currentScreen.StringResPos();
+                        toolScreen.Content = CurrentScreen.screen_name;
+                        toolScreen.ToolTip = CurrentScreen.StringResPos();
                     }
                 }
             });
 
-            int lowestX = listScreen.Min(x => x.rectFixed.X);
-            int lowestY = listScreen.Min(x => x.rectFixed.Y);
-            int highestX = listScreen.Max(x => x.rectFixed.Right);
-            int highestY = listScreen.Max(x => x.rectFixed.Bottom);
+            int lowestX = ListScreen.Min(x => x.rectFixed.X);
+            int lowestY = ListScreen.Min(x => x.rectFixed.Y);
+            int highestX = ListScreen.Max(x => x.rectFixed.Right);
+            int highestY = ListScreen.Max(x => x.rectFixed.Bottom);
             SetCanvas(lowestX, lowestY, highestX, highestY);
 
             canvasOffsetX = lowestX;
@@ -1648,29 +1686,34 @@ namespace KLC_Finch {
                 rcCanvas.Width = Math.Abs(lowestX) + highestX;
                 rcCanvas.Height = Math.Abs(lowestY) + highestY;
 
-                foreach (RCScreen screen in listScreen) {
-                    screen.CanvasImage = new System.Windows.Controls.Image();
-                    screen.CanvasImage.Height = screen.rect.Height;
-                    screen.CanvasImage.Width = screen.rect.Width;
+                foreach (RCScreen screen in ListScreen) {
+                    screen.CanvasImage = new System.Windows.Controls.Image {
+                        Height = screen.rect.Height,
+                        Width = screen.rect.Width
+                    };
 
                     rcCanvas.Children.Add(screen.CanvasImage);
                     Canvas.SetLeft(screen.CanvasImage, screen.rect.X - canvasOffsetX);
                     Canvas.SetTop(screen.CanvasImage, screen.rect.Y - canvasOffsetY);
                 }
             });
+
+            rc.UpdateScreens(jsonstr);
+            winScreens.UpdateStartScreens(jsonstr);
+            winScreens.SetCanvas(lowestX, lowestY, highestX, highestY);
         }
 
         private void FromGlChangeScreen(RCScreen screen, bool moveCamera = true) {
-            previousScreen = currentScreen;
-            currentScreen = screen;
-            rc.ChangeScreen(currentScreen.screen_id);
+            previousScreen = CurrentScreen;
+            CurrentScreen = screen;
+            rc.ChangeScreen(CurrentScreen.screen_id);
 
             if (glSupported) {
                 if (useMultiScreen && moveCamera)
                     PositionCameraToCurrentScreen();
             } else {
                 if (useMultiScreen && moveCamera)
-                    SetCanvas(currentScreen.rect.X, currentScreen.rect.Y, currentScreen.rect.Width, currentScreen.rect.Height);
+                    SetCanvas(CurrentScreen.rect.X, CurrentScreen.rect.Y, CurrentScreen.rect.Width, CurrentScreen.rect.Height);
             }
 
             Dispatcher.Invoke((Action)delegate {
@@ -1683,22 +1726,31 @@ namespace KLC_Finch {
             });
         }
 
-        private void toolScreen_ItemClicked(object sender, RoutedEventArgs e) {
+        private void ToolScreen_ItemClicked(object sender, RoutedEventArgs e) {
             MenuItem source = (MenuItem)e.Source;
             string[] screen_selected = source.Header.ToString().Split(':');
 
-            previousScreen = currentScreen;
-            currentScreen = listScreen.First(x => x.screen_name == screen_selected[0]);
-            rc.ChangeScreen(currentScreen.screen_id);
+            previousScreen = CurrentScreen;
+            CurrentScreen = ListScreen.First(x => x.screen_name == screen_selected[0]);
+            rc.ChangeScreen(CurrentScreen.screen_id);
 
             if (useMultiScreen)
                 PositionCameraToCurrentScreen();
 
-            toolScreen.Content = currentScreen.screen_name;
-            toolScreen.ToolTip = currentScreen.StringResPos();
+            toolScreen.Content = CurrentScreen.screen_name;
+            toolScreen.ToolTip = CurrentScreen.StringResPos();
             foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
                 item.IsChecked = (item == source);
             }
+        }
+
+        public void SetScreen(string id) {
+            previousScreen = CurrentScreen;
+            CurrentScreen = ListScreen.First(x => x.screen_id == id);
+            rc.ChangeScreen(CurrentScreen.screen_id);
+
+            if (useMultiScreen)
+                PositionCameraToCurrentScreen();
         }
 
         #endregion Host Desktop Configuration (Screens of current session)
@@ -1710,9 +1762,10 @@ namespace KLC_Finch {
             listTSSession.Add(newTSSession);
 
             Dispatcher.Invoke((Action)delegate {
-                MenuItem item = new MenuItem();
-                item.Header = session_name;
-                item.Click += new RoutedEventHandler(toolTSSession_ItemClicked);
+                MenuItem item = new MenuItem {
+                    Header = session_name
+                };
+                item.Click += new RoutedEventHandler(ToolTSSession_ItemClicked);
 
                 toolTSSession.DropdownMenu.Items.Add(item);
                 toolTSSession.Visibility = Visibility.Visible;
@@ -1733,7 +1786,7 @@ namespace KLC_Finch {
             });
         }
 
-        private void toolTSSession_ItemClicked(object sender, RoutedEventArgs e) {
+        private void ToolTSSession_ItemClicked(object sender, RoutedEventArgs e) {
             MenuItem source = (MenuItem)e.Source;
             source.IsChecked = true;
             string session_selected = source.Header.ToString();
@@ -1745,14 +1798,22 @@ namespace KLC_Finch {
             currentTSSession = selectedTSSession;
             rc.ChangeTSSession(currentTSSession.session_id);
 
-            useMultiScreen = true;
+            useMultiScreen = Settings.StartMultiScreen;
 
             //Dispatcher.Invoke((Action)delegate {
             toolTSSession.Content = currentTSSession.session_name;
-            toolScreenOverview.Content = "Overview";
-            //toolScreenOverview.IsEnabled = true;
-            toolZoomIn.Visibility = Visibility.Visible;
-            toolZoomOut.Visibility = Visibility.Visible;
+
+            if (useMultiScreen) {
+                toolScreenMode.Content = "Multi";
+                toolScreenOverview.Visibility = Visibility.Visible;
+                toolZoomIn.Visibility = Visibility.Visible;
+                toolZoomOut.Visibility = Visibility.Visible;
+            } else {
+                toolScreenMode.Content = "Legacy";
+                toolScreenOverview.Visibility = Visibility.Collapsed;
+                toolZoomIn.Visibility = Visibility.Collapsed;
+                toolZoomOut.Visibility = Visibility.Collapsed;
+            }
             //});
 
             foreach (MenuItem item in toolTSSession.DropdownMenu.Items) {
@@ -1764,15 +1825,15 @@ namespace KLC_Finch {
 
         #region Mouse and Keyboard
 
-        private KeycodeV2 keyctrl = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.ControlKey);
+        private readonly KeycodeV2 keyctrl = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.ControlKey);
 
-        private KeycodeV2 keyshift = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.ShiftKey);
+        private readonly KeycodeV2 keyshift = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.ShiftKey);
 
-        private KeycodeV2 keywin = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.LWin);
+        private readonly KeycodeV2 keywin = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.LWin);
 
-        private List<KeycodeV2> listHeldKeysMod = new List<KeycodeV2>();
+        private readonly List<KeycodeV2> listHeldKeysMod = new List<KeycodeV2>();
 
-        private List<KeycodeV2> listHeldKeysOther = new List<KeycodeV2>();
+        private readonly List<KeycodeV2> listHeldKeysOther = new List<KeycodeV2>();
 
         private bool mouseHeldLeft = false;
 
@@ -1823,9 +1884,38 @@ namespace KLC_Finch {
             });
         }
 
+        private void ToolScreenMode_Click(object sender, RoutedEventArgs e) {
+            useMultiScreen = !useMultiScreen;
+            if (useMultiScreen) {
+                useMultiScreenOverview = false;
+                PositionCameraToCurrentScreen();
+
+                toolScreenMode.Content = "Multi";
+                toolScreenOverview.Visibility = Visibility.Visible;
+                toolZoomIn.Visibility = Visibility.Visible;
+                toolZoomOut.Visibility = Visibility.Visible;
+            } else {
+                toolScreenMode.Content = "Legacy";
+                toolScreenOverview.Visibility = Visibility.Collapsed;
+                toolZoomIn.Visibility = Visibility.Collapsed;
+                toolZoomOut.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void ToolScreen_Click(object sender, RoutedEventArgs e) {
+            TimeSpan span = DateTime.Now - winScreens.TimeDeactivated;
+            if (useMultiScreen) {
+                if (span.TotalMilliseconds < 500)
+                    winScreens.Hide(); //Doesn't really do anything, will act same as Legacy
+                else
+                    winScreens.Show();
+            }
+            //Otherwise the old menu is shown
+        }
+
         private RCScreen GetScreenUsingMouse(int x, int y) {
             //This doesn't yet work in Canvas
-            foreach (RCScreen screen in listScreen) {
+            foreach (RCScreen screen in ListScreen) {
                 if (screen.rect.Contains(x, y)) {
                     return screen;
                 }
@@ -1834,7 +1924,7 @@ namespace KLC_Finch {
         }
 
         private void KeyWinSet(bool set) {
-            if (!controlEnabled || rc == null || isMac || connectionStatus != ConnectionStatus.Connected)
+            if (!controlEnabled || isMac || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             keyDownWin = set;
@@ -1854,18 +1944,21 @@ namespace KLC_Finch {
             toolKeyWin.FontWeight = (keyDownWin ? FontWeights.Bold : FontWeights.Normal);
         }
 
-        private void OpenTkControl_KeyUp(object sender, KeyEventArgs e) {
-            if (rc == null || connectionStatus != ConnectionStatus.Connected)
+        private void Window_KeyUp2(System.Windows.Forms.KeyEventArgs e2) {
+            if (e2.KeyCode == System.Windows.Forms.Keys.Scroll) {
+                KeyHookSet(true);
                 return;
-
-            System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
-
-            if (e2.KeyCode == System.Windows.Forms.Keys.PrintScreen) {
+            } else if (e2.KeyCode == System.Windows.Forms.Keys.PrintScreen) {
                 rc.CaptureNextScreen();
             } else if (!controlEnabled) {
                 if (e2.KeyCode == System.Windows.Forms.Keys.F2)
                     SetControlEnabled(true);
-            } else if (e2.KeyCode == System.Windows.Forms.Keys.Pause) {
+                return;
+            }
+            if (connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            if (e2.KeyCode == System.Windows.Forms.Keys.Pause) {
                 rc.SendPanicKeyRelease();
                 listHeldKeysMod.Clear();
                 KeyWinSet(false);
@@ -1891,43 +1984,49 @@ namespace KLC_Finch {
 
                     rc.SendKeyUp(keykaseya.JavascriptKeyCode, keykaseya.USBKeyCode);
 
-                    if (keyDownWin && !isMac) {
-                        foreach (KeycodeV2 k in listHeldKeysOther)
-                            rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
-                        listHeldKeysOther.Clear();
-                        foreach (KeycodeV2 k in listHeldKeysMod)
-                            rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
-                        listHeldKeysMod.Clear();
+                    if (keyHook.IsActive) {
+                        if (keykaseya.Key == System.Windows.Forms.Keys.LWin || keykaseya.Key == System.Windows.Forms.Keys.RWin)
+                            KeyWinSet(false);
+                    } else {
+                        if (keyDownWin && !isMac) {
+                            foreach (KeycodeV2 k in listHeldKeysOther)
+                                rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
+                            listHeldKeysOther.Clear();
+                            foreach (KeycodeV2 k in listHeldKeysMod)
+                                rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
+                            listHeldKeysMod.Clear();
 
-                        KeyWinSet(false);
+                            KeyWinSet(false);
+                        }
                     }
                 } catch {
+#if DEBUG
                     Console.WriteLine("Up scan: " + e2.KeyCode + " / " + e2.KeyData + " / " + e2.KeyValue);
+#endif
                 }
             }
 
             DebugKeyboard();
+        }
+
+        private void Window_KeyUp(object sender, KeyEventArgs e) {
+            System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
+            Window_KeyUp2(e2);
             e.Handled = true;
         }
 
-        private void OpenTkControl_PreviewKeyDown(object sender, KeyEventArgs e) {
-            //Apparently preview is used because arrow keys?
-            if (rc == null || connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
+        private bool Window_PreviewKeyDown2(System.Windows.Forms.KeyEventArgs e2) {
             if (e2.KeyCode == System.Windows.Forms.Keys.F1) {
                 SetControlEnabled(false);
                 ChangeViewToOverview();
             }
 
-            if (!controlEnabled)
-                return;
+            if (connectionStatus != ConnectionStatus.Connected || !controlEnabled)
+                return false;
 
-            if (e2.KeyCode == System.Windows.Forms.Keys.Pause) {
+            if (e2.KeyCode == System.Windows.Forms.Keys.Pause || e2.KeyCode == System.Windows.Forms.Keys.Scroll) {
                 //Done on release
-                e.Handled = true;
-                return;
+                return true;
             } else if (e2.KeyCode == System.Windows.Forms.Keys.Oemtilde && e2.Control) {
                 PerformAutotype();
             } else if (e2.KeyCode == System.Windows.Forms.Keys.V && e2.Control && e2.Shift) {
@@ -1935,7 +2034,7 @@ namespace KLC_Finch {
             } else {
                 KeycodeV2 keykaseyaUN = KeycodeV2.ListUnhandled.Find(x => x.Key == e2.KeyCode);
                 if (keykaseyaUN != null)
-                    return;
+                    return false;
 
                 try {
                     KeycodeV2 keykaseya = KeycodeV2.List.Find(x => x.Key == e2.KeyCode);
@@ -1964,12 +2063,22 @@ namespace KLC_Finch {
                     //Still allow holding it down
                     rc.SendKeyDown(keykaseya.JavascriptKeyCode, keykaseya.USBKeyCode);
                 } catch {
+#if DEBUG
                     Console.WriteLine("DOWN scan: " + e2.KeyCode + " / " + e2.KeyData + " / " + e2.KeyValue);
+#endif
                 }
 
                 DebugKeyboard();
             }
 
+            return true;
+        }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e) {
+            //Apparently preview is used because arrow keys?
+
+            System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
+            Window_PreviewKeyDown2(e2);
             e.Handled = true;
         }
 

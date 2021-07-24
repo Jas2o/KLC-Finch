@@ -13,9 +13,9 @@ using static LibKaseya.Enums;
 namespace KLC {
     public class WsB {
 
-        private LiveConnectSession Session;
+        private readonly LiveConnectSession Session;
 
-        private WebSocketServer ServerB;
+        private readonly WebSocketServer ServerB;
         public int PortB { get; private set; }
         //private string Module;
 
@@ -154,11 +154,13 @@ namespace KLC {
         }
 
         private void ServerB_ClientDisconnected(IWebSocketConnection socket) {
+#if DEBUG
             Console.WriteLine("B Close " + socket.ConnectionInfo.Path);
+#endif
 
             if(socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
                 if (App.alternative != null) {
-                    App.alternative.Disconnect(Session.randSessionGuid, 1);
+                    App.alternative.Disconnect(Session.RandSessionGuid, 1);
                 }
             }
             
@@ -172,8 +174,9 @@ namespace KLC {
 
         private void ServerB_ClientConnected(IWebSocketConnection socket) {
             //Module = e.HttpRequest.Url.PathAndQuery.Split('/')[2];
-
+#if DEBUG
             Console.WriteLine("B Connect (server port: " + PortB + ") " + socket.ConnectionInfo.Path);
+#endif
 
             int clientPort = socket.ConnectionInfo.ClientPort;
 
@@ -182,8 +185,7 @@ namespace KLC {
                 case "/control/agent":
                     ServerBsocketControlAgent = socket;
                     clientPortControlAgent = clientPort;
-                    if(Session.Callback != null)
-                        Session.Callback();
+                    Session.Callback?.Invoke();
                     break;
 
                 case "/app/dashboard":
@@ -271,7 +273,7 @@ namespace KLC {
             //I don't think rcPolicy actually matters
             //The Type sure does
 
-            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
+            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.Auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
 
             if (ServerBsocketControlAgent == null)
                 //throw new Exception("Agent offline?");
@@ -328,14 +330,15 @@ namespace KLC {
             string randTaskUUID2 = Guid.NewGuid().ToString(); //Kaseya use a generic UUID v4 generator
             string randSessionGuid = Guid.NewGuid().ToString(); //Not sure if okay to be random
 
-            JObject jMain = new JObject();
-            jMain["type"] = "Task";
-            jMain["id"] = randTaskUUID2;
-            jMain["p2pConnectionId"] = randSessionGuid;
-            JObject jData = new JObject();
-            jData["moduleId"] = module;
-            jData["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.376/content";
-            jMain["data"] = jData;
+            JObject jMain = new JObject {
+                ["type"] = "Task",
+                ["id"] = randTaskUUID2,
+                ["p2pConnectionId"] = randSessionGuid,
+                ["data"] = new JObject {
+                    ["moduleId"] = module,
+                    ["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.376/content"
+                }
+            };
 
             if (ServerBsocketControlAgent != null)
                 ServerBsocketControlAgent.Send(jMain.ToString());
@@ -346,14 +349,15 @@ namespace KLC {
             string randTaskUUID2 = Guid.NewGuid().ToString(); //Kaseya use a generic UUID v4 generator
             string randSessionGuid = Guid.NewGuid().ToString(); //Not sure if okay to be random
 
-            JObject jMain = new JObject();
-            jMain["type"] = "StaticImage";
-            jMain["id"] = randTaskUUID2;
-            jMain["p2pConnectionId"] = randSessionGuid;
-            JObject jData = new JObject();
-            jData["height"] = height;
-            jData["width"] = width;
-            jMain["data"] = jData;
+            JObject jMain = new JObject {
+                ["type"] = "StaticImage",
+                ["id"] = randTaskUUID2,
+                ["p2pConnectionId"] = randSessionGuid,
+                ["data"] = new JObject {
+                    ["height"] = height,
+                    ["width"] = width
+                }
+            };
 
             if (ServerBsocketControlAgent != null)
                 ServerBsocketControlAgent.Send(jMain.ToString());

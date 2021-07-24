@@ -17,12 +17,12 @@ using VtNetCore.XTermParser;
 namespace KLC_Finch {
     public class CommandPowershell {
 
-        private static string modulename = "commandshellvt100";
+        private static readonly string modulename = "commandshellvt100";
 
         private IWebSocketConnection serverB;
 
-        private VirtualTerminalController vtController;
-        private DataConsumer dataPart;
+        private readonly VirtualTerminalController vtController;
+        private readonly DataConsumer dataPart;
 
         public CommandPowershell(KLC.LiveConnectSession session, VirtualTerminalController vtController, DataConsumer dataPart) {
             this.vtController = vtController;
@@ -40,10 +40,11 @@ namespace KLC_Finch {
             if (serverB == null)
                 return;
 
-            JObject jAction = new JObject();
-            //jAction["action"] = "KillCommand";
-            jAction["action"] = "ShellInput";
-            jAction["input"] = "%03";
+            JObject jAction = new JObject {
+                //["action"] = "KillCommand"
+                ["action"] = "ShellInput",
+                ["input"] = "%03"
+            };
             serverB.Send(jAction.ToString());
         }
 
@@ -54,13 +55,10 @@ namespace KLC_Finch {
             input = input.Replace("\r", "");
             input = Uri.EscapeDataString(input);
 
-            JObject jAction = new JObject();
-            jAction["action"] = "ShellInput";
-            if(lineMode)
-                jAction["input"] = input + "%0D";
-            else
-                jAction["input"] = input;
-
+            JObject jAction = new JObject {
+                ["action"] = "ShellInput",
+                ["input"] = lineMode ? input + "%0D" : input
+            };
             serverB.Send(jAction.ToString());
         }
 
@@ -69,11 +67,12 @@ namespace KLC_Finch {
                 dynamic temp = JsonConvert.DeserializeObject(message);
                 switch ((string)temp["action"]) {
                     case "ScriptReady":
-                        JObject jAction = new JObject();
-                        jAction["action"] = "ConnectionOpen";
-                        jAction["rows"] = vtController.VisibleRows;
-                        jAction["cols"] = vtController.VisibleColumns;
-                        jAction["windowsVT100"] = true;
+                        JObject jAction = new JObject {
+                            ["action"] = "ConnectionOpen",
+                            ["rows"] = vtController.VisibleRows,
+                            ["cols"] = vtController.VisibleColumns,
+                            ["windowsVT100"] = true
+                        };
                         serverB.Send(jAction.ToString());
                         break;
                     case "ShellResponse":

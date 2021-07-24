@@ -19,16 +19,16 @@ namespace KLC_Finch {
     /// <summary>
     /// Interaction logic for controlRegistry.xaml
     /// </summary>
-    public partial class controlRegistry : UserControl {
+    public partial class ControlRegistry : UserControl {
 
         private WindowAlternative window;
         private RegistryEditor moduleRegistry;
 
-        public controlRegistry() {
+        public ControlRegistry() {
             InitializeComponent();
         }
 
-        private void btnRegistryStart_Click(object sender, RoutedEventArgs e) {
+        private void BtnRegistryStart_Click(object sender, RoutedEventArgs e) {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null && session.WebsocketB.ControlAgentIsReady()) {
                 btnRegistryStart.IsEnabled = false;
@@ -39,37 +39,39 @@ namespace KLC_Finch {
             }
         }
 
-        private void btnRegistryCreateKey_Click(object sender, RoutedEventArgs e) {
+        private void BtnRegistryCreateKey_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
-            WindowRegistryKey wrk = new WindowRegistryKey();
-            wrk.Owner = window;
+            WindowRegistryKey wrk = new WindowRegistryKey {
+                Owner = window
+            };
             bool accept = (bool)wrk.ShowDialog();
             if (accept) {
                 moduleRegistry.CreateKey(wrk.ReturnName);
             }
         }
 
-        private void btnRegistryCreateValue_Click(object sender, RoutedEventArgs e) {
+        private void BtnRegistryCreateValue_Click(object sender, RoutedEventArgs e) {
             btnRegistryCreateValue.ContextMenu.IsOpen = true;
         }
 
-        private void btnRegistryRenameKey_Click(object sender, RoutedEventArgs e) {
+        private void BtnRegistryRenameKey_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
             string keyOld = moduleRegistry.GetKey();
 
-            WindowRegistryKey wrk = new WindowRegistryKey(keyOld);
-            wrk.Owner = window;
+            WindowRegistryKey wrk = new WindowRegistryKey(keyOld) {
+                Owner = window
+            };
             bool accepted = (bool)wrk.ShowDialog();
             if (accepted) {
                 moduleRegistry.RenameKey(keyOld, wrk.ReturnName);
             }
         }
 
-        private void btnRegistryRenameValue_Click(object sender, RoutedEventArgs e) {
+        private void BtnRegistryRenameValue_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null || dgvRegistryValues.SelectedItem == null)
                 return;
 
@@ -79,8 +81,9 @@ namespace KLC_Finch {
             if (rv != null && rv.Name != "") {
                 string valueNameOld = rv.Name;
 
-                WindowRegistryKey wrk = new WindowRegistryKey(rv.Name);
-                wrk.Owner = window;
+                WindowRegistryKey wrk = new WindowRegistryKey(rv.Name) {
+                    Owner = window
+                };
                 bool accepted = (bool)wrk.ShowDialog();
                 if (accepted) {
                     rv.Name = wrk.ReturnName;
@@ -94,7 +97,7 @@ namespace KLC_Finch {
             td.Buttons[0].Enabled = td.IsVerificationChecked;
         }
 
-        private void btnRegistryDeleteKey_Click(object sender, RoutedEventArgs e) {
+        private void BtnRegistryDeleteKey_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
@@ -110,10 +113,12 @@ namespace KLC_Finch {
                 dialog.VerificationText = "Confirm";
                 dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
 
-                TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
-                tdbDelete.Enabled = false;
-                TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
-                tdbCancel.Default = true;
+                TaskDialogButton tdbDelete = new TaskDialogButton("Delete") {
+                    Enabled = false
+                };
+                TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel) {
+                    Default = true
+                };
                 dialog.Buttons.Add(tdbDelete);
                 dialog.Buttons.Add(tdbCancel);
 
@@ -124,7 +129,7 @@ namespace KLC_Finch {
             }
         }
 
-        private void btnRegistryDeleteValue_Click(object sender, RoutedEventArgs e) {
+        private void BtnRegistryDeleteValue_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null || dgvRegistryValues.SelectedItem == null)
                 return;
 
@@ -143,10 +148,12 @@ namespace KLC_Finch {
                     dialog.VerificationText = "Confirm";
                     dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
 
-                    TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
-                    tdbDelete.Enabled = false;
-                    TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
-                    tdbCancel.Default = true;
+                    TaskDialogButton tdbDelete = new TaskDialogButton("Delete") {
+                        Enabled = false
+                    };
+                    TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel) {
+                        Default = true
+                    };
                     dialog.Buttons.Add(tdbDelete);
                     dialog.Buttons.Add(tdbCancel);
 
@@ -166,17 +173,17 @@ namespace KLC_Finch {
             }
         }
 
-        private void btnRegistryPathUp_Click(object sender, RoutedEventArgs e) {
+        private void BtnRegistryPathUp_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry != null)
                 moduleRegistry.GoUp();
         }
 
-        public void btnRegistryPathJump_Click(object sender, RoutedEventArgs e) {
+        public void BtnRegistryPathJump_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry != null)
                 moduleRegistry.GoTo(txtRegistryPath.Text);
         }
 
-        private void lvRegistryKeys_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
+        private void LvRegistryKeys_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
@@ -193,12 +200,13 @@ namespace KLC_Finch {
             }
         }
 
-        private void menuRegCreateString_Click(object sender, RoutedEventArgs e) {
+        private void MenuRegCreateString_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
-            WindowRegistryString wrs = new WindowRegistryString();
-            wrs.Owner = window;
+            WindowRegistryString wrs = new WindowRegistryString {
+                Owner = window
+            };
             bool accept = (bool)wrs.ShowDialog();
             if (accept) {
                 RegistryValue rv = new RegistryValue(wrs.ReturnName, wrs.ReturnValue, false);
@@ -208,12 +216,13 @@ namespace KLC_Finch {
             //moduleRegistry.CreateValue(rv);
         }
 
-        private void menuRegCreateBinary_Click(object sender, RoutedEventArgs e) {
+        private void MenuRegCreateBinary_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
-            WindowRegistryBinary wrb = new WindowRegistryBinary();
-            wrb.Owner = window;
+            WindowRegistryBinary wrb = new WindowRegistryBinary {
+                Owner = window
+            };
             bool accept = (bool)wrb.ShowDialog();
             if (accept) {
                 RegistryValue rv = new RegistryValue(wrb.ReturnName, wrb.ReturnValue);
@@ -223,7 +232,7 @@ namespace KLC_Finch {
             //moduleRegistry.CreateValue(rv);
         }
 
-        private void menuRegCreateDword_Click(object sender, RoutedEventArgs e) {
+        private void MenuRegCreateDword_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
@@ -238,12 +247,13 @@ namespace KLC_Finch {
             //moduleRegistry.CreateValue(rv);
         }
 
-        private void menuRegCreateQword_Click(object sender, RoutedEventArgs e) {
+        private void MenuRegCreateQword_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
-            WindowRegistryInt wri = new WindowRegistryInt();
-            wri.Owner = window;
+            WindowRegistryInt wri = new WindowRegistryInt {
+                Owner = window
+            };
             bool accept = (bool)wri.ShowDialog();
             if (accept) {
                 RegistryValue rv = new RegistryValue(wri.ReturnName, (long)wri.ReturnValue);
@@ -253,12 +263,13 @@ namespace KLC_Finch {
             //moduleRegistry.CreateValue(rv);
         }
 
-        private void menuRegCreateMulti_Click(object sender, RoutedEventArgs e) {
+        private void MenuRegCreateMulti_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
-            WindowRegistryStringMulti wrsm = new WindowRegistryStringMulti();
-            wrsm.Owner = window;
+            WindowRegistryStringMulti wrsm = new WindowRegistryStringMulti {
+                Owner = window
+            };
             bool accept = (bool)wrsm.ShowDialog();
             if (accept) {
                 RegistryValue rv = new RegistryValue(wrsm.ReturnName, wrsm.ReturnValue);
@@ -268,12 +279,13 @@ namespace KLC_Finch {
             //moduleRegistry.CreateValue(rv);
         }
 
-        private void menuRegCreateExpandable_Click(object sender, RoutedEventArgs e) {
+        private void MenuRegCreateExpandable_Click(object sender, RoutedEventArgs e) {
             if (moduleRegistry == null)
                 return;
 
-            WindowRegistryString wrs = new WindowRegistryString();
-            wrs.Owner = window;
+            WindowRegistryString wrs = new WindowRegistryString {
+                Owner = window
+            };
             bool accept = (bool)wrs.ShowDialog();
             if (accept) {
                 RegistryValue rv = new RegistryValue(wrs.ReturnName, wrs.ReturnValue, true);
@@ -283,7 +295,7 @@ namespace KLC_Finch {
             //moduleRegistry.CreateValue(rv);
         }
 
-        private void dgvRegistryValues_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
+        private void DgvRegistryValues_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
             if (moduleRegistry == null || dgvRegistryValues.SelectedItem == null)
                 return;
 
@@ -296,8 +308,9 @@ namespace KLC_Finch {
             switch (rv.Type) {
                 case "REG_SZ":
                 case "REG_EXPAND_SZ":
-                    WindowRegistryString wrs = new WindowRegistryString(rv);
-                    wrs.Owner = window;
+                    WindowRegistryString wrs = new WindowRegistryString(rv) {
+                        Owner = window
+                    };
                     bool wrsdr = (bool)wrs.ShowDialog();
                     if (wrsdr) {
                         rv.Data = wrs.ReturnValue;
@@ -305,8 +318,9 @@ namespace KLC_Finch {
                     }
                     break;
                 case "REG_MULTI_SZ":
-                    WindowRegistryStringMulti wrsm = new WindowRegistryStringMulti(rv);
-                    wrsm.Owner = window;
+                    WindowRegistryStringMulti wrsm = new WindowRegistryStringMulti(rv) {
+                        Owner = window
+                    };
                     bool wrsmdr = (bool)wrsm.ShowDialog();
                     if (wrsmdr) {
                         rv.Data = wrsm.ReturnValue;
@@ -315,8 +329,9 @@ namespace KLC_Finch {
                     break;
                 case "REG_DWORD":
                 case "REG_QWORD":
-                    WindowRegistryInt wri = new WindowRegistryInt(rv);
-                    wri.Owner = window;
+                    WindowRegistryInt wri = new WindowRegistryInt(rv) {
+                        Owner = window
+                    };
                     bool wridr = (bool)wri.ShowDialog();
                     if (wridr) {
                         rv.Data = wri.ReturnValue;
@@ -324,8 +339,9 @@ namespace KLC_Finch {
                     }
                     break;
                 case "REG_BINARY":
-                    WindowRegistryBinary wrb = new WindowRegistryBinary(rv);
-                    wrb.Owner = window;
+                    WindowRegistryBinary wrb = new WindowRegistryBinary(rv) {
+                        Owner = window
+                    };
                     bool wrbdr = (bool)wrb.ShowDialog();
                     if (wrbdr) {
                         rv.Data = wrb.ReturnValue;
@@ -334,11 +350,10 @@ namespace KLC_Finch {
                     break;
                 default:
                     throw new NotImplementedException();
-                    break;
             }
         }
 
-        private void txtRegistryPath_PreviewKeyDown(object sender, KeyEventArgs e) {
+        private void TxtRegistryPath_PreviewKeyDown(object sender, KeyEventArgs e) {
             if (moduleRegistry == null)
                 return;
 

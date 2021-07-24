@@ -14,22 +14,22 @@ namespace KLC {
 
     public class WsA {
         
-        private LiveConnectSession Session;
+        private readonly LiveConnectSession Session;
 
-        private WebSocketServer ServerA;
+        private readonly WebSocketServer ServerA;
         private IWebSocketConnection ServerAsocket;
         public int PortA { get; private set; }
-        private int PortB;
-        private string Module;
+        private readonly int PortB;
+        //private string Module;
 
         public bool HasCompleted { get; private set; }
 
         public static bool useInternalMITM = false; //Hawk
-        private static bool useExternalMITM = false; //Port M
+        private readonly bool useExternalMITM = false; //Port M
 
         public WsA(LiveConnectSession session, int portA, int portB) {
             Session = session;
-            Module = "A";
+            //Module = "A";
 
             //A - Find a free port for me
             PortA = portA;
@@ -43,14 +43,18 @@ namespace KLC {
                 ServerAsocket = socket;
 
                 socket.OnOpen = () => {
+#if DEBUG
                     Console.WriteLine("A Open (server port: " + PortA + ") " + socket.ConnectionInfo.Path);
+#endif
                     ServerOnOpen(socket);
                 };
                 socket.OnClose = () => {
+#if DEBUG
                     Console.WriteLine("A Close");
+#endif
 
                     if(App.alternative != null) {
-                        App.alternative.Disconnect(Session.randSessionGuid, 0);
+                        App.alternative.Disconnect(Session.RandSessionGuid, 0);
                     }
                     if (Session.ModuleRemoteControl != null) {
                         string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "").Replace("?Y2", "");
@@ -60,11 +64,15 @@ namespace KLC {
                 socket.OnMessage = message => {
                     if (message.Contains("PeerOffline")) {
                         //{"agentId":"429424626294329","type":"UserInterfaceStatus","data":{"relayError":"PeerOffline","sessionId":"y1d+uY2pEsC5dmpm43UjGg==","status":"ConnectedWithError"}}
+#if DEBUG
                         Console.WriteLine("Closing A because the agent is offline.");
+#endif
                         HasCompleted = true;
                         Close();
                     } else {
+#if DEBUG
                         Console.WriteLine("Unexpected A message: " + message);
+#endif
                         //throw new NotImplementedException();
                     }
                 };
@@ -91,13 +99,14 @@ namespace KLC {
             if(useInternalMITM) {
                 file1 = @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.exe";
                 file2 = @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe";
-            } else if (WsM.CertificateExists()) {
+            } /* else if (WsM.CertificateExists()) {
                 file1 = @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.org.exe";
                 file2 = @"C:\Program Files\Kaseya Live Connect-MITM\Kaseya.AdminEndpoint.exe";
-            }
+            }*/
             Process process = new Process();
             process.StartInfo.FileName = (File.Exists(file1) ? file1 : file2);
             process.StartInfo.Arguments = "-viewerport " + PortA;
+            process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
             process.Start();
 
             //--
@@ -120,7 +129,9 @@ namespace KLC {
             try {
                 ServerAsocket.Send(message).Wait();
             } catch (Exception ex) {
-                Console.WriteLine(ex.ToString());
+#if DEBUG
+                Console.WriteLine("[WsA:Send] " + ex.ToString());
+#endif
             }
         }
 
@@ -128,8 +139,8 @@ namespace KLC {
             if (useExternalMITM) {
                 int newPort = Session.WebsocketM.PortM;
 
-                string jsonM1 = "{\"data\":{\"adminId\":\"" + Session.auth.AdminId + "\",\"adminName\":\"" + Session.auth.UserName + "\",\"jsonWebToken\":\"" + Session.eal.auth_jwt + "\",\"server\":\"lms-jason.example\",\"serverPort\":" + newPort + ",\"tenantId\":\"1\"},\"type\":\"AdminIdentity\"}";
-                string jsonM2 = "{\"data\":{\"agentId\":\"" + Session.agentGuid + "\",\"connectPort\":" + PortB + ",\"endpointId\":\"" + Session.eirc.endpoint_id + "\",\"jsonWebToken\":\"" + Session.eirc.session_jwt + "\",\"policy\":0,\"tenantId\":\"" + Session.auth.TenantId + "\"},\"p2pConnectionId\":\"" + Session.randSessionGuid + "\",\"type\":\"AgentIdentity\"}";
+                string jsonM1 = "{\"data\":{\"adminId\":\"" + Session.Auth.AdminId + "\",\"adminName\":\"" + Session.Auth.UserName + "\",\"jsonWebToken\":\"" + Session.Eal.auth_jwt + "\",\"server\":\"lms-jason.example\",\"serverPort\":" + newPort + ",\"tenantId\":\"1\"},\"type\":\"AdminIdentity\"}";
+                string jsonM2 = "{\"data\":{\"agentId\":\"" + Session.agentGuid + "\",\"connectPort\":" + PortB + ",\"endpointId\":\"" + Session.Eirc.endpoint_id + "\",\"jsonWebToken\":\"" + Session.Eirc.session_jwt + "\",\"policy\":0,\"tenantId\":\"" + Session.Auth.TenantId + "\"},\"p2pConnectionId\":\"" + Session.RandSessionGuid + "\",\"type\":\"AgentIdentity\"}";
                 socket.Send(jsonM1);
                 socket.Send(jsonM2);
 
@@ -137,12 +148,14 @@ namespace KLC {
                 return;
             }
 
-            string json1 = "{\"data\":{\"adminId\":\"" + Session.auth.AdminId + "\",\"adminName\":\"" + Session.auth.UserName + "\",\"jsonWebToken\":\"" + Session.eal.auth_jwt + "\",\"server\":\"vsa-web.company.com.au\",\"serverPort\":443,\"tenantId\":\"1\"},\"type\":\"AdminIdentity\"}";
-            string json2 = "{\"data\":{\"agentId\":\"" + Session.agentGuid + "\",\"connectPort\":" + PortB + ",\"endpointId\":\"" + Session.eirc.endpoint_id + "\",\"jsonWebToken\":\"" + Session.eirc.session_jwt + "\",\"policy\":0,\"tenantId\":\"" + Session.auth.TenantId + "\"},\"p2pConnectionId\":\"" + Session.randSessionGuid + "\",\"type\":\"AgentIdentity\"}";
+            string json1 = "{\"data\":{\"adminId\":\"" + Session.Auth.AdminId + "\",\"adminName\":\"" + Session.Auth.UserName + "\",\"jsonWebToken\":\"" + Session.Eal.auth_jwt + "\",\"server\":\"vsa-web.company.com.au\",\"serverPort\":443,\"tenantId\":\"1\"},\"type\":\"AdminIdentity\"}";
+            string json2 = "{\"data\":{\"agentId\":\"" + Session.agentGuid + "\",\"connectPort\":" + PortB + ",\"endpointId\":\"" + Session.Eirc.endpoint_id + "\",\"jsonWebToken\":\"" + Session.Eirc.session_jwt + "\",\"policy\":0,\"tenantId\":\"" + Session.Auth.TenantId + "\"},\"p2pConnectionId\":\"" + Session.RandSessionGuid + "\",\"type\":\"AgentIdentity\"}";
 
             socket.Send(json1);
             socket.Send(json2);
+#if DEBUG
             Console.WriteLine("Sent the A payload");
+#endif
         }
     }
 }

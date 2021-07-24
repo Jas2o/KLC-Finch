@@ -1,0 +1,48 @@
+﻿<Window
+    x:Class="KLC_Finch.WindowScreens"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="WindowScreens"
+    Width="400"
+    Height="250"
+    Activated="Window_Activated"
+    AllowsTransparency="True"
+    Deactivated="Window_Deactivated"
+    Opacity="0.9"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStyle="None"
+    mc:Ignorable="d">
+    <Grid>
+        <Border x:Name="rcBorderBG" Background="#FF6E6E6E">
+            <Viewbox x:Name="rcViewbox" ClipToBounds="True">
+                <Canvas
+                    x:Name="rcCanvas"
+                    Width="1920"
+                    Height="1080">
+                    <Border
+                        x:Name="rcBorderExample"
+                        Width="1920"
+                        Height="1080"
+                        Background="#FF003C83">
+                        <TextBlock Text="Test" />
+                    </Border>
+                </Canvas>
+            </Viewbox>
+        </Border>
+
+        <Menu
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Background="#FF3C3C3C"
+            ToolBarTray.IsLocked="True">
+            <MenuItem
+                x:Name="toolDumpInfo"
+                Click="ToolDumpInfo_Click"
+                Foreground="White"
+                Header="Dump" />
+        </Menu>
+    </Grid>
+</Window>

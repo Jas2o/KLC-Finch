@@ -14,7 +14,7 @@ using System.Windows.Controls;
 namespace KLC_Finch {
     public class RegistryEditor {
 
-        private static string modulename = "registryeditor";
+        private static readonly string modulename = "registryeditor";
         public static Dictionary<int, string> LabelForKey = new Dictionary<int, string>() {
             {0, "HKEY_CLASSES_ROOT" },
             {1, "HKEY_CURRENT_USER" },
@@ -31,15 +31,15 @@ namespace KLC_Finch {
         };
 
         private IWebSocketConnection serverB;
-        private ListView lvRegistryKeys;
-        private DataGrid dgvRegistryValues;
-        private TextBox txtRegistryPath;
+        private readonly ListView lvRegistryKeys;
+        private readonly DataGrid dgvRegistryValues;
+        private readonly TextBox txtRegistryPath;
         //private TextBox txtBox;
 
         private int selectedHive;
-        private List<string> selectedPath;
-        private List<string> viewKeys;
-        private List<RegistryValue> viewValues;
+        private readonly List<string> selectedPath;
+        private readonly List<string> viewKeys;
+        private readonly List<RegistryValue> viewValues;
 
         public RegistryEditor(KLC.LiveConnectSession session, ListView lvRegistryKeys, DataGrid dgvRegistryValues, TextBox txtRegistryPath) {
             this.lvRegistryKeys = lvRegistryKeys;
@@ -77,7 +77,7 @@ namespace KLC_Finch {
                                     throw new NotImplementedException();
                             }
                         }
-                        UpdateDisplay(false);
+                        UpdateDisplay(); //sortKeys=false
                         break;
                     case "GetSubKeys":
                     case "CreateKey":
@@ -86,7 +86,7 @@ namespace KLC_Finch {
                             foreach (dynamic key in temp["keys"].Children())
                                 viewKeys.Add(key["name"].ToString());
                         }
-                        UpdateDisplayKeys(true);
+                        UpdateDisplayKeys(); //sortKeys=true
                         break;
                     case "GetKeyValues":
                     case "CreateValue":
@@ -128,80 +128,50 @@ namespace KLC_Finch {
             }));
         }
 
-        /*
-        private WebSocket WS_EdgeRelay(string authPayloadjsonWebToken, string sessionId) {
-
-            string pathModule = Util.EncodeToBase64("/app/" + modulename);
-
-            WebSocket websocket = new WebSocket("wss://vsa-web.company.com.au:443/kaseya/edge/relay?auth=" + authPayloadjsonWebToken + "&relayId=" + sessionId + "|" + pathModule);
-
-            websocket.AutoSendPingInterval = 5;
-            websocket.EnableAutoSendPing = true;
-            if (txtBox != null) {
-                websocket.Opened += (sender, e) => txtBox.Invoke(new Action(() => {
-                    txtBox.AppendText("RegistryEditor Socket opened: " + sessionId + "\r\n");
-                }));
-                websocket.Closed += (sender, e) => txtBox.Invoke(new Action(() => {
-                    txtBox.AppendText("RegistryEditor Socket closed: " + sessionId + " - " + e.ToString() + "\r\n");
-                }));
-                websocket.MessageReceived += (sender, e) => );
-                websocket.Error += (sender, e) => txtBox.Invoke(new Action(() => {
-                    txtBox.AppendText("RegistryEditor Socket error: " + sessionId + " - " + e.Exception.ToString() + "\r\n");
-                }));
-            } else {
-                websocket.Opened += (sender, e) => Console.WriteLine("RegistryEditor Socket opened: " + sessionId);
-                websocket.Closed += (sender, e) => Console.WriteLine("RegistryEditor Socket closed: " + sessionId + " - " + e.ToString());
-                websocket.MessageReceived += (sender, e) => Console.WriteLine("RegistryEditor message received: " + sessionId + " - " + e.Message);
-                websocket.Error += (sender, e) => Console.WriteLine("RegistryEditor Socket error: " + sessionId + " - " + e.Exception.ToString());
-            }
-
-            Util.ConfigureProxy(websocket);
-
-            websocket.Open();
-            return websocket;
-        }
-        */
-
         /// <summary>
         /// Uses the privately set selected hive and key path to request registry data from the agent, which will subsequently update the UI with the results.
         /// </summary>
         private void Update() {
-            JObject jGet = new JObject();
-
             if (selectedHive == -1) {
                 txtRegistryPath.Text = "";
-                jGet["action"] = "GetHives";
+                JObject jGet = new JObject {
+                    ["action"] = "GetHives"
+                };
                 serverB.Send(jGet.ToString());
             } else if(selectedPath.Count == 0) {
                 txtRegistryPath.Text = LabelForKey[selectedHive];
 
-                jGet["action"] = "GetSubKeys";
-                jGet["hive"] = selectedHive;
-                jGet["path"] = new JArray();
+                JObject jGet = new JObject {
+                    ["action"] = "GetSubKeys",
+                    ["hive"] = selectedHive,
+                    ["path"] = new JArray()
+                };
                 serverB.Send(jGet.ToString());
                 jGet["action"] = "GetKeyValues";
                 serverB.Send(jGet.ToString());
             } else {
                 txtRegistryPath.Text = LabelForKey[selectedHive] + "\\" + string.Join("\\", selectedPath);
-
-                jGet["action"] = "GetSubKeys";
-                jGet["hive"] = selectedHive;
                 JArray jGetPath = new JArray();
                 foreach (string item in selectedPath)
                     jGetPath.Add(item);
-                jGet["path"] = jGetPath;
+
+                JObject jGet = new JObject {
+                    ["action"] = "GetSubKeys",
+                    ["hive"] = selectedHive,
+                    ["path"] = jGetPath
+                };
                 serverB.Send(jGet.ToString());
                 jGet["action"] = "GetKeyValues";
                 serverB.Send(jGet.ToString());
             }
         }
 
-        private void UpdateDisplay(bool sortKeys) {
-            UpdateDisplayKeys(sortKeys);
+        private void UpdateDisplay() {
+            UpdateDisplayKeys(); //bool sortKeys
             UpdateDisplayValues();
         }
 
-        private void UpdateDisplayKeys(bool sortKeys) {
+        private void UpdateDisplayKeys() {
             lvRegistryKeys.Items.Clear();
 
             foreach (string key in viewKeys)
@@ -300,16 +270,15 @@ namespace KLC_Finch {
 
             //{"action":"CreateKey","name":"aTest","hive":2,"path":["SOFTWARE"]}
 
-            JObject jCreate = new JObject();
-            jCreate["action"] = "CreateKey";
-            jCreate["name"] = keyName;
-
-            jCreate["hive"] = selectedHive;
             JArray jGetPath = new JArray();
             foreach (string item in selectedPath)
                 jGetPath.Add(item);
-            jCreate["path"] = jGetPath;
-
+            JObject jCreate = new JObject {
+                ["action"] = "CreateKey",
+                ["name"] = keyName,
+                ["hive"] = selectedHive,
+                ["path"] = jGetPath
+            };
             serverB.Send(jCreate.ToString());
         }
 
@@ -326,11 +295,19 @@ namespace KLC_Finch {
 
             //{"action":"CreateValue","key":"7-Zip","name":"testA","type":"REG_SZ","value":"testA","hive":2,"path":["SOFTWARE"]}
 
-            JObject jCreate = new JObject();
-            jCreate["action"] = "CreateValue";
+            JArray jGetPath = new JArray();
+            for (int i = 0; i < selectedPath.Count - 1; i++)
+                jGetPath.Add(selectedPath[i]);
 
-            jCreate["name"] = value.Name;
-            jCreate["type"] = value.Type;
+            JObject jCreate = new JObject {
+                ["action"] = "CreateValue",
+                ["name"] = value.Name,
+                ["type"] = value.Type,
+                ["hive"] = selectedHive,
+                ["key"] = selectedPath[selectedPath.Count - 1],
+                ["path"] = jGetPath
+            };
+
             if (value.Type == "REG_MULTI_SZ")
                 jCreate["value"] = new JArray(((string[])value.Data).Where(x => !string.IsNullOrEmpty(x)).ToArray());
             else if (value.Type == "REG_BINARY") {
@@ -340,13 +317,6 @@ namespace KLC_Finch {
                 jCreate["value"] = ja;
             } else
                 jCreate["value"] = value.Data;
-
-            jCreate["hive"] = selectedHive;
-            jCreate["key"] = selectedPath[selectedPath.Count - 1];
-            JArray jGetPath = new JArray();
-            for (int i = 0; i < selectedPath.Count - 1; i++)
-                jGetPath.Add(selectedPath[i]);
-            jCreate["path"] = jGetPath;
 
             serverB.Send(jCreate.ToString());
         }
@@ -364,11 +334,19 @@ namespace KLC_Finch {
 
             //{"action":"ModifyValue","key":"aTestA","name":"testRename","type":"REG_SZ","value":"testModify","hive":2,"path":["SOFTWARE"]}
 
-            JObject jModify = new JObject();
-            jModify["action"] = "ModifyValue";
+            JArray jGetPath = new JArray();
+            for (int i = 0; i < selectedPath.Count - 1; i++)
+                jGetPath.Add(selectedPath[i]);
 
-            jModify["name"] = value.Name;
-            jModify["type"] = value.Type;
+            JObject jModify = new JObject {
+                ["action"] = "ModifyValue",
+                ["name"] = value.Name,
+                ["type"] = value.Type,
+                ["hive"] = selectedHive,
+                ["key"] = selectedPath[selectedPath.Count - 1],
+                ["path"] = jGetPath
+            };
+
             if (value.Type == "REG_MULTI_SZ")
                 jModify["value"] = new JArray(((string[])value.Data).Where(x => !string.IsNullOrEmpty(x)).ToArray());
             else if (value.Type == "REG_BINARY") {
@@ -377,14 +355,7 @@ namespace KLC_Finch {
                     ja.Add(b);
                 jModify["value"] = ja;
             } else
-                jModify["value"] = value.Data;
-
-            jModify["hive"] = selectedHive;
-            jModify["key"] = selectedPath[selectedPath.Count - 1];
-            JArray jGetPath = new JArray();
-            for (int i = 0; i < selectedPath.Count - 1; i++)
-                jGetPath.Add(selectedPath[i]);
-            jModify["path"] = jGetPath;
+               jModify["value"] = value.Data;
 
             serverB.Send(jModify.ToString());
         }
@@ -395,16 +366,17 @@ namespace KLC_Finch {
 
             //{"action":"RenameItem","hive":2,"path":["SOFTWARE"],"key":"aTest","newName":"aTestA"}
 
-            JObject jRename = new JObject();
-            jRename["action"] = "RenameItem";
-
-            jRename["hive"] = selectedHive;
-            jRename["key"] = keyOld;
-            jRename["newName"] = keyNew;
             JArray jGetPath = new JArray();
             for (int i = 0; i < selectedPath.Count - 1; i++)
                 jGetPath.Add(selectedPath[i]);
-            jRename["path"] = jGetPath;
+
+            JObject jRename = new JObject {
+                ["action"] = "RenameItem",
+                ["hive"] = selectedHive,
+                ["key"] = keyOld,
+                ["newName"] = keyNew,
+                ["path"] = jGetPath
+            };
 
             selectedPath[selectedPath.Count - 1] = keyNew;
             txtRegistryPath.Text = LabelForKey[selectedHive] + "\\" + string.Join("\\", selectedPath);
@@ -419,12 +391,19 @@ namespace KLC_Finch {
             //{"action":"RenameItem","hive":2,"path":["SOFTWARE"],"key":"aTestA","value":"TestStringA","newName":"TestStringB","type":"REG_SZ","data":"exampleTest"}
             // For some reason "value" is the old name, and "data" is the value... Fucking Kaseya
 
-            JObject jRename = new JObject();
-            jRename["action"] = "RenameItem";
+            JArray jGetPath = new JArray();
+            for (int i = 0; i < selectedPath.Count - 1; i++)
+                jGetPath.Add(selectedPath[i]);
 
-            jRename["value"] = nameOld;
-            jRename["newName"] = value.Name;
-            jRename["type"] = value.Type;
+            JObject jRename = new JObject {
+                ["action"] = "RenameItem",
+                ["value"] = nameOld,
+                ["newName"] = value.Name,
+                ["type"] = value.Type,
+                ["hive"] = selectedHive,
+                ["key"] = selectedPath[selectedPath.Count - 1],
+                ["path"] = jGetPath
+            };
             if (value.Type == "REG_MULTI_SZ")
                 jRename["data"] = new JArray(((string[])value.Data).Where(x => !string.IsNullOrEmpty(x)).ToArray());
             else if (value.Type == "REG_BINARY") {
@@ -435,13 +414,6 @@ namespace KLC_Finch {
             } else
                 jRename["data"] = value.Data;
 
-            jRename["hive"] = selectedHive;
-            jRename["key"] = selectedPath[selectedPath.Count - 1];
-            JArray jGetPath = new JArray();
-            for (int i = 0; i < selectedPath.Count - 1; i++)
-                jGetPath.Add(selectedPath[i]);
-            jRename["path"] = jGetPath;
-
             serverB.Send(jRename.ToString());
         }
 
@@ -450,18 +422,18 @@ namespace KLC_Finch {
                 return;
 
             //{"action":"DeleteItem","hive":2,"path":[],"key":"SOFTWARE","value":"testBinary"}
-            
 
-            JObject jDelete = new JObject();
-            jDelete["action"] = "DeleteItem";
-            jDelete["value"] = valueName;
-
-            jDelete["hive"] = selectedHive;
-            jDelete["key"] = selectedPath[selectedPath.Count - 1];
             JArray jGetPath = new JArray();
             for (int i = 0; i < selectedPath.Count - 1; i++)
                 jGetPath.Add(selectedPath[i]);
-            jDelete["path"] = jGetPath;
+
+            JObject jDelete = new JObject {
+                ["action"] = "DeleteItem",
+                ["value"] = valueName,
+                ["hive"] = selectedHive,
+                ["key"] = selectedPath[selectedPath.Count - 1],
+                ["path"] = jGetPath
+            };
 
             serverB.Send(jDelete.ToString());
         }
@@ -475,15 +447,15 @@ namespace KLC_Finch {
 
             //{"action":"DeleteItem","hive":2,"path":["SOFTWARE","aTestJ"],"key":"TestSub2"}
 
-            JObject jDelete = new JObject();
-            jDelete["action"] = "DeleteItem";
-
-            jDelete["hive"] = selectedHive;
-            jDelete["key"] = keyName; //What we're deleting
             JArray jGetPath = new JArray();
             for (int i = 0; i < selectedPath.Count; i++) //Different to the other copy/paste
                 jGetPath.Add(selectedPath[i]);
-            jDelete["path"] = jGetPath;
+            JObject jDelete = new JObject {
+                ["action"] = "DeleteItem",
+                ["hive"] = selectedHive,
+                ["key"] = keyName, //What we're deleting
+                ["path"] = jGetPath
+            };
 
             serverB.Send(jDelete.ToString());
         }

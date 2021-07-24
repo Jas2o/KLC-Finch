@@ -24,11 +24,11 @@ namespace KLC {
         private WebSocketServer ServerM;
         private IWebSocketConnection ServerMsocket;
         public int PortM { get; private set; }
-        private string Module;
+        //private string Module;
 
         public WsM(LiveConnectSession session, int portM) {
             Session = session;
-            Module = "M";
+            //Module = "M";
 
             //A - Find a free port for me
             PortM = portM;

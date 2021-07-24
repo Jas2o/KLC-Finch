@@ -6,10 +6,10 @@ using System;
 namespace KLC_Finch.Modules {
     public class Services {
 
-        private static string modulename = "services";
+        private static readonly string modulename = "services";
         private IWebSocketConnection serverB;
 
-        private ServicesData servicesData;
+        private readonly ServicesData servicesData;
 
         public Services(KLC.LiveConnectSession session, ServicesData servicesData) {
             this.servicesData = servicesData;
@@ -59,59 +59,66 @@ namespace KLC_Finch.Modules {
         }
 
         public void Start(ServiceValue sv) {
-            JObject jEvent = new JObject();
-            jEvent["action"] = "StartService";
-            jEvent["serviceName"] = sv.ServiceName;
-            jEvent["displayName"] = sv.DisplayName;
+            JObject jEvent = new JObject {
+                ["action"] = "StartService",
+                ["serviceName"] = sv.ServiceName,
+                ["displayName"] = sv.DisplayName
+            };
             serverB.Send(jEvent.ToString());
         }
 
         public void Stop(ServiceValue sv) {
-            JObject jEvent = new JObject();
-            jEvent["action"] = "StopService";
-            jEvent["serviceName"] = sv.ServiceName;
-            jEvent["displayName"] = sv.DisplayName;
+            JObject jEvent = new JObject {
+                ["action"] = "StopService",
+                ["serviceName"] = sv.ServiceName,
+                ["displayName"] = sv.DisplayName
+            };
             serverB.Send(jEvent.ToString());
         }
 
         public void Restart(ServiceValue sv) {
-            JObject jEvent = new JObject();
-            jEvent["action"] = "RestartService";
-            jEvent["serviceName"] = sv.ServiceName;
-            jEvent["displayName"] = sv.DisplayName;
+            JObject jEvent = new JObject {
+                ["action"] = "RestartService",
+                ["serviceName"] = sv.ServiceName,
+                ["displayName"] = sv.DisplayName
+            };
             serverB.Send(jEvent.ToString());
         }
 
         public void SetAuto(ServiceValue sv) {
-            JObject jEvent = new JObject();
-            jEvent["action"] = "SetStartupType";
-            jEvent["serviceName"] = sv.ServiceName;
-            jEvent["displayName"] = sv.DisplayName;
-            jEvent["startupType"] = "auto";
+            JObject jEvent = new JObject {
+                ["action"] = "SetStartupType",
+                ["serviceName"] = sv.ServiceName,
+                ["displayName"] = sv.DisplayName,
+                ["startupType"] = "auto"
+            };
             serverB.Send(jEvent.ToString());
         }
 
         public void SetManual(ServiceValue sv) {
-            JObject jEvent = new JObject();
-            jEvent["action"] = "SetStartupType";
-            jEvent["serviceName"] = sv.ServiceName;
-            jEvent["displayName"] = sv.DisplayName;
-            jEvent["startupType"] = "manual";
+            JObject jEvent = new JObject {
+                ["action"] = "SetStartupType",
+                ["serviceName"] = sv.ServiceName,
+                ["displayName"] = sv.DisplayName,
+                ["startupType"] = "manual"
+            };
             serverB.Send(jEvent.ToString());
         }
 
         public void SetDisabled(ServiceValue sv) {
-            JObject jEvent = new JObject();
-            jEvent["action"] = "SetStartupType";
-            jEvent["serviceName"] = sv.ServiceName;
-            jEvent["displayName"] = sv.DisplayName;
-            jEvent["startupType"] = "disabled";
+            JObject jEvent = new JObject {
+                ["action"] = "SetStartupType",
+                ["serviceName"] = sv.ServiceName,
+                ["displayName"] = sv.DisplayName,
+                ["startupType"] = "disabled"
+            };
             serverB.Send(jEvent.ToString());
         }
 
         public void RequestListServices() {
-            JObject jStartData = new JObject();
-            jStartData["action"] = "ListServices";
+            JObject jStartData = new JObject {
+                ["action"] = "ListServices"
+            };
             serverB.Send(jStartData.ToString());
         }
 

@@ -15,12 +15,12 @@ namespace KLC_Finch.Modules {
     public class Events {
 
         public const string LabelExtended = "! Extended";
-        private static string modulename = "events";
+        private static readonly string modulename = "events";
         private IWebSocketConnection serverB;
 
-        private EventsData eventsData;
-        private ComboBox cmbLogTypes;
-        //private ComboBox cmbLogTypesExtended;
+        private readonly EventsData eventsData;
+        private readonly ComboBox cmbLogTypes;
+        //private readonly ComboBox cmbLogTypesExtended;
 
         private string lastLogType;
         //private int scan = -1;
@@ -43,16 +43,16 @@ namespace KLC_Finch.Modules {
             string something = (string)temp["action"];
             switch (temp["action"].ToString()) {
                 case "ScriptReady":
-                    JObject jStartEventsData = new JObject();
-                    jStartEventsData["action"] = "GetLogTypes";
+                    JObject jStartEventsData = new JObject { ["action"] = "GetLogTypes" };
                     serverB.Send(jStartEventsData.ToString());
                     break;
                 case "GetLogTypes":
                     cmbLogTypes.Dispatcher.Invoke(new Action(() => {
                         cmbLogTypes.Items.Clear();
                         if (temp["logs"] != null) {
-                            List<string> listTypes = new List<string>();
-                            listTypes.Add(LabelExtended);
+                            List<string> listTypes = new List<string> {
+                                LabelExtended
+                            };
                             foreach (dynamic key in temp["logs"].Children())
                                 listTypes.Add(key.ToString());
 
@@ -113,11 +113,12 @@ namespace KLC_Finch.Modules {
                 logType = logType.Replace("%4", "/");
             */
 
-            JObject jEvent = new JObject();
-            jEvent["action"] = "SetLogType";
-            jEvent["logType"] = logType;
-            jEvent["numEvents"] = 200;
-            jEvent["direction"] = "NewerFirst";
+            JObject jEvent = new JObject {
+                ["action"] = "SetLogType",
+                ["logType"] = logType,
+                ["numEvents"] = 200,
+                ["direction"] = "NewerFirst"
+            };
             serverB.Send(jEvent.ToString());
         }
 
@@ -126,10 +127,11 @@ namespace KLC_Finch.Modules {
         }
 
         public void GetMoreEvents() {
-            JObject jEvent = new JObject();
-            jEvent["action"] = "GetEvents";
-            jEvent["numEvents"] = 25;
-            jEvent["logType"] = lastLogType;
+            JObject jEvent = new JObject {
+                ["action"] = "GetEvents",
+                ["numEvents"] = 25,
+                ["logType"] = lastLogType
+            };
             serverB.Send(jEvent.ToString());
         }
 

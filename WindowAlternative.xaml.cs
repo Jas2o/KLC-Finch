@@ -59,7 +59,7 @@ namespace KLC_Finch {
         }
 
         public void Disconnect(string sessionGuid, int reason) {
-            if (session.randSessionGuid != sessionGuid)
+            if (session.RandSessionGuid != sessionGuid)
                 return;
 
             socketActive = false;
@@ -191,7 +191,7 @@ namespace KLC_Finch {
                 if (tabFiles.IsSelected)
                     ctrlFiles.btnFilesPathJump_Click(sender, null);
                 else if (tabRegistry.IsSelected)
-                    ctrlRegistry.btnRegistryPathJump_Click(sender, null);
+                    ctrlRegistry.BtnRegistryPathJump_Click(sender, null);
                 else if (tabEvents.IsSelected)
                     ctrlEvents.btnEventsRefresh_Click(sender, null);
                 else if (tabServices.IsSelected)
