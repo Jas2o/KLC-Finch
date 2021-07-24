@@ -17,15 +17,13 @@ using VtNetCore.XTermParser;
 namespace KLC_Finch {
     public class CommandTerminal {
 
-        private static string modulenameWin = "commandshell";
-        private static string modulenameMac = "terminal";
-        private string modulename;
+        private readonly string modulename;
 
-        private bool IsMac;
+        private readonly bool IsMac;
         private IWebSocketConnection serverB;
 
-        private VirtualTerminalController vtController;
-        private DataConsumer dataPart;
+        private readonly VirtualTerminalController vtController;
+        private readonly DataConsumer dataPart;
 
         /*
         BaseTermRTB term;
@@ -49,7 +47,7 @@ namespace KLC_Finch {
 
             if (session != null) {
                 IsMac = session.agent.IsMac;
-                modulename = (IsMac ? modulenameMac : modulenameWin);
+                modulename = (IsMac ? "terminal" : "commandshell");
                 session.WebsocketB.ControlAgentSendTask(modulename);
             }
         }
@@ -62,8 +60,9 @@ namespace KLC_Finch {
             if (serverB == null)
                 return;
 
-            JObject jAction = new JObject();
-            jAction["action"] = "KillCommand";
+            JObject jAction = new JObject {
+                ["action"] = "KillCommand"
+            };
             serverB.Send(jAction.ToString());
         }
 
@@ -83,14 +82,18 @@ namespace KLC_Finch {
             }
             */
 
-            JObject jAction = new JObject();
+            JObject jAction;
             if (IsMac) {
-                jAction["action"] = "ShellInput";
-                jAction["input"] = input + "\n";
+                jAction = new JObject {
+                    ["action"] = "ShellInput",
+                    ["input"] = input + "\n"
+                };
                 //txtCommand.AppendText(inputOrg + "\r\n");
             } else {
-                jAction["action"] = "ShellCommand";
-                jAction["command"] = input + "\n";
+                jAction = new JObject {
+                    ["action"] = "ShellCommand",
+                    ["command"] = input + "\n"
+                };
                 //richCommand.AppendText(input + "\r\n", Colors.Cyan); //Wrong background colour
                 //richCommand.ScrollToEnd();
 
@@ -99,7 +102,6 @@ namespace KLC_Finch {
                 if (input.ToLower() == "cls")
                     dataPart.Push(Encoding.UTF8.GetBytes("\u001b[2J"));
             }
-
             serverB.Send(jAction.ToString());
         }
 
@@ -108,10 +110,11 @@ namespace KLC_Finch {
                 dynamic temp = JsonConvert.DeserializeObject(message);
                 switch ((string)temp["action"]) {
                     case "ScriptReady":
-                        JObject jAction = new JObject();
-                        jAction["action"] = "ConnectionOpen";
-                        jAction["rows"] = vtController.VisibleRows;
-                        jAction["cols"] = vtController.VisibleColumns;
+                        JObject jAction = new JObject {
+                            ["action"] = "ConnectionOpen",
+                            ["rows"] = vtController.VisibleRows,
+                            ["cols"] = vtController.VisibleColumns
+                        };
                         serverB.Send(jAction.ToString());
                         break;
                     case "ShellOutput":

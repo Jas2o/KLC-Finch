@@ -1,54 +1,152 @@
-﻿<Window x:Class="KLC_Finch.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:KLC_Finch"
-        mc:Ignorable="d"
-        Title="KLC-Finch" MinHeight="260" Width="300" SizeToContent="Height" ResizeMode="NoResize" Loaded="Window_Loaded" Closing="Window_Closing">
+﻿<Window
+    x:Class="KLC_Finch.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:KLC_Finch"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="KLC-Finch"
+    Width="300"
+    MinHeight="260"
+    Closing="Window_Closing"
+    Loaded="Window_Loaded"
+    ResizeMode="NoResize"
+    SizeToContent="Height"
+    WindowStartupLocation="CenterScreen"
+    mc:Ignorable="d">
     <Grid Margin="5">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition/>
-            <ColumnDefinition/>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        <TextBlock TextWrapping="Wrap" TextAlignment="Center" Grid.ColumnSpan="3" Margin="5">
-            <Run Foreground="Blue" Text="Launching directly only intended for testing." />
-            <LineBreak />
-            For normal usage:<LineBreak />
-            Run KLCProxy, open Settings menu,<LineBreak />
-            tick Use KLCProxy and Use Alternative<LineBreak />
-            then connect to an agent from VSA.
-        </TextBlock>
-        <!--<TextBlock TextWrapping="Wrap" Text="No KLC payload has been given, for debugging enter your Auth Token and select an agent." TextAlignment="Center" Grid.ColumnSpan="3" Margin="5"/>-->
-        <TextBlock Grid.Row="1" TextWrapping="Wrap" Text="Token" VerticalAlignment="Center" Margin="5,0"/>
-        <TextBlock Grid.Row="2" TextWrapping="Wrap" Text="GUID" VerticalAlignment="Center" Margin="5,0"/>
-        <PasswordBox x:Name="txtAuthToken" Grid.Column="1" Grid.Row="1" Margin="5" Grid.ColumnSpan="2"/>
-        <Grid Grid.Column="1" Grid.Row="2" Margin="5" Grid.ColumnSpan="2" >
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="30"/>
-            </Grid.ColumnDefinitions>
-            <TextBox x:Name="txtAgentGuid" TextWrapping="Wrap" Text=""/>
-            <Button x:Name="btnAgentGuidConnect" Content=">" Grid.Column="1" Margin="5,0,0,0" Click="btnAgentGuidConnect_Click"/>
-        </Grid>
-        <Button x:Name="btnLaunchThisComputer" Content="This Computer" Grid.Column="1" Grid.Row="3" Margin="2" Click="btnLaunchThisComputer_Click"/>
-        <Button x:Name="btnLaunchWinTeamviewer" Content="JumpBox" Grid.Column="2" Grid.Row="3" Margin="2" Click="btnLaunchWinTeamviewer_Click" />
-        <Button x:Name="btnLaunchMacMini" Content="Mac Mini" Grid.Column="1" Grid.Row="4" Margin="2" Click="btnLaunchMacMini_Click"/>
-        <Button x:Name="btnLaunchWinTeamviewerShared" Content="TV Shared" Grid.Column="2" Grid.Row="4" Margin="2" Click="btnLaunchWinTeamviewerShared_Click" />
-        <Button x:Name="btnLaunchRCTest" Content="RC Test" Grid.Column="1" Grid.Row="5" Margin="2" Click="btnLaunchRCTest_Click"/>
-        <Button x:Name="btnLaunchNull" Content="Null" Grid.Column="2" Grid.Row="5" Margin="2" Click="btnLaunchNull_Click"/>
-        <CheckBox x:Name="chkUseMITM" Content="MITM" Margin="0,0,5,0" VerticalAlignment="Center" Grid.Row="3" Checked="chkUseMITM_Change" Unchecked="chkUseMITM_Change" />
-        <TextBlock x:Name="txtVersion" Grid.Row="6" TextAlignment="Center" Grid.ColumnSpan="3" Margin="0,5,0,0">Version</TextBlock>
+        <StackPanel>
+            <TextBlock
+                Grid.ColumnSpan="3"
+                Margin="0,0,0,5"
+                TextAlignment="Center"
+                TextWrapping="Wrap">
+                <Run Foreground="Blue" Text="Launching directly only intended for testing." />
+                <LineBreak />
+                For normal usage:<LineBreak />
+                Run KLCProxy, open Settings menu,<LineBreak />
+                tick Use KLCProxy and Use Alternative<LineBreak />
+                then connect to an agent from VSA.</TextBlock>
+
+            <Button
+                x:Name="btnRCSettings"
+                Grid.Row="1"
+                Grid.Column="1"
+                Grid.ColumnSpan="2"
+                Margin="2,0,2,5"
+                Click="BtnRCSettings_Click"
+                Content="Remote Control Settings" />
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Grid.Row="0"
+                    Margin="5,0"
+                    VerticalAlignment="Center"
+                    Text="Token"
+                    TextWrapping="Wrap" />
+                <TextBlock
+                    Grid.Row="1"
+                    Margin="5,0"
+                    VerticalAlignment="Center"
+                    Text="GUID"
+                    TextWrapping="Wrap" />
+                <PasswordBox
+                    x:Name="txtAuthToken"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="2"
+                    Margin="2,5" />
+                <Grid
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="2"
+                    Margin="2,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox
+                        x:Name="txtAgentGuid"
+                        Text=""
+                        TextWrapping="Wrap" />
+                    <Button
+                        x:Name="btnAgentGuidConnect"
+                        Grid.Column="1"
+                        Margin="5,0,0,0"
+                        Click="BtnAgentGuidConnect_Click"
+                        Content="&gt;" />
+                </Grid>
+                <Button
+                    x:Name="btnLaunchThisComputer"
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Margin="2"
+                    Click="BtnLaunchThisComputer_Click"
+                    Content="This Computer" />
+                <Button
+                    x:Name="btnLaunchWinTeamviewer"
+                    Grid.Row="2"
+                    Grid.Column="2"
+                    Margin="2"
+                    Click="BtnLaunchWinTeamviewer_Click"
+                    Content="JumpBox" />
+                <Button
+                    x:Name="btnLaunchMacMini"
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    Margin="2"
+                    Click="BtnLaunchMacMini_Click"
+                    Content="Mac Mini" />
+                <Button
+                    x:Name="btnLaunchWinTeamviewerShared"
+                    Grid.Row="3"
+                    Grid.Column="2"
+                    Margin="2"
+                    Click="BtnLaunchWinTeamviewerShared_Click"
+                    Content="TV Shared" />
+                <Button
+                    x:Name="btnLaunchRCTest"
+                    Grid.Row="4"
+                    Grid.Column="1"
+                    Margin="2"
+                    Click="BtnLaunchRCTest_Click"
+                    Content="RC Test" />
+                <Button
+                    x:Name="btnLaunchNull"
+                    Grid.Row="4"
+                    Grid.Column="2"
+                    Margin="2"
+                    Click="BtnLaunchNull_Click"
+                    Content="Null" />
+                <CheckBox
+                    x:Name="chkUseMITM"
+                    Grid.Row="2"
+                    Margin="0,0,5,0"
+                    VerticalAlignment="Center"
+                    Checked="ChkUseMITM_Change"
+                    Content="MITM"
+                    Unchecked="ChkUseMITM_Change" />
+            </Grid>
+            <TextBlock
+                x:Name="txtVersion"
+                Margin="0,5,0,0"
+                TextAlignment="Center">
+                Version
+            </TextBlock>
+        </StackPanel>
     </Grid>
 </Window>

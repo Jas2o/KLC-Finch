@@ -30,7 +30,7 @@ namespace KLC_Finch {
 
         private void btnEventsStart_Click(object sender, RoutedEventArgs e) {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
-            if (session != null) {
+            if (session != null && session.WebsocketB.ControlAgentIsReady()) {
                 btnEventsStart.IsEnabled = false;
                 lblExtended.Content = "";
                 lblExtended.ToolTip = "";
@@ -77,7 +77,7 @@ namespace KLC_Finch {
             moduleEvents.GetMoreEvents();
         }
 
-        private void btnEventsRefresh_Click(object sender, RoutedEventArgs e) {
+        public void btnEventsRefresh_Click(object sender, RoutedEventArgs e) {
             if (moduleEvents == null)
                 return;
 

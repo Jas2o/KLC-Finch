@@ -14,10 +14,10 @@ using System.Windows.Controls;
 namespace KLC_Finch.Modules {
     public class Processes {
 
-        private static string modulename = "processes";
+        private static readonly string modulename = "processes";
         private IWebSocketConnection serverB;
 
-        private ProcessesData processesData;
+        private readonly ProcessesData processesData;
         //private DataGrid dgvProcesses;
         //private TextBox txtBox;
 
@@ -39,7 +39,6 @@ namespace KLC_Finch.Modules {
 
         public void Receive(string message) {
             dynamic temp = JsonConvert.DeserializeObject(message);
-            string something = (string)temp["action"];
             switch (temp["action"].ToString()) {
                 case "ScriptReady":
                     RequestListProcesses();
@@ -78,8 +77,9 @@ namespace KLC_Finch.Modules {
         }
 
         public void RequestListProcesses() {
-            JObject jStartData = new JObject();
-            jStartData["action"] = "ListProcesses";
+            JObject jStartData = new JObject {
+                ["action"] = "ListProcesses"
+            };
             serverB.Send(jStartData.ToString());
         }
 
@@ -117,10 +117,11 @@ namespace KLC_Finch.Modules {
               "displayName": "Portals.exe"
             } */
 
-            JObject jEvent = new JObject();
-            jEvent["action"] = "EndProcess";
-            jEvent["PID"] = pv.PID.ToString();
-            jEvent["displayName"] = pv.DisplayName;
+            JObject jEvent = new JObject {
+                ["action"] = "EndProcess",
+                ["PID"] = pv.PID.ToString(),
+                ["displayName"] = pv.DisplayName
+            };
             serverB.Send(jEvent.ToString());
         }
 

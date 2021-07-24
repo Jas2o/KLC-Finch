@@ -1,7 +1,10 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
+using System.Windows.Interop;
+using System.Windows.Media.Imaging;
 
 namespace NTR {
-    internal class RCScreen {
+    public class RCScreen {
         public string screen_id;
         public string screen_name;
         //public int screen_height;
@@ -13,6 +16,8 @@ namespace NTR {
         public Rectangle rectFixed;
 
         public TextureScreen Texture;
+        //public System.Windows.Shapes.Rectangle Shape;
+        public System.Windows.Controls.Image CanvasImage;
 
         public RCScreen(string screen_id, string screen_name, int screen_height, int screen_width, int screen_x, int screen_y) {
             this.screen_id = screen_id;
@@ -50,5 +55,25 @@ namespace NTR {
         public override string ToString() {
             return screen_name + ": (" + StringResPos() + ")";
         }
+
+        public void SetCanvasImage(Bitmap bitmap) {
+            //High CPU
+
+            IntPtr hBitmap = bitmap.GetHbitmap();
+            try {
+                CanvasImage.Source = Imaging.CreateBitmapSourceFromHBitmap(
+                    hBitmap,
+                    IntPtr.Zero,
+                    System.Windows.Int32Rect.Empty,
+                    BitmapSizeOptions.FromEmptyOptions());
+            } finally {
+                DeleteObject(hBitmap);
+            }
+
+            //bitmap.Dispose(); //Causes issues?
+        }
+
+        [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+        private static extern bool DeleteObject(IntPtr hObject);
     }
 }

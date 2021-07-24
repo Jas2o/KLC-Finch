@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="64.0px"
+   height="64.0px"
+   viewBox="0 0 64.0 64.0"
+   version="1.1"
+   id="SVGRoot"
+   sodipodi:docname="WarningRed.svg"
+   inkscape:export-filename="C:\Users\jas2o\Desktop\WarningRed.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview118"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="px"
+     showgrid="true"
+     inkscape:zoom="4.192802"
+     inkscape:cx="107.3268"
+     inkscape:cy="57.36021"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid124" />
+  </sodipodi:namedview>
+  <defs
+     id="defs113">
+    <linearGradient
+       id="linearGradient3305"
+       inkscape:swatch="solid">
+      <stop
+         style="stop-color:#000000;stop-opacity:1;"
+         offset="0"
+         id="stop3303" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient1271"
+       inkscape:swatch="solid">
+      <stop
+         style="stop-color:#000000;stop-opacity:1;"
+         offset="0"
+         id="stop1269" />
+    </linearGradient>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       class="cls-1"
+       d="M 29.756238,2.4392338 1.3189792,58.595186 A 2.5973996,2.9614306 0 0 0 3.5627423,63.03038 H 60.437258 a 2.5973996,2.9614306 0 0 0 2.243763,-4.435194 L 34.243763,2.4392338 a 2.5973996,2.9614306 0 0 0 -4.487525,0 z"
+       id="path8"
+       style="fill:#ef2929;stroke:#a40000;stroke-width:1.93924;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+       inkscape:export-filename="C:\Users\jas2o\Desktop\WarningRed.png"
+       inkscape:export-xdpi="48.000004"
+       inkscape:export-ydpi="48.000004" />
+    <path
+       class="cls-2"
+       d="M 28.226786,48.596011 A 3.7732148,3.7636927 0 1 1 32,52.359703 3.6222862,3.613145 0 0 1 28.226786,48.596011 Z M 29.597721,42.749742 28.64184,23.931278 h 6.615702 l -0.918148,18.818464 z"
+       id="path10"
+       style="fill:#ffffff;stroke-width:1.25615"
+       inkscape:export-filename="C:\Users\jas2o\Desktop\WarningRed.png"
+       inkscape:export-xdpi="48.000004"
+       inkscape:export-ydpi="48.000004" />
+  </g>
+</svg>

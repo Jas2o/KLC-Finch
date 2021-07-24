@@ -1,85 +1,186 @@
-﻿<UserControl x:Class="KLC_Finch.controlFiles"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
-             xmlns:local="clr-namespace:KLC_Finch"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+﻿<UserControl
+    x:Class="KLC_Finch.controlFiles"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:KLC_Finch"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
     <UserControl.Resources>
-        <CollectionViewSource Source="{Binding ListFile}" x:Key="GridItems">
+        <CollectionViewSource x:Key="GridItems" Source="{Binding ListFile}">
             <CollectionViewSource.SortDescriptions>
-                <scm:SortDescription PropertyName="Name" Direction="Ascending"/>
+                <scm:SortDescription Direction="Ascending" PropertyName="Name" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
     </UserControl.Resources>
     <Grid Margin="5">
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto"/>
-            <RowDefinition/>
-            <RowDefinition Height="auto"/>
-            <!--<RowDefinition Height="60"/>-->
+            <RowDefinition Height="auto" />
+            <RowDefinition />
+            <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
         <Grid Grid.Row="0" Margin="0,0,0,5">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Button x:Name="btnFilesStart" Content="Start" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="0,0,5,0" Click="btnFilesStart_Click"/>
-                <Button x:Name="btnFilesPathUp" Content="Up" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="0,0,5,0" Click="btnFilesPathUp_Click" />
+            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                <Button
+                    x:Name="btnFilesStart"
+                    Width="75"
+                    Margin="0,0,5,0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Click="btnFilesStart_Click"
+                    Content="Start" />
+                <Button
+                    x:Name="btnFilesPathUp"
+                    Width="75"
+                    Margin="0,0,5,0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Click="btnFilesPathUp_Click"
+                    Content="Up" />
             </StackPanel>
-            <TextBox x:Name="txtFilesPath" TextWrapping="Wrap" Grid.Column="1" PreviewKeyDown="txtFilesPath_PreviewKeyDown"/>
-            <Button x:Name="btnFilesPathJump" Content="Jump" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Grid.Column="2" Margin="5,0,0,0" Click="btnFilesPathJump_Click" />
+            <TextBox
+                x:Name="txtFilesPath"
+                Grid.Column="1"
+                PreviewKeyDown="txtFilesPath_PreviewKeyDown"
+                TextWrapping="Wrap" />
+            <Button
+                x:Name="btnFilesPathJump"
+                Grid.Column="2"
+                Width="75"
+                Margin="5,0,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Click="btnFilesPathJump_Click"
+                Content="Jump" />
         </Grid>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition/>
+                <ColumnDefinition />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <ListBox x:Name="listFilesFolders" MouseDoubleClick="listFilesFolders_MouseDoubleClick"/>
+            <ListBox x:Name="listFilesFolders" MouseDoubleClick="listFilesFolders_MouseDoubleClick" />
             <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" />
 
-            <DataGrid x:Name="dgvFilesFiles" Grid.Column="2" ItemsSource="{Binding Source={StaticResource GridItems}}" IsReadOnly="True" AutoGenerateColumns="False" SelectionMode="Single">
+            <DataGrid
+                x:Name="dgvFilesFiles"
+                Grid.Column="2"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                ItemsSource="{Binding Source={StaticResource GridItems}}"
+                SelectedCellsChanged="dgvFilesFiles_SelectedCellsChanged">
                 <DataGrid.Resources>
                     <local:FormatKbSizeConverter x:Key="FormatKbSizeConverter" />
                 </DataGrid.Resources>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Binding="{Binding Name}" Header="Name"/>
-                    <DataGridTextColumn Binding="{Binding Ext}" Header="Ext"/>
-                    <DataGridTextColumn Binding="{Binding Size,Converter={StaticResource FormatKbSizeConverter}}" Header="Size"/>
-                    <DataGridTextColumn Binding="{Binding Date, StringFormat=\{0:dd/MM/yyyy hh:mm tt\}}" Header="Date Modified"/>
+                    <DataGridTextColumn Binding="{Binding Name}" Header="Name" />
+                    <DataGridTextColumn Binding="{Binding Ext}" Header="Ext" />
+                    <DataGridTextColumn Binding="{Binding Size, Converter={StaticResource FormatKbSizeConverter}}" Header="Size" />
+                    <DataGridTextColumn Binding="{Binding Date, StringFormat=\{0:dd/MM/yyyy hh:mm tt\}}" Header="Date Modified" />
                 </DataGrid.Columns>
             </DataGrid>
 
             <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" />
             <Grid Grid.Column="4">
                 <Grid Height="30">
-                    <ProgressBar x:Name="progressBar" Minimum="0" Maximum="100" Value="0" />
-                    <TextBlock x:Name="progressText" Text="" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <ProgressBar
+                        x:Name="progressBar"
+                        Maximum="100"
+                        Minimum="0"
+                        Value="0" />
+                    <TextBlock
+                        x:Name="progressText"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Text="" />
                 </Grid>
-                <Label Content="FILE TRANSFER PLACEHOLDER" HorizontalAlignment="Left" Margin="0" VerticalAlignment="Top"/>
+                <Label
+                    Margin="0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Content="FILE TRANSFER PLACEHOLDER" />
             </Grid>
         </Grid>
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5">
-            <Label Content="Folder:" Margin="0,0,5,0" VerticalAlignment="Center" />
-            <Button x:Name="btnFilesFolderCreate" Content="Create" Margin="0,0,5,0" Height="20" Click="btnFilesFolderCreate_Click" />
-            <Button x:Name="btnFilesFolderRename" Content="Rename" Margin="0,0,5,0" Height="20" Click="btnFilesFolderRename_Click" />
-            <Button x:Name="btnFilesFolderDelete" Content="Delete" Margin="0,0,5,0" Height="20" Click="btnFilesFolderDelete_Click" />
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,5,0,0"
+            Orientation="Horizontal">
+            <Label
+                Margin="0,0,5,0"
+                VerticalAlignment="Center"
+                Content="Folder:" />
+            <Button
+                x:Name="btnFilesFolderCreate"
+                Height="20"
+                Margin="0,0,5,0"
+                Click="btnFilesFolderCreate_Click"
+                Content="Create" />
+            <Button
+                x:Name="btnFilesFolderDownload"
+                Height="20"
+                Margin="0,0,5,0"
+                Click="btnFilesFolderDownload_Click"
+                Content="Download" />
+            <Button
+                x:Name="btnFilesFolderRename"
+                Height="20"
+                Margin="0,0,5,0"
+                Click="btnFilesFolderRename_Click"
+                Content="Rename" />
+            <Button
+                x:Name="btnFilesFolderDelete"
+                Height="20"
+                Margin="0,0,5,0"
+                Click="btnFilesFolderDelete_Click"
+                Content="Delete" />
 
-            <Label Content="| File:" Margin="0,0,5,0" VerticalAlignment="Center" />
-            <Button x:Name="btnFilesDownload" Content="Download" Margin="0,0,5,0" Height="20" Click="btnFilesDownload_Click"/>
-            <Button x:Name="btnFilesUpload" Content="Upload" Margin="0,0,5,0" Height="20" Click="btnFilesUpload_Click"/>
-            <Button x:Name="btnFilesFileRename" Content="Rename" Margin="0,0,5,0" Height="20" Click="btnFilesFileRename_Click" />
-            <Button x:Name="btnFilesFileDelete" Content="Delete" Margin="0,0,5,0" Height="20" Click="btnFilesFileDelete_Click" />
+            <Label VerticalAlignment="Center" Content="|" />
+            <Label
+                Margin="0,0,5,0"
+                VerticalAlignment="Center"
+                Content="Files:" />
+            <Button
+                x:Name="btnFilesDownload"
+                Height="20"
+                Margin="0,0,5,0"
+                Click="btnFilesDownload_Click"
+                Content="Download" />
+            <Button
+                x:Name="btnFilesUpload"
+                Height="20"
+                Margin="0,0,5,0"
+                Click="btnFilesUpload_Click"
+                Content="Upload" />
+            <Button
+                x:Name="btnFilesFileRename"
+                Height="20"
+                Margin="0,0,5,0"
+                Click="btnFilesFileRename_Click"
+                Content="Rename" />
+            <Button
+                x:Name="btnFilesFileDelete"
+                Height="20"
+                Margin="0,3,5,0"
+                VerticalAlignment="Top"
+                Click="btnFilesFileDelete_Click"
+                Content="Delete" />
 
-            <Label Content="|" Margin="0,0,5,0" VerticalAlignment="Center" />
-            <CheckBox x:Name="chkFilesEnableDelete" Content="Enable Delete" VerticalAlignment="Center" Margin="0,0,5,0" Checked="chkFilesEnableDelete_Checked" Unchecked="chkFilesEnableDelete_Unchecked" />
+            <Label VerticalAlignment="Center" Content="|" />
+            <Label
+                x:Name="txtFilesSelected"
+                Margin="0,0,5,0"
+                VerticalAlignment="Center"
+                Content="0 files selected" />
         </StackPanel>
         <!--<TextBox x:Name="txtFiles" TextWrapping="Wrap" Grid.Row="3" VerticalScrollBarVisibility="Auto"/>-->
     </Grid>

@@ -81,7 +81,7 @@ namespace KLC_Finch.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Fri 28/05/2021  9:49:58.99 
+        ///   Looks up a localized string similar to 2021-06-24 
         ///.
         /// </summary>
         internal static string BuildDate {
@@ -167,6 +167,16 @@ namespace KLC_Finch.Properties {
             get {
                 object obj = ResourceManager.GetObject("tray_arrow_up", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon WarningRed {
+            get {
+                object obj = ResourceManager.GetObject("WarningRed", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
             }
         }
     }

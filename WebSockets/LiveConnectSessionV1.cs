@@ -19,11 +19,11 @@ namespace KLC {
         public string shorttoken; //KLC would normally change tokens during initial connection
         public string agentGuid;
         public Agent agent;
-        public KaseyaAuth auth { get; private set; }
+        public KaseyaAuth Auth { get; private set; }
 
-        public Structure.EAL eal { get; private set; }
-        public Structure.EIRC eirc { get; private set; }
-        public string randSessionGuid { get; private set; }
+        public Structure.EAL Eal { get; private set; }
+        public Structure.EIRC Eirc { get; private set; }
+        public string RandSessionGuid { get; private set; }
         public int RCNotify { get; private set; }
 
         public Dashboard ModuleDashboard;
@@ -45,9 +45,9 @@ namespace KLC {
             Callback = callback;
             agent = new Agent(agentGuid, shorttoken);
 
-            auth = KaseyaAuth.ApiAuthX(shorttoken);
-            shortToken = auth.Token; //Works fine without this line, but it's something KLC does.
-            eal = Api15.EndpointsAdminLogin(shorttoken);
+            Auth = KaseyaAuth.ApiAuthX(shorttoken);
+            shortToken = Auth.Token; //Works fine without this line, but it's something KLC does.
+            Eal = Api15.EndpointsAdminLogin(shorttoken);
 
             JObject rcNotifyPolicy = agent.GetRemoteControlNotifyPolicyFromAPI(shortToken);
             if (rcNotifyPolicy["Result"] != null && rcNotifyPolicy["Result"]["RemoteControlNotify"] != null)
@@ -56,8 +56,8 @@ namespace KLC {
             ////dynamic agentSettings = agent.GetAgentSettingsInfoFromAPI(shorttoken);
             ////dynamic auditSummary = agent.GetAgentAuditSummaryFromAPI(shorttoken);
 
-            eirc = Api15.EndpointsInitiateRemoteControl(shorttoken, agentGuid);
-            randSessionGuid = Guid.NewGuid().ToString();
+            Eirc = Api15.EndpointsInitiateRemoteControl(shorttoken, agentGuid);
+            RandSessionGuid = Guid.NewGuid().ToString();
 
             //jsonAgentSettings = Api10.AssetmgmtAgentSettings(shorttoken, agentGuid);
             //jsonAgentSummary = Api10.AssetmgmtAuditSummary(shorttoken, agentGuid);

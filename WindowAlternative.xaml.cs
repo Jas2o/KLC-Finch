@@ -20,6 +20,7 @@ namespace KLC_Finch {
     public partial class WindowAlternative : Window {
 
         public KLC.LiveConnectSession session;
+        public bool socketActive { get; private set; }
         private string agentID;
         private string shortToken;
 
@@ -48,12 +49,36 @@ namespace KLC_Finch {
             this.agentID = agentID;
             this.shortToken = shortToken;
             this.directToPrivate = directToPrivate;
+            socketActive = true;
 
             HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : null);
             session = new KLC.LiveConnectSession(shortToken, agentID, callback);
             this.Title = session.agent.Name + " - KLC-Finch";
 
             WindowUtilities.ActivateWindow(this);
+        }
+
+        public void Disconnect(string sessionGuid, int reason) {
+            if (session.RandSessionGuid != sessionGuid)
+                return;
+
+            socketActive = false;
+
+            Application.Current.Dispatcher.Invoke((Action)delegate {
+                switch(reason) {
+                    case 0:
+                        txtDisconnected.Text = "Endpoint Unavailable (Web Socket A)";
+                        borderDisconnected.Background = new SolidColorBrush(Colors.DarkOrange);
+                        break;
+
+                    case 1:
+                        txtDisconnected.Text = "Endpoint Disconnected (Web Socket B)";
+                        borderDisconnected.Background = new SolidColorBrush(Colors.Maroon);
+                        break;
+                }
+                
+                borderDisconnected.Visibility = Visibility.Visible;
+            });
         }
 
         public delegate void HasConnected();
@@ -98,7 +123,7 @@ namespace KLC_Finch {
         }
 
         private void btnRCShared_Click(object sender, RoutedEventArgs e) {
-            if (session == null)
+            if (session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
                 return;
 
             session.ModuleRemoteControl = new RemoteControl(session, false);
@@ -106,7 +131,7 @@ namespace KLC_Finch {
         }
 
         private void btnRCPrivate_Click(object sender, RoutedEventArgs e) {
-            if (session == null)
+            if (session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
                 return;
 
             session.ModuleRemoteControl = new RemoteControl(session, true);
@@ -134,8 +159,10 @@ namespace KLC_Finch {
                 ctrlDashboard.txtRebootLast.ToolTip = session.agent.RebootLast.ToString();
             }
 
-            ctrlDashboard.DisplayRCNotify(session.RCNotify);
-            ctrlDashboard.DisplayMachineNote(session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
+            ctrlDashboard.UpdateDisplayData();
+            //ctrlDashboard.DisplayRAM(session.agent.RAMinGB);
+            //ctrlDashboard.DisplayRCNotify(session.RCNotify);
+            //ctrlDashboard.DisplayMachineNote(session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             ctrlDashboard.btnStaticImageStart_Click(sender, e);
             ctrlDashboard.btnDashboardStartData_Click(sender, e);
         }
@@ -157,6 +184,21 @@ namespace KLC_Finch {
             LibKaseya.KLCCommand command = LibKaseya.KLCCommand.Example(agentID, shortToken);
             command.SetForLiveConnect();
             command.Launch(false, LibKaseya.LaunchExtra.None);
+        }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e) {
+            if(e.Key == Key.F5) {
+                if (tabFiles.IsSelected)
+                    ctrlFiles.btnFilesPathJump_Click(sender, null);
+                else if (tabRegistry.IsSelected)
+                    ctrlRegistry.BtnRegistryPathJump_Click(sender, null);
+                else if (tabEvents.IsSelected)
+                    ctrlEvents.btnEventsRefresh_Click(sender, null);
+                else if (tabServices.IsSelected)
+                    ctrlServices.btnServicesRefresh_Click(sender, null);
+                else if (tabProcesses.IsSelected)
+                    ctrlProcesses.btnProcessesRefresh_Click(sender, null);
+            }
         }
     }
 }

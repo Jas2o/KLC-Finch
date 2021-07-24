@@ -1,63 +1,137 @@
-﻿<UserControl x:Class="KLC_Finch.controlDashboard"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:command="clr-namespace:KLC_Finch"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <!--  Loaded="UserControl_Loaded"-->
+﻿<UserControl
+    x:Class="KLC_Finch.controlDashboard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:command="clr-namespace:KLC_Finch"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+    <!--  Loaded="UserControl_Loaded"  -->
     <Grid Margin="5">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*"/>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto"/>
-            <RowDefinition/>
-            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto" />
+            <RowDefinition />
+            <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
         <StackPanel>
-            <TextBlock x:Name="txtRCNotify" Text="Remote control notify policy here." TextAlignment="Center" Margin="0,0,0,5"/>
-            <TextBlock x:Name="txtSpecialInstructions" Text="Special Instructions for this Machine" FontWeight="Bold" TextAlignment="Center" Margin="0,0,0,5"/>
-            <TextBlock x:Name="txtMachineNote" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,5">
+            <TextBlock
+                x:Name="txtRCNotify"
+                Margin="0,0,0,5"
+                Text="Remote control notify policy here."
+                TextAlignment="Center" />
+            <TextBlock
+                x:Name="txtSpecialInstructions"
+                Margin="0,0,0,5"
+                FontWeight="Bold"
+                Text="Special Instructions for this Machine"
+                TextAlignment="Center" />
+            <TextBlock
+                x:Name="txtMachineNote"
+                Margin="0,0,0,5"
+                TextAlignment="Center"
+                TextWrapping="Wrap">
                 <TextBlock.Inlines>
-                    <Run x:Name="txtMachineNoteText" Text="Machine Note Here"></Run>
+                    <Run x:Name="txtMachineNoteText" Text="Machine Note Here" />
                     <Hyperlink x:Name="txtMachineNoteLink" RequestNavigate="txtMachineNoteLink_RequestNavigate">
-                        <TextBlock x:Name="txtMachineNoteLinkText" Text="https://www.example.com"></TextBlock>
+                        <TextBlock x:Name="txtMachineNoteLinkText" Text="https://www.example.com" />
                     </Hyperlink>
                 </TextBlock.Inlines>
             </TextBlock>
         </StackPanel>
 
-        <Image x:Name="imgScreenPreview" StretchDirection="DownOnly" Grid.Row="1" />
-        
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5,0,0">
-            <Button x:Name="btnStaticImageStart" Content="StartStaticImage" Margin="0,0,5,0" Click="btnStaticImageStart_Click"/>
-            <Button x:Name="btnStaticImageRefresh" Content="Refresh" Margin="0,0,5,0" Click="btnStaticImageRefresh_Click"/>
-            <Button x:Name="btnStaticImageRefreshFull" Content="Get full res. frame" Margin="0,0,5,0" Click="btnStaticImageRefreshFull_Click"/>
+        <Image
+            x:Name="imgScreenPreview"
+            Grid.Row="1"
+            StretchDirection="DownOnly" />
+
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,5,0,0"
+            Orientation="Horizontal">
+            <Button
+                x:Name="btnStaticImageStart"
+                Margin="0,0,5,0"
+                Click="btnStaticImageStart_Click"
+                Content="StartStaticImage" />
+            <Button
+                x:Name="btnStaticImageRefresh"
+                Margin="0,0,5,0"
+                Click="btnStaticImageRefresh_Click"
+                Content="Refresh" />
+            <Button
+                x:Name="btnStaticImageRefreshFull"
+                Margin="0,0,5,0"
+                Click="btnStaticImageRefreshFull_Click"
+                Content="Get full res. frame" />
         </StackPanel>
-        
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Column="1" Margin="5,0,0,0" Grid.RowSpan="2">
+
+        <ScrollViewer
+            Grid.RowSpan="2"
+            Grid.Column="1"
+            Margin="5,0,0,0"
+            VerticalScrollBarVisibility="Auto">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
                 </Grid.RowDefinitions>
 
-                <TextBlock x:Name="txtRebootLast" Grid.Row="0" Text="Last rebooted (fuzzy time) ago" TextAlignment="Center" Margin="0,0,0,5"/>
-                <StackPanel x:Name="stackDisks" Grid.Row="1" >
+                <StackPanel Grid.Row="0">
+                    <TextBlock
+                        x:Name="txtRebootLast"
+                        Grid.Row="0"
+                        Margin="0,0,0,5"
+                        Text="Last rebooted (fuzzy time) ago"
+                        TextAlignment="Center" />
+                    <TextBlock
+                        x:Name="txtUtilisationRAM"
+                        Grid.Row="0"
+                        Margin="0,0,0,5"
+                        Text="RAM % used"
+                        TextAlignment="Center" />
+                </StackPanel>
+                <StackPanel x:Name="stackDisks" Grid.Row="1">
                     <!--<command:controlDisk/>-->
                 </StackPanel>
-                <TextBox x:Name="txtDashboard" Margin="0" Background="DarkSlateBlue" Foreground="White" FontFamily="Consolas" IsReadOnly="true" TextWrapping="Wrap" Grid.Row="2" />
+                <TextBox
+                    x:Name="txtDashboard"
+                    Grid.Row="2"
+                    Margin="0"
+                    Background="DarkSlateBlue"
+                    FontFamily="Consolas"
+                    Foreground="White"
+                    IsReadOnly="true"
+                    TextWrapping="Wrap" />
             </Grid>
         </ScrollViewer>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Grid.Column="1" Margin="0,5,0,0">
-            <Button x:Name="btnDashboardStartData" Content="Start Data" Margin="5,0" Click="btnDashboardStartData_Click"/>
-            <Button x:Name="btnDashboardGetCpuRam" Content="CPU/RAM" Margin="0,0,5,0" Click="btnDashboardGetCpuRam_Click"/>
-            <Button x:Name="btnDashboardGetVolumes" Content="Volumes" Margin="0,0,5,0" Click="btnDashboardGetVolumes_Click"/>
+        <StackPanel
+            Grid.Row="2"
+            Grid.Column="1"
+            Margin="0,5,0,0"
+            Orientation="Horizontal">
+            <Button
+                x:Name="btnDashboardStartData"
+                Margin="5,0"
+                Click="btnDashboardStartData_Click"
+                Content="Start Data" />
+            <Button
+                x:Name="btnDashboardGetCpuRam"
+                Margin="0,0,5,0"
+                Click="btnDashboardGetCpuRam_Click"
+                Content="CPU/RAM" />
+            <Button
+                x:Name="btnDashboardGetVolumes"
+                Margin="0,0,5,0"
+                Click="btnDashboardGetVolumes_Click"
+                Content="Volumes" />
         </StackPanel>
     </Grid>
 </UserControl>

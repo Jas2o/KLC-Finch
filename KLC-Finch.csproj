@@ -29,6 +29,7 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -54,36 +55,39 @@
   <PropertyGroup>
     <ApplicationIcon>Finch Icon.ico</ApplicationIcon>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="CredentialManagement, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\CredentialManagement.1.0.2\lib\net35\CredentialManagement.dll</HintPath>
     </Reference>
-    <Reference Include="Fleck, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Fleck.1.1.0\lib\net45\Fleck.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Fleck, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Fleck.1.2.0\lib\net45\Fleck.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.5.0.0\lib\net461\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="nucs.JsonSettings, Version=1.0.7.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\nucs.JsonSettings.1.0.7\lib\net47\nucs.JsonSettings.dll</HintPath>
     </Reference>
-    <Reference Include="OpenTK, Version=3.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
-      <HintPath>..\packages\OpenTK.3.1.0\lib\net20\OpenTK.dll</HintPath>
+    <Reference Include="Ookii.Dialogs.Wpf, Version=3.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
+      <HintPath>..\packages\Ookii.Dialogs.Wpf.3.1.0\lib\net45\Ookii.Dialogs.Wpf.dll</HintPath>
     </Reference>
-    <Reference Include="OpenTK.GLControl, Version=3.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
-      <HintPath>..\packages\OpenTK.GLControl.3.1.0\lib\net20\OpenTK.GLControl.dll</HintPath>
+    <Reference Include="OpenTK, Version=3.3.1.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenTK.3.3.1\lib\net20\OpenTK.dll</HintPath>
     </Reference>
+    <Reference Include="PresentationFramework.Aero2" />
     <Reference Include="RestSharp, Version=106.11.7.0, Culture=neutral, PublicKeyToken=598062e77f915f75, processorArchitecture=MSIL">
       <HintPath>..\packages\RestSharp.106.11.7\lib\net452\RestSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Design" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
@@ -183,6 +187,9 @@
     <Compile Include="Modules\Registry\WindowRegistryString.xaml.cs">
       <DependentUpon>WindowRegistryString.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Modules\RemoteControl\IRemoteControl.cs" />
+    <Compile Include="Modules\RemoteControl\KeyboardHook.cs" />
+    <Compile Include="Modules\RemoteControl\OpenGLSoftwareTest.cs" />
     <Compile Include="Modules\RemoteControl\OTK\Camera.cs" />
     <Compile Include="Modules\RemoteControl\MITM.cs" />
     <Compile Include="Modules\RemoteControl\OTK\TextureCursor.cs" />
@@ -191,13 +198,17 @@
     <Compile Include="Modules\RemoteControl\RemoteControl.cs" />
     <Compile Include="Modules\RemoteControl\OTK\FPSCounter.cs" />
     <Compile Include="Modules\RemoteControl\OTK\RCScreen.cs" />
-    <None Include="Modules\RemoteControl\WindowViewerV1.xaml.cs">
-      <DependentUpon>WindowViewerV1.xaml</DependentUpon>
-    </None>
+    <Compile Include="Modules\RemoteControl\RemoteControlTest.cs" />
     <Compile Include="Modules\RemoteControl\Shaders.cs" />
     <Compile Include="Modules\RemoteControl\TSSession.cs" />
     <Compile Include="Modules\RemoteControl\WindowOptions.xaml.cs">
       <DependentUpon>WindowOptions.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\WindowRCTest.xaml.cs">
+      <DependentUpon>WindowRCTest.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\WindowScreens.xaml.cs">
+      <DependentUpon>WindowScreens.xaml</DependentUpon>
     </Compile>
     <Compile Include="Modules\RemoteControl\WindowViewerV2.xaml.cs">
       <DependentUpon>WindowViewerV2.xaml</DependentUpon>
@@ -217,6 +228,7 @@
       <DependentUpon>WindowAlternative.xaml</DependentUpon>
     </Compile>
     <Resource Include="Finch Icon.ico" />
+    <None Include="app.manifest" />
     <None Include="OpenTK.dll.config" />
     <None Include="Resources\Finch Icon.png" />
     <None Include="WebSockets\Unused\LiveConnectSessionV1.cs" />
@@ -283,11 +295,15 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <None Include="Modules\RemoteControl\WindowViewerV1.xaml">
-      <SubType>Designer</SubType>
-      <Generator>XamlIntelliSenseFileGenerator</Generator>
-    </None>
     <Page Include="Modules\RemoteControl\WindowOptions.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\RemoteControl\WindowRCTest.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\RemoteControl\WindowScreens.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -409,6 +425,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\BuildDate.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\WarningRed.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\WarningRed.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LibrariesExternal\GLWpfControl\GLWpfControl.csproj">
+      <Project>{4078f257-6bf1-42fa-bf0a-ad9f8f6116a4}</Project>
+      <Name>GLWpfControl</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaLiveConnect\LibKaseyaLiveConnect.projitems" Label="Shared" />

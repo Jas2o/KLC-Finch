@@ -13,18 +13,20 @@ using System.Windows.Controls;
 namespace KLC_Finch {
     public class Dashboard {
 
-        private static string modulename = "dashboard";
-        private TextBox txtBox;
-        private StackPanel stackDisks;
+        private static readonly string modulename = "dashboard";
+        private readonly TextBlock txtRAM;
+        private readonly TextBox txtBox;
+        private readonly StackPanel stackDisks;
         private IWebSocketConnection serverB;
 
-        private KLC.LiveConnectSession session;
-        System.Timers.Timer timerStart;
-        System.Timers.Timer timerRefresh;
+        private readonly KLC.LiveConnectSession session;
+        private readonly System.Timers.Timer timerStart;
+        //System.Timers.Timer timerRefresh;
 
-        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks=null) {
+        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks=null, TextBlock txtRAM =null) {
             this.session = session;
             this.txtBox = txtBox;
+            this.txtRAM = txtRAM;
             this.stackDisks = stackDisks;
 
             timerStart = new System.Timers.Timer(1000);
@@ -56,32 +58,28 @@ namespace KLC_Finch {
 
         public void GetCpuRam() {
             if (serverB != null) {
-                JObject jAction = new JObject();
-                jAction["action"] = "GetCpuRam";
+                JObject jAction = new JObject { ["action"] = "GetCpuRam" };
                 serverB.Send(jAction.ToString());
             }
         }
 
         public void GetTopEvents() {
             if (serverB != null) {
-                JObject jAction = new JObject();
-                jAction["action"] = "GetTopEvents";
+                JObject jAction = new JObject { ["action"] = "GetTopEvents" };
                 serverB.Send(jAction.ToString());
             }
         }
 
         public void GetTopProcesses() {
             if (serverB != null) {
-                JObject jAction = new JObject();
-                jAction["action"] = "GetTopProcesses";
+                JObject jAction = new JObject { ["action"] = "GetTopProcesses" };
                 serverB.Send(jAction.ToString());
             }
         }
 
         public void GetVolumes() {
             if (serverB != null) {
-                JObject jAction = new JObject();
-                jAction["action"] = "GetVolumes";
+                JObject jAction = new JObject { ["action"] = "GetVolumes" };
                 serverB.Send(jAction.ToString());
             }
         }
@@ -91,8 +89,7 @@ namespace KLC_Finch {
                 dynamic temp = JsonConvert.DeserializeObject(message);
                 switch (temp["action"].ToString()) {
                     case "ScriptReady":
-                        JObject jStartDashboardData = new JObject();
-                        jStartDashboardData["action"] = "StartDashboardData";
+                        JObject jStartDashboardData = new JObject { ["action"] = "StartDashboardData" };
                         serverB.Send(jStartDashboardData.ToString());
                         break;
 
@@ -108,6 +105,17 @@ namespace KLC_Finch {
                             stackDisks.Children.Add(disk);
                         }
 
+                        break;
+
+                    case "CpuRamData":
+                        //{"action":"CpuRamData","data":{"ram":46,"cpu":1.6440618016222541},"errors":[]}
+                        string ram = temp["data"]["ram"].ToString();
+                        int ramPoint = ram.IndexOf('.');
+                        if (ramPoint > -1) //Seems to be a Mac thing
+                            ram = ram.Substring(0, ramPoint);
+                        txtRAM.Text = "RAM: " + ram + "% used of " + session.agent.RAMinGB + " GB";
+
+                        txtBox.AppendText("Dashboard message: " + message + "\r\n");
                         break;
 
                     case "EventsData":
@@ -144,10 +152,6 @@ namespace KLC_Finch {
                            ],
                            "errors":[]
                         } */
-                        //break;
-
-                    case "CpuRamData":
-                        //{"action":"CpuRamData","data":{"ram":46,"cpu":1.6440618016222541},"errors":[]}
                         //break;
 
                     default:

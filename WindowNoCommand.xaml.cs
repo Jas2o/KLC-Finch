@@ -1,6 +1,7 @@
 ﻿using LibKaseya;
 using Microsoft.Win32;
 using Newtonsoft.Json.Linq;
+using nucs.JsonSettings;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -24,6 +25,9 @@ namespace KLC_Finch {
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window {
+
+        private WindowRCTest winRCTest;
+
         public MainWindow() {
             InitializeComponent();
         }
@@ -43,100 +47,75 @@ namespace KLC_Finch {
             Environment.Exit(0);
         }
 
-        private void btnAgentGuidConnect_Click(object sender, RoutedEventArgs e) {
+        private void BtnAgentGuidConnect_Click(object sender, RoutedEventArgs e) {
             if (txtAgentGuid.Text.Trim().Length > 0) {
                 App.alternative = new WindowAlternative(txtAgentGuid.Text.Trim(), txtAuthToken.Password);
                 App.alternative.Show();
             }
         }
 
-        private void btnLaunchWinTeamviewer_Click(object sender, RoutedEventArgs e) {
+        private void BtnLaunchWinTeamviewer_Click(object sender, RoutedEventArgs e) {
             App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Password);
             App.alternative.Show();
         }
 
-        private void btnLaunchWinTeamviewerShared_Click(object sender, RoutedEventArgs e) {
+        private void BtnLaunchWinTeamviewerShared_Click(object sender, RoutedEventArgs e) {
             App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Password, true, false);
             App.alternative.Show();
         }
 
-        private void btnLaunchMacMini_Click(object sender, RoutedEventArgs e) {
+        private void BtnLaunchMacMini_Click(object sender, RoutedEventArgs e) {
             App.alternative = new WindowAlternative("718548734128395", txtAuthToken.Password);
             App.alternative.Show();
         }
 
-        private void btnLaunchRCTest_Click(object sender, RoutedEventArgs e) {
-            int width = 800;
-            int height = 1080;
-
-            if (App.viewer != null) {
-                App.viewer.Close();
-                App.viewer = null;
-            }
-            WindowViewerV2 myViewer = App.viewer = new WindowViewerV2(null, width, height);
-
-            JObject jScreen = new JObject();
-            jScreen["screen_id"] = 65539;
-            jScreen["screen_name"] = "Test Screen";
-            jScreen["screen_width"] = width;
-            jScreen["screen_height"] = height;
-            jScreen["screen_x"] = 0;
-            jScreen["screen_y"] = 0;
-            JArray jScreenArray = new JArray();
-            jScreenArray.Add(jScreen);
-            JObject jDesktop = new JObject();
-            jDesktop["default_screen"] = 65539;
-            jDesktop["screens"] = jScreenArray;
-
-            myViewer.UpdateScreenLayout(jDesktop);
-            //myViewer.AddScreen("0", "Test Screen", height, width, 0, 0, true);
-            //myViewer.SetCanvas(0, 0, width, height);
-            myViewer.Show();
-
-            Thread threadTest = new Thread(() => {
-                System.Drawing.Color[] colors = new System.Drawing.Color[] { //The BIT.TRIP colours!
-                    System.Drawing.Color.FromArgb(251, 218, 3), //Yellow
-                    System.Drawing.Color.FromArgb(255, 165, 50), //Orange
-                    System.Drawing.Color.FromArgb(53, 166, 170), //Teal
-                    System.Drawing.Color.FromArgb(220, 108, 167), //Pink
-                    System.Drawing.Color.FromArgb(57, 54, 122) //Purple
-                };
-                Bitmap bTest = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-                while (myViewer.IsVisible) {
-                    foreach (System.Drawing.Color c in colors) {
-                        using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(c); }
-                        myViewer.LoadTexture(bTest.Width, bTest.Height, bTest);
-
-                        Thread.Sleep(1500);
-                    }
-                }
-            });
-            threadTest.Start();
+        private void BtnLaunchRCTest_Click(object sender, RoutedEventArgs e) {
+            if (winRCTest != null)
+                winRCTest.Close();
+            winRCTest = new WindowRCTest();
+            winRCTest.Show();
         }
 
-        private void btnLaunchNull_Click(object sender, RoutedEventArgs e) {
+        private void BtnLaunchNull_Click(object sender, RoutedEventArgs e) {
             App.alternative = new WindowAlternative(null, null);
             App.alternative.Show();
         }
 
-        private void btnLaunchThisComputer_Click(object sender, RoutedEventArgs e) {
+        private void BtnLaunchThisComputer_Click(object sender, RoutedEventArgs e) {
             string val = "";
 
-            using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) {
-                RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
-                if (subkey != null)
-                    val = subkey.GetValue("AgentGUID").ToString();
-                subkey.Close();
-            }
+            try {
+                using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) {
+                    RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
+                    if (subkey != null)
+                        val = subkey.GetValue("AgentGUID").ToString();
+                    subkey.Close();
+                }
 
-            if (val.Length > 0) {
-                App.alternative = new WindowAlternative(val, txtAuthToken.Password);
-                App.alternative.Show();
+                if (val.Length > 0) {
+                    App.alternative = new WindowAlternative(val, txtAuthToken.Password);
+                    App.alternative.Show();
+                }
+            } catch(Exception) {
             }
         }
 
-        private void chkUseMITM_Change(object sender, RoutedEventArgs e) {
+        private void ChkUseMITM_Change(object sender, RoutedEventArgs e) {
             KLC.WsA.useInternalMITM = (bool)chkUseMITM.IsChecked;
+        }
+
+        private void BtnRCSettings_Click(object sender, RoutedEventArgs e) {
+            string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
+            Settings Settings;
+            if (File.Exists(pathSettings))
+                Settings = JsonSettings.Load<Settings>(pathSettings);
+            else
+                Settings = JsonSettings.Construct<Settings>(pathSettings);
+
+            Modules.RemoteControl.WindowOptions winOptions = new Modules.RemoteControl.WindowOptions(ref Settings) {
+                Owner = this
+            };
+            winOptions.ShowDialog();
         }
     }
 }

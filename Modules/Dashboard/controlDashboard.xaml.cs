@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KLC;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -55,12 +56,21 @@ namespace KLC_Finch {
             InitializeComponent();
         }
 
+        public void UpdateDisplayData() {
+            KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
+
+            txtUtilisationRAM.Text = "RAM: " + session.agent.RAMinGB + " GB";
+            DisplayRCNotify(session.RCNotify);
+            DisplayRCNotify(session.RCNotify);
+            DisplayMachineNote(session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
+        }
+
         public void btnDashboardStartData_Click(object sender, RoutedEventArgs e) {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
-            if (session != null) {
+            if (session != null) { //Intentionally different
                 btnDashboardStartData.IsEnabled = false;
 
-                moduleDashboard = new Dashboard(session, txtDashboard, stackDisks);
+                moduleDashboard = new Dashboard(session, txtDashboard, stackDisks, txtUtilisationRAM);
                 session.ModuleDashboard = moduleDashboard;
             }
         }
@@ -80,7 +90,7 @@ namespace KLC_Finch {
 
         public void btnStaticImageStart_Click(object sender, RoutedEventArgs e) {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
-            if (session != null) {
+            if (session != null) { //Intentionally different
                 btnStaticImageStart.IsEnabled = false;
 
                 moduleStaticImage = new StaticImage(session, imgScreenPreview);
