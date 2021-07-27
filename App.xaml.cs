@@ -57,7 +57,7 @@ namespace KLC_Finch {
 
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length > 1) {
-                KLCCommand command = KLCCommand.NewFromBase64(args[1].Replace("kaseyaliveconnect:///", ""));
+                KLCCommand command = KLCCommand.NewFromBase64(args[1].Replace("liveconnect:///", ""));
 
                 if(command.payload.navId == "remotecontrol/shared")
                     alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, false);

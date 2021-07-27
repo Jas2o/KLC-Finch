@@ -11,6 +11,7 @@ namespace KLC_Finch {
         void SendSecureAttentionSequence();
         void SendKeyUp(int javascriptKeyCode, int uSBKeyCode);
         void SendAutotype(string text);
+        void SendPasteClipboard(string text);
         void SendClipboard(string clipboard);
         void Disconnect(string sessionId);
         void SendPanicKeyRelease();

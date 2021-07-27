@@ -1913,6 +1913,14 @@ namespace KLC_Finch {
             //Otherwise the old menu is shown
         }
 
+        private void ToolClipboardPaste_Click(object sender, RoutedEventArgs e) {
+            if (!controlEnabled || connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            string text = Clipboard.GetText().Trim();
+            rc.SendPasteClipboard(text);
+        }
+
         private RCScreen GetScreenUsingMouse(int x, int y) {
             //This doesn't yet work in Canvas
             foreach (RCScreen screen in ListScreen) {

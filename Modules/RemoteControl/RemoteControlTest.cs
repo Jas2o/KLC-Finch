@@ -90,6 +90,10 @@ namespace KLC_Finch {
             //throw new NotImplementedException();
         }
 
+        public void SendPasteClipboard(string clipboard) {
+            //throw new NotImplementedException();
+        }
+
         public void SendClipboard(string clipboard) {
             //throw new NotImplementedException();
         }
