@@ -266,7 +266,7 @@ namespace KLC {
 
         public string StartModuleRemoteControl(bool modePrivate) {
             string guidGenSessionId = Guid.NewGuid().ToString();
-            string guidGenSessionTokenId = Guid.NewGuid().ToString();
+            string guidGenSessionTokenId = Session.Eirc.session_token_id;// Guid.NewGuid().ToString();
             string guidGenId = Guid.NewGuid().ToString();
             string guidGenP2pConnectionId = Guid.NewGuid().ToString();
 

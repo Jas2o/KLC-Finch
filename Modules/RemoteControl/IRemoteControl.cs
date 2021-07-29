@@ -25,5 +25,7 @@ namespace KLC_Finch {
         void SendMouseWheel(int delta);
         void SendMousePosition(int x, int y);
         void SendMouseDown(MouseButton changedButton);
+        void ShowCursor(bool enabled);
+        void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB);
     }
 }

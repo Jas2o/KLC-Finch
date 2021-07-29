@@ -55,7 +55,7 @@ namespace KLC_Finch {
         }
 
         public void Receive(string message) {
-            Console.WriteLine("I was not expecting this!");
+            Console.WriteLine("[StaticImage:Unexpected] " + message);
         }
 
         public void HandleBytes(byte[] bytes) {
@@ -83,7 +83,7 @@ namespace KLC_Finch {
                     //Console.WriteLine(jsonstr);
 #endif
 
-                    int default_screen = (int)json["default_screen"];
+                    string default_screen = json["default_screen"].ToString();
                     ClearScreens();
 
                     foreach (dynamic screen in json["screens"]) {
@@ -99,7 +99,7 @@ namespace KLC_Finch {
                         Console.WriteLine("StaticImage - Add Screen: " + screen_id);
 #endif
 
-                        if(screen["screen_id"].ToString() == json["default_screen"].ToString()) { //int or BigInteger
+                        if(screen["screen_id"].ToString() == default_screen) { //int or BigInteger
                             //Same as how it's done in Kaseya's rc-screenshot.html
                             requestWidth = (int)Math.Ceiling(screen_width / 3.0);
                             requestHeight = (int)Math.Ceiling(screen_height / 3.0);

@@ -133,5 +133,13 @@ namespace KLC_Finch {
         public void UploadDrop(string v) {
             //throw new NotImplementedException();
         }
+
+        public void ShowCursor(bool enabled) {
+            //throw new NotImplementedException();
+        }
+
+        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB) {
+            //throw new NotImplementedException();
+        }
     }
 }

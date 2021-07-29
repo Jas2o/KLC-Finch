@@ -30,8 +30,8 @@ namespace NTR {
         }
 
         public void Load(Rectangle rect, byte[] Data) {
-            if (this.rect.Width != rect.Width || this.rect.Height != rect.Height)
-                vertBufferNeedUpdate = true;
+            //if (this.rect.Width != rect.Width || this.rect.Height != rect.Height)
+            vertBufferNeedUpdate = true;
             this.rect = rect;
 
             //BitmapData data = decomp.LockBits(new System.Drawing.Rectangle(0, 0, decomp.Width, decomp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);

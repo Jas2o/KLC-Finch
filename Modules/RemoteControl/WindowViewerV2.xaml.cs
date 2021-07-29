@@ -96,8 +96,12 @@ namespace KLC_Finch {
             this.Height = Settings.RemoteControlHeight / dpiScale.PixelsPerDip;
             LoadSettings(true);
 
-            if (isMac && Settings.MacSwapCtrlWin)
-                toolKeyWin.Visibility = Visibility.Collapsed;
+            if(isMac) {
+                toolBlockMouseKB.Visibility = Visibility.Collapsed;
+                if (Settings.MacSwapCtrlWin)
+                    toolKeyWin.Visibility = Visibility.Collapsed;
+            }
+            toolBlockScreen.Visibility = Visibility.Collapsed;
 
             this.rc = rc;
             socketAlive = false;
@@ -1919,6 +1923,21 @@ namespace KLC_Finch {
 
             string text = Clipboard.GetText().Trim();
             rc.SendPasteClipboard(text);
+        }
+
+        private void ToolShowMouse_Click(object sender, RoutedEventArgs e) {
+            toolShowMouse.IsChecked = !toolShowMouse.IsChecked;
+            rc.ShowCursor(toolShowMouse.IsChecked);
+        }
+
+        private void ToolBlockScreen_Click(object sender, RoutedEventArgs e) {
+            toolBlockScreen.IsChecked = !toolBlockScreen.IsChecked;
+            rc.SendBlackScreenBlockInput(toolBlockScreen.IsChecked, toolBlockMouseKB.IsChecked);
+        }
+
+        private void ToolBlockMouseKB_Click(object sender, RoutedEventArgs e) {
+            toolBlockMouseKB.IsChecked = !toolBlockMouseKB.IsChecked;
+            rc.SendBlackScreenBlockInput(toolBlockScreen.IsChecked, toolBlockMouseKB.IsChecked);
         }
 
         private RCScreen GetScreenUsingMouse(int x, int y) {

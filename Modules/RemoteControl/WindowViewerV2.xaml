@@ -122,7 +122,11 @@
                 </Button.ToolTip>
                 <Image Source="/KLC-Finch;component/Resources/clipboard-arrow-down-outline.png" StretchDirection="DownOnly" />
             </Button>
-            <Button x:Name="toolClipboardPaste" Click="ToolClipboardPaste_Click" ToolTip="Kaseya's Paste Clipboard" Opacity="0.5">
+            <Button
+                x:Name="toolClipboardPaste"
+                Click="ToolClipboardPaste_Click"
+                Opacity="0.5"
+                ToolTip="Kaseya's Paste Clipboard">
                 <Image Source="/KLC-Finch;component/Resources/clipboard-arrow-down-outline.png" StretchDirection="DownOnly" />
             </Button>
             <Button
@@ -171,6 +175,19 @@
                             x:Name="toolScreenshotToClipboard"
                             Click="ToolScreenshotToClipboard_Click"
                             Header="[PrtScr] Screenshot to Clipboard" />
+                        <Separator />
+                        <MenuItem
+                            x:Name="toolShowMouse"
+                            Click="ToolShowMouse_Click"
+                            Header="Show Remote Mouse" />
+                        <MenuItem
+                            x:Name="toolBlockScreen"
+                            Click="ToolBlockScreen_Click"
+                            Header="Black Out Screen" />
+                        <MenuItem
+                            x:Name="toolBlockMouseKB"
+                            Click="ToolBlockMouseKB_Click"
+                            Header="Block Mouse/Keyboard" />
                         <Separator />
                         <MenuItem
                             x:Name="toolDisconnect"

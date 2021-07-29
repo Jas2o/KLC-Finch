@@ -238,6 +238,7 @@ namespace KLC_Finch {
 
                     //string hex = BitConverter.ToString(remaining).Replace("-", "");
 
+                    //Console.WriteLine(jsonstr + " = " + remaining.Length);
                     //Console.WriteLine("Hotspot: " + cursorHotspotX + ", " + cursorHotspotY);
                     Viewer.LoadCursor(cursorX, cursorY, cursorWidth, cursorHeight, cursorHotspotX, cursorHotspotY, remaining);
 
@@ -554,6 +555,17 @@ namespace KLC_Finch {
                 ["enabled"] = enabled
             };
             SendJson(Enums.KaseyaMessageTypes.ShowCursor, json.ToString());
+        }
+
+        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB) {
+            //Kaseya method, 9.5.7817.8820
+            //{"black_out_screen":0,"block_mouse_keyboard":1}
+
+            JObject json = new JObject {
+                ["black_out_screen"] = (blackOutScreen ? 1: 0), //This doesn't seem to work yet
+                ["block_mouse_keyboard"] = (blockMouseKB ? 1 : 2)
+            };
+            SendJson(Enums.KaseyaMessageTypes.BlackScreenBlockInput, json.ToString());
         }
 
         public void SendPanicKeyRelease() {
