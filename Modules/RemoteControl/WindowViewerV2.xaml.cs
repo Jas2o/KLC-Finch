@@ -29,6 +29,7 @@ namespace KLC_Finch {
     public partial class WindowViewerV2 : Window {
         public Settings Settings;
 
+        private bool requiredApproval;
         private bool autotypeAlwaysConfirmed;
         private string clipboard = "";
         private readonly ClipBoardMonitor clipboardMon;
@@ -493,6 +494,8 @@ namespace KLC_Finch {
             if (rcNotify < 3) {
                 txtRcNotify.Visibility = Visibility.Collapsed;
             } else {
+                requiredApproval = true;
+                toolReconnect.Header = "Reconnect (reapproval required)";
                 txtRcConnecting.Visibility = Visibility.Collapsed;
             }
 
@@ -1437,7 +1440,7 @@ namespace KLC_Finch {
 
         private void ToolReconnect_Click(object sender, RoutedEventArgs e) {
             //if (App.alternative != null && (socketAlive || App.alternative.socketActive))
-            if (socketAlive)
+            if (socketAlive && !requiredApproval)
                 rc.Reconnect();
             else
                 ToolShowAlternative_Click(sender, e);
@@ -1908,12 +1911,12 @@ namespace KLC_Finch {
 
         private void ToolScreen_Click(object sender, RoutedEventArgs e) {
             TimeSpan span = DateTime.Now - winScreens.TimeDeactivated;
-            if (useMultiScreen) {
+            //if (useMultiScreen) {
                 if (span.TotalMilliseconds < 500)
                     winScreens.Hide(); //Doesn't really do anything, will act same as Legacy
                 else
                     winScreens.Show();
-            }
+            //}
             //Otherwise the old menu is shown
         }
 
@@ -1938,6 +1941,17 @@ namespace KLC_Finch {
         private void ToolBlockMouseKB_Click(object sender, RoutedEventArgs e) {
             toolBlockMouseKB.IsChecked = !toolBlockMouseKB.IsChecked;
             rc.SendBlackScreenBlockInput(toolBlockScreen.IsChecked, toolBlockMouseKB.IsChecked);
+        }
+
+        public void UpdateScreenLayout() {
+            if (currentTSSession == null)
+                rc.ChangeTSSession("0");
+            else
+                rc.ChangeTSSession(currentTSSession.session_id);
+        }
+
+        private void ToolUpdateScreenLayout_Click(object sender, RoutedEventArgs e) {
+            UpdateScreenLayout();
         }
 
         private RCScreen GetScreenUsingMouse(int x, int y) {

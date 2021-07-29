@@ -132,6 +132,10 @@ namespace KLC_Finch {
             rcViewbox.Stretch = Stretch.None;
         }
 
+        private void ToolUpdateInfo_Click(object sender, RoutedEventArgs e) {
+            viewer.UpdateScreenLayout();
+        }
+
         private void ToolDumpInfo_Click(object sender, RoutedEventArgs e) {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("Start info:");

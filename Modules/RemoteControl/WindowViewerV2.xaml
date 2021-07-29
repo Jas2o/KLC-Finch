@@ -168,6 +168,10 @@
                             IsEnabled="False" />
                         <Separator />
                         <MenuItem
+                            x:Name="toolUpdateScreenLayout"
+                            Click="ToolUpdateScreenLayout_Click"
+                            Header="Update Screen Layout" />
+                        <MenuItem
                             x:Name="toolPanicRelease"
                             Click="ToolPanicRelease_Click"
                             Header="[Pause] Release modifier keys" />

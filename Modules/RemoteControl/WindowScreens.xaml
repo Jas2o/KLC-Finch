@@ -43,6 +43,12 @@
                 Click="ToolDumpInfo_Click"
                 Foreground="White"
                 Header="Dump" />
+            <Separator Width="10" />
+            <MenuItem
+                x:Name="toolUpdateInfo"
+                Click="ToolUpdateInfo_Click"
+                Foreground="White"
+                Header="Update Screen Layout Info" />
         </Menu>
     </Grid>
 </Window>
