@@ -29,6 +29,7 @@ namespace KLC_Finch {
     public partial class WindowViewerV2 : Window {
         public Settings Settings;
 
+        private ScreenStatus screenStatus;
         private bool requiredApproval;
         private bool autotypeAlwaysConfirmed;
         private string clipboard = "";
@@ -215,6 +216,12 @@ namespace KLC_Finch {
                 txtRcHookOn.Visibility = (keyHook.IsActive && Settings.DisplayOverlayKeyboardHook ? Visibility.Visible : Visibility.Collapsed);
         }
 
+        private enum ScreenStatus {
+            Preparing,
+            LayoutReady,
+            Stable
+        }
+
         private enum ConnectionStatus {
             FirstConnectionAttempt,
             Connected,
@@ -233,6 +240,9 @@ namespace KLC_Finch {
         }
 
         public void LoadTexture(int width, int height, Bitmap decomp) {
+            if (screenStatus == ScreenStatus.Preparing)
+                return;
+
             if (useMultiScreen) {
 
                 #region Multi-Screen
@@ -262,8 +272,10 @@ namespace KLC_Finch {
                         PositionCameraToCurrentScreen();
                     } else {
                         //Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                        SwitchToLegacyRendering();
-                        LoadTexture(width, height, decomp);
+                        if (screenStatus == ScreenStatus.Stable) {
+                            SwitchToLegacyRendering();
+                            LoadTexture(width, height, decomp);
+                        }
                         return;
                     }
                 }
@@ -360,9 +372,12 @@ namespace KLC_Finch {
             //}
 
             fpsLast = fpsCounter.GetFPS();
+            screenStatus = ScreenStatus.Stable;
         }
 
         public void LoadTextureRaw(byte[] buffer, int width, int height, int stride) {
+            if (screenStatus == ScreenStatus.Preparing)
+                return;
             if (width * height <= 0)
                 return;
 
@@ -395,9 +410,11 @@ namespace KLC_Finch {
                         legacyVirtualHeight = scr.rectFixed.Height = height;
                         PositionCameraToCurrentScreen();
                     } else {
-                        //Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                        SwitchToLegacyRendering();
-                        LoadTextureRaw(buffer, width, height, stride);
+                        if (screenStatus == ScreenStatus.Stable) {
+                            //Console.WriteLine("Forced switch from Multi-Screen to Legacy");
+                            SwitchToLegacyRendering();
+                            LoadTextureRaw(buffer, width, height, stride);
+                        }
                         return;
                     }
                 }
@@ -453,6 +470,7 @@ namespace KLC_Finch {
             //}
 
             fpsLast = fpsCounter.GetFPS();
+            screenStatus = ScreenStatus.Stable;
         }
 
         public void NotifySocketClosed(string sessionId) {
@@ -1620,6 +1638,7 @@ namespace KLC_Finch {
                 rcRectangleExample.Visibility = Visibility.Hidden;
                 canvasListRectangle = new List<System.Windows.Shapes.Rectangle>();
 
+                rc.UseYUVShader = false;
                 this.Title = Title + " (Canvas RGB) Alpha";
 
                 rcBorderBG.MouseMove += HandleCanvasMouseMove;
@@ -1633,6 +1652,8 @@ namespace KLC_Finch {
         #region Host Desktop Configuration (Screens of current session)
 
         public void UpdateScreenLayout(dynamic json, string jsonstr = "") {
+            screenStatus = ScreenStatus.Preparing;
+
             ListScreen.Clear();
             previousScreen = CurrentScreen = null;
 
@@ -1653,14 +1674,6 @@ namespace KLC_Finch {
                     //Add Screen
                     RCScreen newScreen = new RCScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
                     ListScreen.Add(newScreen);
-                    if (CurrentScreen == null) {
-                        CurrentScreen = newScreen;
-
-                        //Legacy
-                        legacyVirtualHeight = CurrentScreen.rect.Height;
-                        legacyVirtualWidth = CurrentScreen.rect.Width;
-                        virtualRequireViewportUpdate = true;
-                    }
 
                     //Add to toolbar menu
                     MenuItem item = new MenuItem {
@@ -1674,6 +1687,12 @@ namespace KLC_Finch {
                     toolScreen.Opacity = (ListScreen.Count > 1 ? 1.0 : 0.6);
 
                     if (screen_id == default_screen) {
+                        CurrentScreen = newScreen;
+                        //Legacy
+                        legacyVirtualHeight = CurrentScreen.rect.Height;
+                        legacyVirtualWidth = CurrentScreen.rect.Width;
+                        virtualRequireViewportUpdate = true;
+
                         toolScreen.Content = CurrentScreen.screen_name;
                         toolScreen.ToolTip = CurrentScreen.StringResPos();
                     }
@@ -1690,6 +1709,8 @@ namespace KLC_Finch {
             canvasOffsetY = lowestY;
 
             Dispatcher.Invoke((Action)delegate {
+                rcCanvas.Children.Clear();
+
                 rcCanvas.Width = Math.Abs(lowestX) + highestX;
                 rcCanvas.Height = Math.Abs(lowestY) + highestY;
 
@@ -1708,6 +1729,8 @@ namespace KLC_Finch {
             rc.UpdateScreens(jsonstr);
             winScreens.UpdateStartScreens(jsonstr);
             winScreens.SetCanvas(lowestX, lowestY, highestX, highestY);
+
+            screenStatus = ScreenStatus.LayoutReady;
         }
 
         private void FromGlChangeScreen(RCScreen screen, bool moveCamera = true) {
@@ -1943,7 +1966,7 @@ namespace KLC_Finch {
             rc.SendBlackScreenBlockInput(toolBlockScreen.IsChecked, toolBlockMouseKB.IsChecked);
         }
 
-        public void UpdateScreenLayout() {
+        public void UpdateScreenLayoutHack() {
             if (currentTSSession == null)
                 rc.ChangeTSSession("0");
             else
@@ -1951,7 +1974,7 @@ namespace KLC_Finch {
         }
 
         private void ToolUpdateScreenLayout_Click(object sender, RoutedEventArgs e) {
-            UpdateScreenLayout();
+            UpdateScreenLayoutHack();
         }
 
         private RCScreen GetScreenUsingMouse(int x, int y) {

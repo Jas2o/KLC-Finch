@@ -36,7 +36,7 @@ namespace KLC_Finch {
         }
 
         private void Window_Activated(object sender, EventArgs e) {
-            if (Owner.WindowState == WindowState.Maximized) {
+            if (viewer != null && Owner.WindowState == WindowState.Maximized) {
                 Point point = viewer.rcBorderBG.TransformToAncestor(viewer).Transform(new Point(0, 0));
 
                 IntPtr handle = new System.Windows.Interop.WindowInteropHelper(Owner).Handle;
@@ -63,6 +63,12 @@ namespace KLC_Finch {
 
             virtualCanvas = new System.Drawing.Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
             virtualView = virtualCanvas;
+
+            if (this.Visibility == Visibility.Visible) {
+                Dispatcher.Invoke((Action)delegate {
+                    Render();
+                });
+            }
         }
 
         private void Render() {
@@ -133,7 +139,7 @@ namespace KLC_Finch {
         }
 
         private void ToolUpdateInfo_Click(object sender, RoutedEventArgs e) {
-            viewer.UpdateScreenLayout();
+            viewer.UpdateScreenLayoutHack();
         }
 
         private void ToolDumpInfo_Click(object sender, RoutedEventArgs e) {
