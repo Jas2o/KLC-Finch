@@ -55,6 +55,7 @@
         <DataGrid
             x:Name="dgvProcesses"
             Grid.Row="1"
+            AlternatingRowBackground="#FFE6E6E6"
             AutoGenerateColumns="False"
             IsReadOnly="True"
             ItemsSource="{Binding Source={StaticResource GridItems}}"

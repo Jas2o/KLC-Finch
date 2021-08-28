@@ -132,6 +132,9 @@ namespace KLC_Finch {
         /// Uses the privately set selected hive and key path to request registry data from the agent, which will subsequently update the UI with the results.
         /// </summary>
         private void Update() {
+            if (serverB == null)
+                return;
+
             if (selectedHive == -1) {
                 txtRegistryPath.Text = "";
                 JObject jGet = new JObject {

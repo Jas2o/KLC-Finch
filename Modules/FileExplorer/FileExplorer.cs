@@ -631,7 +631,7 @@ namespace KLC_Finch {
             //txtBox.Text = "Starting download: " + saveFile;
         }
 
-        public bool Upload(string openFile) {
+        public bool Upload(string openFile, Progress<int> progress = null) {
             List<string> usePath = new List<string>(selectedPath);
 
             if (selectedPath.Count == 0) {
@@ -648,7 +648,7 @@ namespace KLC_Finch {
 
             string selectedFile = System.IO.Path.GetFileName(openFile);
             long fileID = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            queueUpload.Enqueue(new Upload(usePath, selectedFile, openFile, fileID, "file"));
+            queueUpload.Enqueue(new Upload(usePath, selectedFile, openFile, fileID, "file", progress));
 
             if (activeUpload == null)
                 StartNextUpload();

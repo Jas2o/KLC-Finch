@@ -59,6 +59,7 @@ namespace KLC_Finch.Modules.RemoteControl {
             settings.StartMultiScreen = true;
             settings.MultiAltFit = true;
             settings.MultiShowCursor = true;
+            settings.ScreenSelectNew = true;
             settings.UseYUVShader = true;
             settings.ForceCanvas = false;
 
@@ -81,6 +82,7 @@ namespace KLC_Finch.Modules.RemoteControl {
             settings.StartMultiScreen = false;
             settings.MultiAltFit = false;
             settings.MultiShowCursor = false;
+            settings.ScreenSelectNew = false;
             settings.UseYUVShader = true;
             settings.ForceCanvas = false;
 

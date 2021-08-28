@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -9,16 +9,18 @@ namespace KLC_Finch {
         public long fileID { get; private set; }
         public string type { get; private set; }
 
+        private Progress<int> progress;
         private string readLocation;
         private FileStream filestream;
         private long bytesRead;
 
-        public Upload(List<string> remotePath, string fileName, string readLocation, long fileID, string type) {
+        public Upload(List<string> remotePath, string fileName, string readLocation, long fileID, string type, Progress<int> progress = null) {
             this.Path = remotePath;
             this.fileName = fileName;
             this.fileID = fileID;
             this.type = type;
             this.readLocation = readLocation;
+            this.progress = progress;
 
             //filestream = new FileStream(readLocation, FileMode.Open);
             Console.WriteLine("File upload start: " + fileName);
@@ -42,14 +44,21 @@ namespace KLC_Finch {
             filestream.Read(data, 0, data.Length);
             bytesRead += data.Length;
 
+            if (progress != null) {
+                int value = (int)((filestream.Position / (Double)filestream.Length) * 100.0);
+                ((IProgress<int>)progress).Report(value);
+            }
+
             Console.WriteLine("File upload read " + data.Length + " bytes");
             return data;
         }
 
         public void Close() {
             filestream.Close();
-
             Console.WriteLine("File upload complete: " + fileName + "(" + bytesRead + " bytes)");
+            if (progress != null) {
+                ((IProgress<int>)progress).Report(100);
+            }
         }
     }
 }

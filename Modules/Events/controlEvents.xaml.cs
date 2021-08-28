@@ -42,10 +42,10 @@ namespace KLC_Finch {
         }
 
         private void cmbLogType_DropDownClosed(object sender, EventArgs e) {
-            if (moduleEvents == null)
+            if (moduleEvents == null || cmbLogType.SelectedValue == null)
                 return;
 
-            string value = ((ComboBox)sender).SelectedValue.ToString();
+            string value = cmbLogType.SelectedValue.ToString();
             if (value == Modules.Events.LabelExtended) {
                 WindowEventsExtended wext = new WindowEventsExtended(lblExtended.ToolTip.ToString());
                 wext.Owner = ((WindowAlternative)Window.GetWindow(this));

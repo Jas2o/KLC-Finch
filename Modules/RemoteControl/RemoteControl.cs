@@ -229,6 +229,9 @@ namespace KLC_Finch {
                     //Only provided when the cursor image changes, can be from cher end user or remote controller.
                     //{"height":32,"hotspotX":0,"hotspotY":0,"screenPosX":433,"screenPosY":921,"width":32}
 
+                    if (Viewer.powerSaving)
+                        return;
+
                     int cursorX = (int)json["screenPosX"];
                     int cursorY = (int)json["screenPosY"];
                     int cursorWidth = (int)json["width"];
@@ -270,6 +273,7 @@ namespace KLC_Finch {
                             if (decoder == null)
                                 decoder = new VP8.Decoder(); //Due to Soft Reconnect
                             lock (decoder) {
+                                //This causes GC pressure
                                 rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride);
                             }
 
@@ -282,7 +286,7 @@ namespace KLC_Finch {
                             }
                             */
 
-                            if (rawWidth != 0 && rawHeight != 0) {
+                            if (rawWidth != 0 && rawHeight != 0 && !Viewer.powerSaving) {
                                 Viewer.LoadTextureRaw(rawYUV, rawWidth, rawHeight, rawStride);
 
                                 if (captureScreen) {
@@ -315,7 +319,7 @@ namespace KLC_Finch {
                         } catch (Exception ex) {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
                         } finally {
-                            if (b1 != null) {
+                            if (b1 != null && !Viewer.powerSaving) {
                                 Viewer.LoadTexture(b1.Width, b1.Height, b1);
 
                                 if (captureScreen) {
@@ -582,7 +586,7 @@ namespace KLC_Finch {
             captureScreen = true;
         }
 
-        public void UploadDrop(string file) {
+        public void UploadDrop(string file, Progress<int> progress) {
             Console.WriteLine("Upload dropped file: " + file);
             if (session.ModuleFileExplorer == null) {
 #if DEBUG
@@ -603,7 +607,7 @@ namespace KLC_Finch {
             }
 
             if (proceed) {
-                session.ModuleFileExplorer.Upload(file);
+                session.ModuleFileExplorer.Upload(file, progress);
             }
         }
 

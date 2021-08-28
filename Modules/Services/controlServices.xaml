@@ -70,6 +70,7 @@
         <DataGrid
             x:Name="dgvServices"
             Grid.Row="1"
+            AlternatingRowBackground="#FFE6E6E6"
             AutoGenerateColumns="False"
             IsReadOnly="True"
             ItemsSource="{Binding ListService, Mode=Oneway}"
@@ -83,6 +84,44 @@
                 <DataGridTextColumn Binding="{Binding StartupType}" Header="Startup Type" />
                 <DataGridTextColumn Binding="{Binding StartName}" Header="Log On As" />
             </DataGrid.Columns>
+            <DataGrid.CellStyle>
+                <Style TargetType="DataGridCell">
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding StatusColour}" Value="Green" />
+                                <Condition Binding="{Binding Column.Header, RelativeSource={RelativeSource Self}}" Value="Status" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FF98C97C" />
+                            <Setter Property="Foreground" Value="Black" />
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding StatusColour}" Value="Yellow" />
+                                <Condition Binding="{Binding Column.Header, RelativeSource={RelativeSource Self}}" Value="Status" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FFFFD225" />
+                            <Setter Property="Foreground" Value="Black" />
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding StatusColour}" Value="Red" />
+                                <Condition Binding="{Binding Column.Header, RelativeSource={RelativeSource Self}}" Value="Status" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FFff6961" />
+                            <Setter Property="Foreground" Value="Black" />
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding StatusColour}" Value="Purple" />
+                                <Condition Binding="{Binding Column.Header, RelativeSource={RelativeSource Self}}" Value="Status" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FF940094" />
+                            <Setter Property="Foreground" Value="White" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.CellStyle>
         </DataGrid>
         <TextBlock
             x:Name="lblServiceInfo"

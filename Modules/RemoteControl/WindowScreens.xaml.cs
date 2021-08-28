@@ -72,7 +72,10 @@ namespace KLC_Finch {
         }
 
         private void Render() {
-            viewer = (WindowViewerV2)Owner;
+            if (viewer == null && Owner != null) {
+                viewer = (WindowViewerV2)Owner;
+                Window_Activated(null, null);
+            }
             if (viewer == null || viewer.ListScreen == null)
                 return;
 

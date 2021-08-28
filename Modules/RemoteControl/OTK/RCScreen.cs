@@ -57,20 +57,18 @@ namespace NTR {
         }
 
         public void SetCanvasImage(Bitmap bitmap) {
-            //High CPU
-
-            IntPtr hBitmap = bitmap.GetHbitmap();
+            IntPtr ip = bitmap.GetHbitmap();
+            BitmapSource bs = null;
             try {
-                CanvasImage.Source = Imaging.CreateBitmapSourceFromHBitmap(
-                    hBitmap,
-                    IntPtr.Zero,
-                    System.Windows.Int32Rect.Empty,
-                    BitmapSizeOptions.FromEmptyOptions());
+                bs = Imaging.CreateBitmapSourceFromHBitmap(ip,
+                   IntPtr.Zero, System.Windows.Int32Rect.Empty,
+                   BitmapSizeOptions.FromEmptyOptions());
             } finally {
-                DeleteObject(hBitmap);
+                DeleteObject(ip);
             }
+            bs.Freeze();
 
-            //bitmap.Dispose(); //Causes issues?
+            CanvasImage.Source = bs;
         }
 
         [System.Runtime.InteropServices.DllImport("gdi32.dll")]

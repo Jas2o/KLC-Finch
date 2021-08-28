@@ -1,4 +1,5 @@
 ﻿using NTR;
+using System;
 using System.Collections.Generic;
 using System.Windows.Input;
 
@@ -20,7 +21,7 @@ namespace KLC_Finch {
         void ChangeScreen(string screen_id);
         void ChangeTSSession(string session_id);
         void SendKeyDown(int javascriptKeyCode, int uSBKeyCode);
-        void UploadDrop(string v);
+        void UploadDrop(string file, Progress<int> progress);
         void SendMouseUp(MouseButton changedButton);
         void SendMouseWheel(int delta);
         void SendMousePosition(int x, int y);

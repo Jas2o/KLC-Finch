@@ -1,16 +1,15 @@
-﻿using Newtonsoft.Json;
-using nucs.JsonSettings;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using nucs.JsonSettings;
 
 namespace KLC_Finch {
+
     public class Settings : JsonSettings {
         public override string FileName { get; set; } = "KLC-Finch-config.json"; //for loading and saving.
-        public Settings() { }
-        public Settings(string fileName) : base(fileName) { }
+
+        public Settings() {
+        }
+
+        public Settings(string fileName) : base(fileName) {
+        }
 
         //--
 
@@ -28,7 +27,9 @@ namespace KLC_Finch {
         public bool StartMultiScreen { get; set; } = true;
         public bool MultiAltFit { get; set; } = false;
         public bool MultiShowCursor { get; set; } = false;
+        public bool ScreenSelectNew { get; set; } = true;
         public bool UseYUVShader { get; set; } = true;
         public bool ForceCanvas { get; set; } = false;
+        public bool PowerSaveOnMinimize { get; set; } = false;
     }
 }

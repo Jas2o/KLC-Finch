@@ -70,10 +70,13 @@ namespace KLC {
                         HasCompleted = true;
                         Close();
                     } else {
+                        if (message.Contains("Error")) {
+                            App.ShowUnhandledExceptionFromSrc(message, "Websocket A - Unexpected");
+                        } else {
 #if DEBUG
-                        Console.WriteLine("Unexpected A message: " + message);
+                            Console.WriteLine("Unexpected A message: " + message);
 #endif
-                        //throw new NotImplementedException();
+                        }
                     }
                 };
                 socket.OnPing = byteA => {

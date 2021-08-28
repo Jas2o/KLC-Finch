@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -50,6 +51,25 @@ namespace KLC_Finch {
             this.shortToken = shortToken;
             this.directToPrivate = directToPrivate;
             socketActive = true;
+
+            //--
+
+            int vcRuntimeBld = 0;
+            try {
+                using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) {
+                    RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X86"); //Actually in WOW6432Node
+                    if (subkey != null)
+                        vcRuntimeBld = (int)subkey.GetValue("Bld");
+                    subkey.Close();
+                }
+            } catch (Exception) {
+            }
+            if (vcRuntimeBld < 23026) { //2015
+                directToRemoteControl = false;
+                new WindowException("Visual C++ Redistributable (x86) is not 2015 or above. You can download from:\r\n\r\nhttps://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0", "Dependency check").ShowDialog();
+            }
+
+            //--
 
             HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : null);
             session = new KLC.LiveConnectSession(shortToken, agentID, callback);

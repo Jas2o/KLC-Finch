@@ -38,22 +38,25 @@ namespace KLC_Finch {
         }
 
         public void LoopStop() {
-            threadTest.Abort();
-            threadTest.Join();
+            if (threadTest != null) {
+                threadTest.Abort();
+                threadTest.Join();
+            }
         }
 
         private void Loop() {
             Viewer.ClearApproval();
 
             while (Viewer.IsVisible) {
-                Thread.Sleep(1500);
+                Thread.Sleep(500);
 
                 if (Viewer.CurrentScreen == null)
                     continue;
-
+                
                 Bitmap bTest = new Bitmap(Viewer.CurrentScreen.rect.Width, Viewer.CurrentScreen.rect.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
                 using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(colors[colorPos]); }
                 Viewer.LoadTexture(bTest.Width, bTest.Height, bTest);
+                bTest.Dispose();
 
                 colorPos++;
                 if (colorPos >= colors.Length)
@@ -130,7 +133,7 @@ namespace KLC_Finch {
             //throw new NotImplementedException();
         }
 
-        public void UploadDrop(string v) {
+        public void UploadDrop(string v, Progress<int> progress) {
             //throw new NotImplementedException();
         }
 

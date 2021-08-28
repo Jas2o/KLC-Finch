@@ -43,6 +43,7 @@ namespace KLC_Finch {
         private int fragment_shader_object = 0;
         private readonly bool glSupported; //Otherwise Canvas RGB
         private readonly bool isMac;
+        public bool powerSaving { get; private set; }
         private bool keyDownWin;
         private long lastLatency;
         private int legacyVirtualWidth, legacyVirtualHeight;
@@ -62,6 +63,7 @@ namespace KLC_Finch {
         private TextureCursor textureCursor = null;
         private TextureScreen textureLegacy;
         private readonly Timer timerHealth;
+        private readonly Timer timerClipboard;
         private bool useMultiScreen;
         private bool useMultiScreenOverview;
         private int VBOScreen;
@@ -98,7 +100,7 @@ namespace KLC_Finch {
             this.Height = Settings.RemoteControlHeight / dpiScale.PixelsPerDip;
             LoadSettings(true);
 
-            if(isMac) {
+            if (isMac) {
                 toolBlockMouseKB.Visibility = Visibility.Collapsed;
                 if (Settings.MacSwapCtrlWin)
                     toolKeyWin.Visibility = Visibility.Collapsed;
@@ -124,6 +126,8 @@ namespace KLC_Finch {
             timerHealth.Elapsed += CheckHealth;
             timerHealth.Start();
             //}
+            timerClipboard = new System.Timers.Timer(500); //Time changes
+            timerClipboard.Elapsed += TimerClipboard_Elapsed;
             fpsCounter = new FPSCounter();
 
             legacyScreen = new RCScreen("Legacy", "Legacy", 800, 600, 0, 0);
@@ -159,6 +163,14 @@ namespace KLC_Finch {
             WindowUtilities.ActivateWindow(this);
         }
 
+        private void TimerClipboard_Elapsed(object sender, ElapsedEventArgs e) {
+            Dispatcher.Invoke((Action)delegate {
+                toolClipboardSend.Background = System.Windows.Media.Brushes.Transparent;
+                toolClipboardGet.Background = System.Windows.Media.Brushes.Transparent;
+            });
+            timerClipboard.Stop();
+        }
+
         private void KeyHook_KeyUp(KeyboardHook.VKeys key) {
             Window_KeyUp2(new System.Windows.Forms.KeyEventArgs((System.Windows.Forms.Keys)key));
         }
@@ -167,7 +179,7 @@ namespace KLC_Finch {
             Window_PreviewKeyDown2(new System.Windows.Forms.KeyEventArgs((System.Windows.Forms.Keys)key));
         }
 
-        private void LoadSettings(bool isStart=false) {
+        private void LoadSettings(bool isStart = false) {
             if (isStart) {
                 useMultiScreen = Settings.StartMultiScreen;
                 if (useMultiScreen) {
@@ -197,7 +209,8 @@ namespace KLC_Finch {
             toolClipboardSync.Visibility = (Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
             toolClipboardReceiveOnly.Visibility = !Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed;
         }
-        private void KeyHookSet(bool canCheckKeyboard=false) {
+
+        private void KeyHookSet(bool canCheckKeyboard = false) {
             if (canCheckKeyboard) {
                 keyHookAllow = Keyboard.IsKeyToggled(Key.Scroll) || Settings.KeyboardHook;
                 if (!IsActive)
@@ -376,9 +389,7 @@ namespace KLC_Finch {
         }
 
         public void LoadTextureRaw(byte[] buffer, int width, int height, int stride) {
-            if (screenStatus == ScreenStatus.Preparing)
-                return;
-            if (width * height <= 0)
+            if (screenStatus == ScreenStatus.Preparing || width * height <= 0)
                 return;
 
             //lock (lockFrameBuf) {
@@ -455,7 +466,7 @@ namespace KLC_Finch {
                         ////However if changing a middle monitor, the right monitor will break.
                         ////The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
                         //if (currentScreen.rect.X < 0)
-                            //currentScreen.rect.X = width * -1;
+                        //currentScreen.rect.X = width * -1;
                     } catch (Exception ex) {
                         Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
                     }
@@ -485,26 +496,26 @@ namespace KLC_Finch {
         }
 
         public void ReceiveClipboard(string content) {
-            if (clipboard == content)
+            if (clipboard == content) {
+                Dispatcher.Invoke((Action)delegate {
+                    if (toolClipboardGet.Background == System.Windows.Media.Brushes.Transparent) {
+                        toolClipboardGet.Background = System.Windows.Media.Brushes.PaleGreen;
+                        timerClipboard.Start();
+                    }
+                });
                 return;
+            }
 
             clipboard = content;
             Dispatcher.Invoke((Action)delegate {
-                //try {
-                toolClipboardGetText.Text = clipboard.Truncate(50); //.Replace("\r", "").Replace("\n", "").Truncate(50);
-
-                //if (clipboardSyncEnabled) { //Commented out now that we use Receive-Only mode
-                //this.BeginInvoke(new Action(() => {
+                toolClipboardGetText.Text = clipboard.Truncate(50);
                 if (clipboard.Length > 0)
                     Clipboard.SetDataObject(clipboard);
-                //Clipboard.SetText(clipboard); //Apparently WPF clipboard has issues
                 else
                     Clipboard.Clear();
-                //}));
-                //}
-                //} catch(Exception ex) {
-                //new WindowException(ex, ex.GetType().ToString()).Show();
-                //}
+
+                toolClipboardGet.Background = System.Windows.Media.Brushes.GreenYellow;
+                timerClipboard.Start();
             });
         }
 
@@ -546,8 +557,16 @@ namespace KLC_Finch {
                 virtualRequireViewportUpdate = true;
             } else {
                 //Dispatcher.Invoke((Action)delegate {
-                    //rcCanvas.Width = virtualWidth;
-                    //rcCanvas.Height = virtualHeight;
+                //transformCanvas.Matrix.Reset
+                //System.Windows.Media.Matrix matrix = transformCanvas.Matrix;
+
+                //scaleX = rcCanvas.ActualWidth / (double)rcViewbox.ActualWidth;
+                //scaleY = rcCanvas.ActualHeight / (double)rcViewbox.ActualHeight;
+
+                //matrix.ScaleAt(scaleX, scaleY, virtualWidth, virtualHeight);
+                //transformCanvas.Matrix = matrix;
+                //rcCanvas.Width = virtualWidth;
+                //rcCanvas.Height = virtualHeight;
                 //});
             }
         }
@@ -578,7 +597,7 @@ namespace KLC_Finch {
                         else
                             rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.MidnightBlue);
                     }
-                txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = (controlEnabled ? Visibility.Hidden : Visibility.Visible);
+                    txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = (controlEnabled ? Visibility.Hidden : Visibility.Visible);
                 }
 
                 KeyHookSet(true);
@@ -654,6 +673,9 @@ namespace KLC_Finch {
         }
 
         private void CheckHealth(object sender, ElapsedEventArgs e) {
+            if (powerSaving)
+                return;
+
             Dispatcher.Invoke((Action)delegate {
 #if DEBUG
                 if (keyHook.IsActive && !IsActive) {
@@ -706,9 +728,11 @@ namespace KLC_Finch {
         }
 
         #region Canvas
+
         private List<System.Windows.Shapes.Rectangle> canvasListRectangle;
         private int canvasOffsetX, canvasOffsetY;
-        #endregion
+
+        #endregion Canvas
 
         #region OpenGL
 
@@ -760,14 +784,14 @@ namespace KLC_Finch {
                 return;
 
             //if (rcCanvas.Contains(e.GetPosition((Canvas)sender))) {
-                rc.SendMouseUp(e.ChangedButton);
+            rc.SendMouseUp(e.ChangedButton);
 
-                if (e.ChangedButton == MouseButton.Left)
-                    mouseHeldLeft = false;
-                if (e.ChangedButton == MouseButton.Right)
-                    mouseHeldRight = false;
+            if (e.ChangedButton == MouseButton.Left)
+                mouseHeldLeft = false;
+            if (e.ChangedButton == MouseButton.Right)
+                mouseHeldRight = false;
 
-                DebugKeyboard();
+            DebugKeyboard();
             //}
         }
 
@@ -1016,17 +1040,18 @@ namespace KLC_Finch {
             GL.Finish();
 
             if (useMultiScreen) {
-                foreach (RCScreen screen in ListScreen) {
-                    if (screen.Texture != null) {
+                for (int i = 0; i < ListScreen.Count; i++) {
+                    //foreach (RCScreen screen in ListScreen) {
+                    if (ListScreen[i].Texture != null) {
                         Color multiplyColor;
-                        if (screen == CurrentScreen)
+                        if (ListScreen[i] == CurrentScreen)
                             multiplyColor = Color.White;
                         else if (controlEnabled || virtualViewWant == virtualCanvas) //In overview, or it's on the edge of focused screen
                             multiplyColor = Color.Gray;
                         else
                             multiplyColor = Color.Cyan;
 
-                        if (!screen.Texture.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, multiplyColor)) {
+                        if (!ListScreen[i].Texture.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, multiplyColor)) {
                             GL.Disable(EnableCap.Texture2D);
                             //GL.UseProgram(0);
                             GL.Color3(Color.DimGray);
@@ -1036,10 +1061,10 @@ namespace KLC_Finch {
                             GL.PointSize(5f);
                             GL.LineWidth(5f);
 
-                            GL.Vertex2(screen.rectFixed.Left, screen.rectFixed.Bottom);
-                            GL.Vertex2(screen.rectFixed.Left, screen.rectFixed.Top);
-                            GL.Vertex2(screen.rectFixed.Right, screen.rectFixed.Top);
-                            GL.Vertex2(screen.rectFixed.Right, screen.rectFixed.Bottom);
+                            GL.Vertex2(ListScreen[i].rectFixed.Left, ListScreen[i].rectFixed.Bottom);
+                            GL.Vertex2(ListScreen[i].rectFixed.Left, ListScreen[i].rectFixed.Top);
+                            GL.Vertex2(ListScreen[i].rectFixed.Right, ListScreen[i].rectFixed.Top);
+                            GL.Vertex2(ListScreen[i].rectFixed.Right, ListScreen[i].rectFixed.Bottom);
 
                             //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
 
@@ -1366,7 +1391,12 @@ namespace KLC_Finch {
         private void SyncClipboard(object sender, EventArgs e) {
             try {
                 if (Settings.ClipboardSyncEnabled) {
+                    string temp = clipboard;
                     this.ToolClipboardSend_Click(sender, e);
+                    if(clipboard != temp) {
+                        toolClipboardSend.Background = System.Windows.Media.Brushes.Orange;
+                        timerClipboard.Start();
+                    }
 #if DEBUG
                     Console.WriteLine("[Clipboard sync] Success?");
 #endif
@@ -1395,20 +1425,14 @@ namespace KLC_Finch {
                 return;
 
             clipboard = Clipboard.GetText();
-            Dispatcher.Invoke((Action)delegate {
-                //toolClipboardSend.ToolTip = "Send to Client: " + clipboard.Replace("\r", "").Replace("\n", "").Truncate(50);
-                rc.SendClipboard(clipboard);
+            rc.SendClipboard(clipboard);
 
-                if (Settings.ClipboardSyncEnabled)
-                    toolClipboardGetText.Text = clipboard.Truncate(50); //.Replace("\r", "").Replace("\n", "").Truncate(50);
-            });
+            //if (Settings.ClipboardSyncEnabled) toolClipboardGetText.Text = clipboard.Truncate(50);
         }
 
         private void ToolClipboardSend_MouseEnter(object sender, MouseEventArgs e) {
             clipboard = Clipboard.GetText();
-            Dispatcher.Invoke((Action)delegate {
-                toolClipboardSendText.Text = clipboard.Truncate(50); //.Replace("\r", "").Replace("\n", "").Truncate(50);
-            });
+            toolClipboardSendText.Text = clipboard.Truncate(50);
         }
 
         private void ToolClipboardSync_Click(object sender, RoutedEventArgs e) {
@@ -1420,7 +1444,7 @@ namespace KLC_Finch {
 
         private void ToolDisconnect_Click(object sender, RoutedEventArgs e) {
             //if (sessionId == null)
-                //NotifySocketClosed(null);
+            //NotifySocketClosed(null);
             //else
             rc.Disconnect(sessionId);
         }
@@ -1441,7 +1465,7 @@ namespace KLC_Finch {
             };
             winOptions.ShowDialog();
             LoadSettings();
-            if(virtualViewWant != virtualCanvas) //Not in Overview?
+            if (virtualViewWant != virtualCanvas) //Not in Overview?
                 PositionCameraToCurrentScreen(); //Multi-Screen Alt Fit
         }
 
@@ -1497,7 +1521,7 @@ namespace KLC_Finch {
             App.alternative.Visibility = Visibility.Visible;
             App.alternative.Focus();
 
-                    foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens) {
+            foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens) {
                 if (screen.Bounds.IntersectsWith(new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height))) {
                     App.alternative.Left = screen.Bounds.X + ((screen.Bounds.Width - App.alternative.Width) / 2);
                     App.alternative.Top = screen.Bounds.Y + ((screen.Bounds.Height - App.alternative.Height) / 2);
@@ -1579,10 +1603,17 @@ namespace KLC_Finch {
             }
         }
 
+        int progressValue;
+        Progress<int> progress;
+        ProgressDialog progressDialog;
         private void Window_Drop(object sender, DragEventArgs e) {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
+                if (progressDialog != null && progressDialog.IsBusy)
+                    return;
+
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
+                bool doUpload = false;
                 using (TaskDialog dialog = new TaskDialog()) {
                     dialog.WindowTitle = "KLC-Finch: Upload File";
                     dialog.MainInstruction = "Upload dropped file to c:\\temp?";
@@ -1596,10 +1627,34 @@ namespace KLC_Finch {
                     dialog.Buttons.Add(tdbCancel);
 
                     TaskDialogButton button = dialog.ShowDialog(this);
-                    if (button == tdbYes) {
-                        rc.UploadDrop(files[0]);
-                    }
+                    doUpload = (button == tdbYes);
                 }
+
+                if(doUpload) {
+                    progressValue = 0;
+                    progress = new Progress<int>(newValue => {
+                        progressValue = newValue;
+                    });
+                    progressDialog = new ProgressDialog {
+                        //ProgressBarStyle = ProgressBarStyle.MarqueeProgressBar,
+                        WindowTitle = "KLC-Finch: Upload File",
+                        Text = "Uploading to c:\\temp",
+                        Description = "Source file: " + files[0],
+                        ShowCancelButton = false,
+                        ShowTimeRemaining = true
+                    };
+                    progressDialog.DoWork += ProgressDialog_DoWork;
+                    progressDialog.Show();
+
+                    rc.UploadDrop(files[0], progress);
+                }
+            }
+        }
+
+        private void ProgressDialog_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e) {
+            while(progressValue < 100) {
+                progressDialog.ReportProgress(progressValue);
+                System.Threading.Thread.Sleep(100);
             }
         }
 
@@ -1830,7 +1885,6 @@ namespace KLC_Finch {
 
             useMultiScreen = Settings.StartMultiScreen;
 
-            //Dispatcher.Invoke((Action)delegate {
             toolTSSession.Content = currentTSSession.session_name;
 
             if (useMultiScreen) {
@@ -1844,7 +1898,6 @@ namespace KLC_Finch {
                 toolZoomIn.Visibility = Visibility.Collapsed;
                 toolZoomOut.Visibility = Visibility.Collapsed;
             }
-            //});
 
             foreach (MenuItem item in toolTSSession.DropdownMenu.Items) {
                 item.IsChecked = (item == source);
@@ -1897,9 +1950,11 @@ namespace KLC_Finch {
                     strKeyboard = "MouseLeft" + (strKeyboard == "" ? "" : " | " + strKeyboard);
             }
 
-            Dispatcher.Invoke((Action)delegate {
-                txtDebugLeft.Text = strKeyboard;
-            });
+            if (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther) {
+                Dispatcher.Invoke((Action)delegate {
+                    txtDebugLeft.Text = strKeyboard;
+                });
+            }
         }
 
         private void DebugMouseEvent(int X, int Y) {
@@ -1907,11 +1962,10 @@ namespace KLC_Finch {
 
             if (Settings.DisplayOverlayMouse) {
                 strMousePos = string.Format("X: {0}, Y: {1}", X, Y);
+                Dispatcher.Invoke((Action)delegate {
+                    txtDebugRight.Text = strMousePos;
+                });
             }
-
-            Dispatcher.Invoke((Action)delegate {
-                txtDebugRight.Text = strMousePos;
-            });
         }
 
         private void ToolScreenMode_Click(object sender, RoutedEventArgs e) {
@@ -1934,12 +1988,12 @@ namespace KLC_Finch {
 
         private void ToolScreen_Click(object sender, RoutedEventArgs e) {
             TimeSpan span = DateTime.Now - winScreens.TimeDeactivated;
-            //if (useMultiScreen) {
+            if (Settings.ScreenSelectNew) {
                 if (span.TotalMilliseconds < 500)
                     winScreens.Hide(); //Doesn't really do anything, will act same as Legacy
                 else
                     winScreens.Show();
-            //}
+            }
             //Otherwise the old menu is shown
         }
 
@@ -1975,6 +2029,20 @@ namespace KLC_Finch {
 
         private void ToolUpdateScreenLayout_Click(object sender, RoutedEventArgs e) {
             UpdateScreenLayoutHack();
+        }
+
+        private void Window_StateChanged(object sender, EventArgs e) {
+            if (WindowState == System.Windows.WindowState.Minimized) {
+                if (glSupported && Settings.PowerSaveOnMinimize) {
+                    powerSaving = true;
+                    glControl.Render -= GlControl_Render;
+                }
+            } else {
+                if (glSupported && powerSaving) {
+                    powerSaving = false;
+                    glControl.Render += GlControl_Render;
+                }
+            }
         }
 
         private RCScreen GetScreenUsingMouse(int x, int y) {

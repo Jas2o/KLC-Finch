@@ -20,6 +20,7 @@
     KeyboardNavigation.TabNavigation="None"
     Loaded="Window_Loaded"
     PreviewKeyDown="Window_PreviewKeyDown"
+    StateChanged="Window_StateChanged"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <Grid>
@@ -224,6 +225,9 @@
                     x:Name="rcCanvas"
                     Width="1920"
                     Height="1080">
+                    <Canvas.RenderTransform>
+                        <MatrixTransform x:Name="transformCanvas" />
+                    </Canvas.RenderTransform>
                     <Image x:Name="imageTest" />
                     <Rectangle
                         x:Name="rcRectangleExample"
