@@ -1,6 +1,4 @@
-﻿using NTR;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Windows.Input;
 
 namespace KLC_Finch {

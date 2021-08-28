@@ -2,26 +2,17 @@
 using LibKaseya;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NTR;
-using RestSharp;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Timers;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace KLC_Finch {
     public class RemoteControl : IRemoteControl {
