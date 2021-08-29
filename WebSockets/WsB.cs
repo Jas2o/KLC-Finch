@@ -336,7 +336,7 @@ namespace KLC {
                 ["p2pConnectionId"] = randSessionGuid,
                 ["data"] = new JObject {
                     ["moduleId"] = module,
-                    ["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.376/content"
+                    ["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.858/content"
                 }
             };
 
