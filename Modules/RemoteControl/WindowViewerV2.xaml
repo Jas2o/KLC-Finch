@@ -167,6 +167,7 @@
                             x:Name="toolVersion"
                             Header="Build date: DD/MM/YYYY"
                             IsEnabled="False" />
+                        <MenuItem x:Name="toolOpenGLInfo" Header="OpenGL Info" Click="toolOpenGLInfo_Click" />
                         <Separator />
                         <MenuItem
                             x:Name="toolUpdateScreenLayout"

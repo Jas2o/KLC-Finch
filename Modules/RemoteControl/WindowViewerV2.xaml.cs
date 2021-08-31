@@ -42,6 +42,7 @@ namespace KLC_Finch {
         private double fpsLast;
         private int fragment_shader_object = 0;
         private readonly bool glSupported; //Otherwise Canvas RGB
+        private string glVersion;
         private readonly bool isMac;
         public bool powerSaving { get; private set; }
         private bool keyDownWin;
@@ -139,25 +140,30 @@ namespace KLC_Finch {
             txtRcDisconnected.Visibility = Visibility.Collapsed;
 
             glSupported = !Settings.ForceCanvas;
-            int renderTier = System.Windows.Media.RenderCapability.Tier;
-
-            string glVersion = string.Empty;
-            if (renderTier == 0) {
+            if (System.Windows.Media.RenderCapability.Tier == 0) {
                 //Software, such as RDP
                 //GLWpfControl would crash if used without the minimum version
                 OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
                 glVersion = glSoftwareTest.Version;
-                if (glVersion.StartsWith("1."))
+                if (glVersion.StartsWith("1.") || glVersion.Contains("Mesa")) //Mesa seen on Citrix which claims to support 3.1
                     glSupported = false;
             }
+
             if (glSupported) {
                 GLWpfControlSettings glSettings = new GLWpfControlSettings { MajorVersion = 3, MinorVersion = 1, RenderContinuously = true };
-                glControl.Start(glSettings);
+                try {
+                    glControl.Start(glSettings);
+                } catch(Exception ex) {
+                    new WindowException(ex, "OpenGL Check").ShowDialog();
+                    glSupported = false;
+                }
+                /* //This will probably never get reached
                 if (renderTier != 0) {
                     glVersion = GL.GetString(StringName.Version);
                     if (glVersion.StartsWith("1."))
-                        glSupported = false; //This will probably never get reached
+                        glSupported = false;
                 }
+                */
             }
 
             WindowUtilities.ActivateWindow(this);
@@ -182,6 +188,12 @@ namespace KLC_Finch {
         private void LoadSettings(bool isStart = false) {
             if (isStart) {
                 useMultiScreen = Settings.StartMultiScreen;
+
+                //Fix for Canvas
+                toolScreenMode.IsEnabled = glSupported;
+                if (!glSupported)
+                    useMultiScreen = true;
+
                 if (useMultiScreen) {
                     /*
                     if (Settings.StartControlEnabled)
@@ -189,7 +201,7 @@ namespace KLC_Finch {
                     else
                         ChangeViewToOverview();
                     */
-                    toolScreenMode.Content = "Multi";
+                toolScreenMode.Content = "Multi";
                     toolScreenOverview.Visibility = Visibility.Visible;
                     toolZoomIn.Visibility = Visibility.Visible;
                     toolZoomOut.Visibility = Visibility.Visible;
@@ -2043,6 +2055,10 @@ namespace KLC_Finch {
                     glControl.Render += GlControl_Render;
                 }
             }
+        }
+
+        private void toolOpenGLInfo_Click(object sender, RoutedEventArgs e) {
+            MessageBox.Show("Render capability: " + System.Windows.Media.RenderCapability.Tier + "\r\n\r\nOpenGL Version: " + glVersion, "KLC-Finch: OpenGL Info");
         }
 
         private RCScreen GetScreenUsingMouse(int x, int y) {
