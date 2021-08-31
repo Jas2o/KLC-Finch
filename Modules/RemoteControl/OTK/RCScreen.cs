@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 
@@ -57,6 +58,17 @@ namespace NTR {
         }
 
         public void SetCanvasImage(Bitmap bitmap) {
+            BitmapSource bs = null;
+
+            using (MemoryStream ms = new MemoryStream()) {
+                using (WrappingStream ws = new WrappingStream(ms)) {
+                    bitmap.Save(ws, System.Drawing.Imaging.ImageFormat.Bmp);
+                    bs = BitmapFrame.Create(ws, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                }
+            }
+
+            /*
+            //Old code that quickly lead to running out of memory.
             IntPtr ip = bitmap.GetHbitmap();
             BitmapSource bs = null;
             try {
@@ -67,6 +79,7 @@ namespace NTR {
                 DeleteObject(ip);
             }
             bs.Freeze();
+            */
 
             CanvasImage.Source = bs;
         }

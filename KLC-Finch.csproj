@@ -121,6 +121,7 @@
     <Compile Include="AddToLib\FormatKbSizeConverter.cs" />
     <Compile Include="AddToLib\Util.cs" />
     <Compile Include="AddToLib\WindowUtilities.cs" />
+    <Compile Include="AddToLib\WrappingStream.cs" />
     <Compile Include="Modules\Asset\AssetData.cs" />
     <Compile Include="Modules\Asset\AssetValue.cs" />
     <Compile Include="Modules\Asset\controlAsset.xaml.cs">
