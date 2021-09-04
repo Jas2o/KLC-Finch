@@ -43,7 +43,6 @@ namespace KLC_Finch {
         private int fragment_shader_object = 0;
         private readonly bool glSupported; //Otherwise Canvas RGB
         private string glVersion;
-        private readonly bool isMac;
         public bool powerSaving { get; private set; }
         private bool keyDownWin;
         private long lastLatency;
@@ -75,11 +74,16 @@ namespace KLC_Finch {
         private int vpX, vpY;
         private bool windowActivatedMouseMove;
 
+        private readonly Agent.OSProfile endpointOS;
+        private readonly string endpointLastUser;
+        private string[] arrAdmins = new string[] { "administrator", "brandadmin", "adminc", "company" };
+
         private readonly WindowScreens winScreens;
         private readonly KeyboardHook keyHook;
-        private bool keyHookAllow;
+        private bool ssKeyHookAllow;
+        private bool ssClipboardSync;
 
-        public WindowViewerV2(IRemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, bool isMac = false) {
+        public WindowViewerV2(IRemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, Agent.OSProfile endpointOS = Agent.OSProfile.Other, string endpointLastUser = "") {
             InitializeComponent();
             ListScreen = new List<RCScreen>();
             winScreens = new WindowScreens();
@@ -88,7 +92,8 @@ namespace KLC_Finch {
             keyHook.KeyUp += KeyHook_KeyUp;
             toolVersion.Header = "Build date: " + App.Version;
 
-            this.isMac = isMac;
+            this.endpointOS = endpointOS;
+            this.endpointLastUser = endpointLastUser;
 
             string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
             if (System.IO.File.Exists(pathSettings))
@@ -101,7 +106,7 @@ namespace KLC_Finch {
             this.Height = Settings.RemoteControlHeight / dpiScale.PixelsPerDip;
             LoadSettings(true);
 
-            if (isMac) {
+            if (endpointOS == Agent.OSProfile.Mac) {
                 toolBlockMouseKB.Visibility = Visibility.Collapsed;
                 if (Settings.MacSwapCtrlWin)
                     toolKeyWin.Visibility = Visibility.Collapsed;
@@ -215,21 +220,29 @@ namespace KLC_Finch {
             }
 
             autotypeAlwaysConfirmed = Settings.AutotypeSkipLengthCheck;
-            keyHookAllow = Settings.KeyboardHook;
+            ssKeyHookAllow = Settings.KeyboardHook;
             KeyHookSet(false);
+
+            if (Settings.ClipboardSync == 2 && (endpointOS == Agent.OSProfile.Server || arrAdmins.Contains(endpointLastUser.ToLower()))) {
+                //Server/Admin only
+                ssClipboardSync = true;
+            } else {
+                ssClipboardSync = (Settings.ClipboardSync == 1);
+            }
+
             // This repetition needs to be fixed
-            toolClipboardSync.Visibility = (Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
-            toolClipboardReceiveOnly.Visibility = !Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed;
+            toolClipboardSync.Visibility = (ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
+            toolClipboardReceiveOnly.Visibility = !ssClipboardSync ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void KeyHookSet(bool canCheckKeyboard = false) {
             if (canCheckKeyboard) {
-                keyHookAllow = Keyboard.IsKeyToggled(Key.Scroll) || Settings.KeyboardHook;
+                ssKeyHookAllow = Keyboard.IsKeyToggled(Key.Scroll) || Settings.KeyboardHook;
                 if (!IsActive)
-                    keyHookAllow = false;
+                    ssKeyHookAllow = false;
             }
 
-            if (!controlEnabled || !keyHookAllow) {
+            if (!controlEnabled || !ssKeyHookAllow) {
                 if (keyHook.IsActive)
                     keyHook.Uninstall();
             } else {
@@ -1402,7 +1415,7 @@ namespace KLC_Finch {
 
         private void SyncClipboard(object sender, EventArgs e) {
             try {
-                if (Settings.ClipboardSyncEnabled) {
+                if (ssClipboardSync) {
                     string temp = clipboard;
                     this.ToolClipboardSend_Click(sender, e);
                     if(clipboard != temp) {
@@ -1439,7 +1452,7 @@ namespace KLC_Finch {
             clipboard = Clipboard.GetText();
             rc.SendClipboard(clipboard);
 
-            //if (Settings.ClipboardSyncEnabled) toolClipboardGetText.Text = clipboard.Truncate(50);
+            //if (Settings.ClipboardSync > 0) toolClipboardGetText.Text = clipboard.Truncate(50);
         }
 
         private void ToolClipboardSend_MouseEnter(object sender, MouseEventArgs e) {
@@ -1448,10 +1461,10 @@ namespace KLC_Finch {
         }
 
         private void ToolClipboardSync_Click(object sender, RoutedEventArgs e) {
-            Settings.ClipboardSyncEnabled = !Settings.ClipboardSyncEnabled;
+            ssClipboardSync = !ssClipboardSync;
 
-            toolClipboardSync.Visibility = (Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
-            toolClipboardReceiveOnly.Visibility = (!Settings.ClipboardSyncEnabled ? Visibility.Visible : Visibility.Collapsed);
+            toolClipboardSync.Visibility = (ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
+            toolClipboardReceiveOnly.Visibility = (!ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
         }
 
         private void ToolDisconnect_Click(object sender, RoutedEventArgs e) {
@@ -2072,7 +2085,7 @@ namespace KLC_Finch {
         }
 
         private void KeyWinSet(bool set) {
-            if (!controlEnabled || isMac || connectionStatus != ConnectionStatus.Connected)
+            if (!controlEnabled || endpointOS == Agent.OSProfile.Mac || connectionStatus != ConnectionStatus.Connected)
                 return;
 
             keyDownWin = set;
@@ -2118,7 +2131,7 @@ namespace KLC_Finch {
                 try {
                     KeycodeV2 keykaseya = KeycodeV2.List.Find(x => x.Key == e2.KeyCode);
 
-                    if (isMac && Settings.MacSwapCtrlWin) {
+                    if (endpointOS == Agent.OSProfile.Mac && Settings.MacSwapCtrlWin) {
                         if (KeycodeV2.ModifiersControl.Contains(e2.KeyCode))
                             keykaseya = keywin;
                         else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
@@ -2136,7 +2149,7 @@ namespace KLC_Finch {
                         if (keykaseya.Key == System.Windows.Forms.Keys.LWin || keykaseya.Key == System.Windows.Forms.Keys.RWin)
                             KeyWinSet(false);
                     } else {
-                        if (keyDownWin && !isMac) {
+                        if (keyDownWin && endpointOS != Agent.OSProfile.Mac) {
                             foreach (KeycodeV2 k in listHeldKeysOther)
                                 rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
                             listHeldKeysOther.Clear();
@@ -2190,7 +2203,7 @@ namespace KLC_Finch {
                     if (keykaseya == null)
                         throw new KeyNotFoundException(e2.KeyCode.ToString());
 
-                    if (isMac && Settings.MacSwapCtrlWin) {
+                    if (endpointOS == Agent.OSProfile.Mac && Settings.MacSwapCtrlWin) {
                         if (KeycodeV2.ModifiersControl.Contains(e2.KeyCode))
                             keykaseya = keywin;
                         else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)

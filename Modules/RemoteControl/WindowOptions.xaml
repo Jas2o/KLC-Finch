@@ -54,7 +54,6 @@
                                     ToolTip="Overlay at top right." />
                             </StackPanel>
                         </GroupBox>
-
                         <GroupBox Header="Control">
                             <StackPanel>
                                 <CheckBox
@@ -97,18 +96,25 @@
                                     Content="Swap Ctrl/Win keys on Macs"
                                     IsChecked="{Binding MacSwapCtrlWin}"
                                     ToolTip="Finch cannot keep focus when Win is pressed." />
-                                <CheckBox
-                                    x:Name="chkSettingClipboardSync"
-                                    Margin="0,5,0,0"
-                                    Content="Clipboard sync: both directions"
-                                    IsChecked="{Binding ClipboardSyncEnabled}"
-                                    ToolTipService.ShowDuration="12000">
-                                    <CheckBox.ToolTip>
-                                        <TextBlock>
-                                            Ticked: Might not work well (Kaseya-like).<LineBreak />
-                                            Unticked: Receive-only, prevent leaking credentials.</TextBlock>
-                                    </CheckBox.ToolTip>
-                                </CheckBox>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <Label
+                                        Padding="0,5,5,5"
+                                        Content="Clipboard Sync:"
+                                        ToolTip="Prevent credential leaks to users?"
+                                        ToolTipService.ShowDuration="12000" />
+                                    <ComboBox
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        SelectedIndex="{Binding ClipboardSync}">
+                                        <ComboBoxItem>Off</ComboBoxItem>
+                                        <ComboBoxItem>Enabled (risky)</ComboBoxItem>
+                                        <ComboBoxItem>Server/Admin</ComboBoxItem>
+                                    </ComboBox>
+                                </Grid>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
@@ -205,11 +211,9 @@
                                     Content="Power save when minimized"
                                     IsChecked="{Binding PowerSaveOnMinimize}"
                                     ToolTip="Tries to save CPU/GPU by skipping texture updates and rendering."
-                                    ToolTipService.ShowDuration="12000">
-                                </CheckBox>
+                                    ToolTipService.ShowDuration="12000" />
                             </StackPanel>
                         </GroupBox>
-
                         <GroupBox Header="Initial Window Size">
                             <StackPanel Orientation="Horizontal">
                                 <Label Content="W:" />

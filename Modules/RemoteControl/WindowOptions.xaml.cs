@@ -53,7 +53,7 @@ namespace KLC_Finch.Modules.RemoteControl {
         private void btnPresetRecommended_Click(object sender, RoutedEventArgs e) {
             settings.AutotypeSkipLengthCheck = false;
             settings.StartControlEnabled = false;
-            settings.ClipboardSyncEnabled = false;
+            settings.ClipboardSync = 2;
             settings.KeyboardHook = false;
             settings.MacSwapCtrlWin = true;
             settings.StartMultiScreen = true;
@@ -72,7 +72,7 @@ namespace KLC_Finch.Modules.RemoteControl {
 
         private void btnPresetKaseya_Click(object sender, RoutedEventArgs e) {
             settings.StartControlEnabled = true;
-            settings.ClipboardSyncEnabled = true;
+            settings.ClipboardSync = 1;
             settings.DisplayOverlayMouse = false;
             settings.DisplayOverlayKeyboardMod = false;
             settings.DisplayOverlayKeyboardOther = false;

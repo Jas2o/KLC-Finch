@@ -49,7 +49,7 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
 
-            Viewer = App.viewer = new WindowViewerV2(this, 1920, 1080, session.agent.IsMac);
+            Viewer = App.viewer = new WindowViewerV2(this, 1920, 1080, session.agent.OSTypeProfile, session.agent.UserLast);
             Viewer.SetTitle(session.agent.Name, modePrivate);
             Viewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             Viewer.Show();
@@ -529,7 +529,7 @@ namespace KLC_Finch {
 
         public void SendAutotype(string text, int speedPreset) {
             //Finch/Hawk method
-            if (session.agent.IsMac)
+            if (session.agent.OSTypeProfile == Agent.OSProfile.Mac)
                 speedPreset = 2;
 
             MITM.SendText(serverB, text, speedPreset);

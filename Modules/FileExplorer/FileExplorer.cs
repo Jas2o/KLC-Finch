@@ -44,7 +44,7 @@ namespace KLC_Finch {
             queueUpload = new Queue<Upload>();
 
             if (session != null) {
-                IsMac = session.agent.IsMac;
+                IsMac = session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac;
                 session.WebsocketB.ControlAgentSendTask(modulename);
             }
         }

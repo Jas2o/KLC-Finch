@@ -117,7 +117,7 @@ namespace KLC_Finch {
             if (shortToken == null || agentID == null)
                 return; //Dragablz
 
-            if (session.agent.IsMac) {
+            if (session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac) {
                 tabCommand.Header = "Terminal";
                 tabPowershell.Visibility = Visibility.Collapsed;
                 tabRegistry.Visibility = Visibility.Collapsed;

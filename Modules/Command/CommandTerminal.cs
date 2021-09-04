@@ -46,7 +46,7 @@ namespace KLC_Finch {
             this.dataPart = dataPart;
 
             if (session != null) {
-                IsMac = session.agent.IsMac;
+                IsMac = session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac;
                 modulename = (IsMac ? "terminal" : "commandshell");
                 session.WebsocketB.ControlAgentSendTask(modulename);
             }

@@ -15,7 +15,8 @@ namespace KLC_Finch {
 
         public bool AutotypeSkipLengthCheck { get; set; } = false;
         public bool StartControlEnabled { get; set; } = true;
-        public bool ClipboardSyncEnabled { get; set; } = false;
+        //[JsonIgnore] private bool ClipboardSyncEnabled { get; set; } = false; //No longer used
+        public int ClipboardSync { get; set; } = 2; //Server/Admin only
         public bool DisplayOverlayMouse { get; set; } = false;
         public bool DisplayOverlayKeyboardMod { get; set; } = false;
         public bool DisplayOverlayKeyboardOther { get; set; } = false;
