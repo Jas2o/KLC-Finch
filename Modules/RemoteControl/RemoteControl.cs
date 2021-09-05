@@ -18,7 +18,8 @@ namespace KLC_Finch {
     public class RemoteControl : IRemoteControl {
 
         public WindowViewerV2 Viewer;
-        public bool UseYUVShader { get; set; }
+        //public bool UseYUVShader { get; set; }
+        public DecodeMode DecodeMode { get; set; }
 
         private readonly KLC.LiveConnectSession session;
         private string rcSessionId;
@@ -242,20 +243,43 @@ namespace KLC_Finch {
                 } else if (type == (byte)Enums.KaseyaMessageTypes.Video) {
 
                     //Just send it anyway, otherwise Kaseya gets sad and stops sending frames
-                    PostFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
+                    //PostFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
+                    //Moved to after decode
 
-                    /*
-                    // Only useful to change screens when the resolution doesn't match.
-                    bool isKeyframe = false;
-                    if (remaining[3] == 0x9D && remaining[4] == 0x01 && remaining[5] == 0x2A) {
-                        isKeyframe = true;
+                    if(DecodeMode == DecodeMode.BitmapRGB) {
+                        Bitmap b1 = null;
+                        try {
+                            if (decoder == null)
+                                decoder = new VP8.Decoder(); //Due to Soft Reconnect
+                            lock (decoder) {
+                                b1 = decoder.Decode(remaining, 0);
+                            }
+                        } catch (Exception ex) {
+                            Console.WriteLine("RC VP8 decode error: " + ex.ToString());
+                        } finally {
+                            if (b1 != null && !Viewer.powerSaving) {
+                                Viewer.LoadTexture(b1.Width, b1.Height, b1);
+
+                                if (captureScreen) {
+                                    captureScreen = false;
+
+                                    //This may cause AV to think we're malware
+                                    Thread tc = new Thread(() => {
+                                        System.Windows.Forms.Clipboard.SetImage(b1);
+                                    });
+                                    tc.SetApartmentState(ApartmentState.STA);
+                                    tc.Start();
+                                    Thread.Sleep(1);
+                                    tc.Join();
+                                    Thread.Sleep(1);
+                                }
+
+                                b1.Dispose();
+                            }
+                        }
                     } else {
-                        if(remaining.Length > 200)
-                            Console.WriteLine(remaining.Length);
-                    }
-                    */
+                        //YUV or Y
 
-                    if(UseYUVShader) {
                         try {
                             int rawWidth = 0;
                             int rawHeight = 0;
@@ -265,7 +289,10 @@ namespace KLC_Finch {
                                 decoder = new VP8.Decoder(); //Due to Soft Reconnect
                             lock (decoder) {
                                 //This causes GC pressure
-                                rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride);
+                                if(DecodeMode == DecodeMode.RawYUV || captureScreen)
+                                    rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride);
+                                else
+                                    rawYUV = decoder.DecodeRawBW(remaining, out rawWidth, out rawHeight, out rawStride);
                             }
 
                             /*
@@ -299,38 +326,9 @@ namespace KLC_Finch {
                         } catch (Exception ex) {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
                         }
-                    } else {
-                        Bitmap b1 = null;
-                        try {
-                            if (decoder == null)
-                                decoder = new VP8.Decoder(); //Due to Soft Reconnect
-                            lock (decoder) {
-                                b1 = decoder.Decode(remaining, 0);
-                            }
-                        } catch (Exception ex) {
-                            Console.WriteLine("RC VP8 decode error: " + ex.ToString());
-                        } finally {
-                            if (b1 != null && !Viewer.powerSaving) {
-                                Viewer.LoadTexture(b1.Width, b1.Height, b1);
-
-                                if (captureScreen) {
-                                    captureScreen = false;
-
-                                    //This may cause AV to think we're malware
-                                    Thread tc = new Thread(() => {
-                                        System.Windows.Forms.Clipboard.SetImage(b1);
-                                    });
-                                    tc.SetApartmentState(ApartmentState.STA);
-                                    tc.Start();
-                                    Thread.Sleep(1);
-                                    tc.Join();
-                                    Thread.Sleep(1);
-                                }
-
-                                b1.Dispose();
-                            }
-                        }
                     }
+
+                    PostFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
 
                 } else if (type == (byte)Enums.KaseyaMessageTypes.Clipboard) {
                     //string remainingHex = BitConverter.ToString(bytes, remStart, remLength).Replace("-", "");

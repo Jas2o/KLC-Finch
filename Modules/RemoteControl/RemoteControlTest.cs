@@ -7,7 +7,8 @@ namespace KLC_Finch {
     public class RemoteControlTest : IRemoteControl {
 
         public WindowViewerV2 Viewer;
-        public bool UseYUVShader { get { return false; } set { } }
+        //public bool UseYUVShader { get { return false; } set { } }
+        public DecodeMode DecodeMode { get { return DecodeMode.BitmapRGB; } set { } }
 
         private string screenStr;
         private Thread threadTest;

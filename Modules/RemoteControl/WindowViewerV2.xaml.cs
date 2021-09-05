@@ -144,7 +144,7 @@ namespace KLC_Finch {
             txtRcFrozen.Visibility = Visibility.Collapsed;
             txtRcDisconnected.Visibility = Visibility.Collapsed;
 
-            glSupported = !Settings.ForceCanvas;
+            glSupported = (Settings.GraphicsMode < 2);
             if (System.Windows.Media.RenderCapability.Tier == 0) {
                 //Software, such as RDP
                 //GLWpfControl would crash if used without the minimum version
@@ -448,8 +448,12 @@ namespace KLC_Finch {
                     } else {
                         if (screenStatus == ScreenStatus.Stable) {
                             //Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                            SwitchToLegacyRendering();
-                            LoadTextureRaw(buffer, width, height, stride);
+                            if (glSupported) {
+                                SwitchToLegacyRendering();
+                                LoadTextureRaw(buffer, width, height, stride);
+                            } else {
+                                UpdateScreenLayoutHack();
+                            }
                         }
                         return;
                     }
@@ -468,6 +472,19 @@ namespace KLC_Finch {
 
                 if (scr.Texture != null)
                     scr.Texture.LoadRaw(scr.rect, buffer, stride);
+                else {
+                    //Canvas
+                    Dispatcher.Invoke((Action)delegate {
+                        if (scr.CanvasImage == null)
+                            scr.CanvasImage = new System.Windows.Controls.Image();
+                        scr.CanvasImage.Width = width;
+                        scr.CanvasImage.Height = height;
+
+                        scr.SetCanvasImageBW(width, height, stride, buffer);
+                    });
+                }
+
+
                 socketAlive = true;
 
                 #endregion Multi-Screen
@@ -907,7 +924,7 @@ namespace KLC_Finch {
                 if (!controlEnabled || !this.IsActive)
                     return;
 
-                throw new NotImplementedException();
+                //throw new NotImplementedException();
                 /*
                 System.Drawing.Point legacyPoint = new System.Drawing.Point(e.X - vpX, e.Y - vpY);
                 if (legacyPoint.X < 0 || legacyPoint.Y < 0)
@@ -946,7 +963,7 @@ namespace KLC_Finch {
         }
 
         private void InitTextures() {
-            textureLegacy = new TextureScreen(rc.UseYUVShader);
+            textureLegacy = new TextureScreen(rc.DecodeMode);
             //InitLegacyScreenTexture();
 
             GL.EnableClientState(ArrayCap.VertexArray);
@@ -1028,7 +1045,7 @@ namespace KLC_Finch {
             //lock (lockFrameBuf) {
             foreach (RCScreen screen in ListScreen) {
                 if (screen.Texture == null)
-                    screen.Texture = new TextureScreen(rc.UseYUVShader);
+                    screen.Texture = new TextureScreen(rc.DecodeMode);
                 else
                     screen.Texture.RenderNew(m_shader_sampler);
             }
@@ -1402,6 +1419,9 @@ namespace KLC_Finch {
         }
 
         private void SwitchToLegacyRendering() {
+            if (glSupported == false)
+                return;
+
             useMultiScreen = false;
             virtualRequireViewportUpdate = true;
 
@@ -1690,11 +1710,13 @@ namespace KLC_Finch {
             if (glSupported) {
                 rcBorderBG.Visibility = Visibility.Collapsed;
 
-                rc.UseYUVShader = Settings.UseYUVShader;
-                if (rc.UseYUVShader)
+                if (Settings.GraphicsMode == 0) {
+                    rc.DecodeMode = DecodeMode.RawYUV;
                     this.Title = Title + " (YUV)";
-                else
+                } else  {
+                    rc.DecodeMode = DecodeMode.BitmapRGB;
                     this.Title = Title + " (RGB)";
+                }
 
                 CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
                 m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
@@ -1718,8 +1740,13 @@ namespace KLC_Finch {
                 rcRectangleExample.Visibility = Visibility.Hidden;
                 canvasListRectangle = new List<System.Windows.Shapes.Rectangle>();
 
-                rc.UseYUVShader = false;
-                this.Title = Title + " (Canvas RGB) Alpha";
+                if (Settings.GraphicsMode == 3) {
+                    rc.DecodeMode = DecodeMode.RawY;
+                    this.Title = Title + " (Canvas Y) Alpha";
+                } else {
+                    rc.DecodeMode = DecodeMode.BitmapRGB;
+                    this.Title = Title + " (Canvas RGB) Alpha";
+                }
 
                 rcBorderBG.MouseMove += HandleCanvasMouseMove;
                 rcCanvas.MouseMove += HandleCanvasMouseMove;
@@ -1861,6 +1888,15 @@ namespace KLC_Finch {
 
             if (useMultiScreen)
                 PositionCameraToCurrentScreen();
+
+            Dispatcher.Invoke((Action)delegate {
+                toolScreen.Content = CurrentScreen.screen_name;
+                toolScreen.ToolTip = CurrentScreen.StringResPos();
+
+                foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
+                    item.IsChecked = (item.Header.ToString() == CurrentScreen.ToString());
+                }
+            });
         }
 
         #endregion Host Desktop Configuration (Screens of current session)

@@ -176,6 +176,41 @@
 
                         <GroupBox Header="Graphics">
                             <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <Label
+                                        Padding="0,5,5,5"
+                                        Content="Mode:"
+                                        ToolTipService.ShowDuration="24000">
+                                        <Label.ToolTip>
+                                            <TextBlock>
+                                                Kaseya's video feed is VP8 format, which uses YUV to reduce bandwidth.<LineBreak />
+                                                However displaying YUV requires it to be converted to RGB at some point,<LineBreak />
+                                                which has a CPU usage cost.<LineBreak />
+                                                <LineBreak />
+                                                When OpenGL YUV/RGB is expected to fail, Finch with use Canvas RGB instead.<LineBreak />
+                                                <LineBreak />
+                                                OpenGL YUV: uses a shader to handle the conversion (faster).<LineBreak />
+                                                OpenGL RGB: CPU handles the conversion (slower).<LineBreak />
+                                                <LineBreak />
+                                                Canvas RGB: compatible with low-end graphics, but high CPU.<LineBreak />
+                                                OpenGL Y: compatible, but less CPU because it's greyscale.</TextBlock>
+                                        </Label.ToolTip>
+                                    </Label>
+                                    <ComboBox
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        SelectedIndex="{Binding GraphicsMode}">
+                                        <ComboBoxItem>OpenGL YUV (Best)</ComboBoxItem>
+                                        <ComboBoxItem>OpenGL RGB (Toaster)</ComboBoxItem>
+                                        <ComboBoxItem>Canvas RGB (Potato)</ComboBoxItem>
+                                        <ComboBoxItem>Canvas Y (Greyscale)</ComboBoxItem>
+                                    </ComboBox>
+                                </Grid>
+                                <!--
                                 <CheckBox
                                     x:Name="chkSettingUseYUVShader"
                                     Margin="0,5,0,0"
@@ -205,6 +240,7 @@
                                             Canvas effectively works in 'RGB' mode, therefore is slower than OpenGL+YUV shader.</TextBlock>
                                     </CheckBox.ToolTip>
                                 </CheckBox>
+                                -->
                                 <CheckBox
                                     x:Name="chkSettingsPowerSave"
                                     Margin="0,5,0,0"

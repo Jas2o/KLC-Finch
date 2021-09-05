@@ -60,8 +60,7 @@ namespace KLC_Finch.Modules.RemoteControl {
             settings.MultiAltFit = true;
             settings.MultiShowCursor = true;
             settings.ScreenSelectNew = true;
-            settings.UseYUVShader = true;
-            settings.ForceCanvas = false;
+            settings.GraphicsMode = 0;
 
             txtSizeWidth.Text = "1370";
             txtSizeHeight.Text = "800";
@@ -83,8 +82,7 @@ namespace KLC_Finch.Modules.RemoteControl {
             settings.MultiAltFit = false;
             settings.MultiShowCursor = false;
             settings.ScreenSelectNew = false;
-            settings.UseYUVShader = true;
-            settings.ForceCanvas = false;
+            settings.GraphicsMode = 0;
 
             txtSizeWidth.Text = "1370";
             txtSizeHeight.Text = "800";

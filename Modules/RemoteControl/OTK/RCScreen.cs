@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
@@ -19,6 +20,7 @@ namespace NTR {
         public TextureScreen Texture;
         //public System.Windows.Shapes.Rectangle Shape;
         public System.Windows.Controls.Image CanvasImage;
+        private static ColorPalette grayPalette;
 
         public RCScreen(string screen_id, string screen_name, int screen_height, int screen_width, int screen_x, int screen_y) {
             this.screen_id = screen_id;
@@ -55,6 +57,26 @@ namespace NTR {
 
         public override string ToString() {
             return screen_name + ": (" + StringResPos() + ")";
+        }
+
+        public void SetCanvasImageBW(int width, int height, int stride, byte[] data) {
+            Bitmap image = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format8bppIndexed);
+
+            if (grayPalette == null) {
+                grayPalette = image.Palette;
+                Color[] entries = grayPalette.Entries;
+                for (int i = 0; i < 256; i++) {
+                    entries[i] = Color.FromArgb((byte)i, (byte)i, (byte)i);
+                }
+            }
+            image.Palette = grayPalette;
+
+            BitmapData bmpData = image.LockBits(new Rectangle(Point.Empty, image.Size), ImageLockMode.WriteOnly, image.PixelFormat);
+            for (int y = 0; y < height; y++)
+                System.Runtime.InteropServices.Marshal.Copy(data, y * stride, bmpData.Scan0 + (y * width), width);
+            image.UnlockBits(bmpData);
+
+            SetCanvasImage(image);
         }
 
         public void SetCanvasImage(Bitmap bitmap) {

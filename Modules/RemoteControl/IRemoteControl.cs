@@ -3,8 +3,11 @@ using System.Windows.Input;
 
 namespace KLC_Finch {
 
+    public enum DecodeMode { RawYUV, RawY, BitmapRGB }
+
     public interface IRemoteControl {
-        bool UseYUVShader { get; set; }
+
+        DecodeMode DecodeMode { get; set; }
 
         void CaptureNextScreen();
         void SendSecureAttentionSequence();

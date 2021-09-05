@@ -15,7 +15,7 @@ namespace NTR {
         public int ID; //RGB or Y
         public int IDu, IDv;
         public bool IsNew;
-        public bool IsYUV;
+        public KLC_Finch.DecodeMode DecodeMode;
         public byte[] Data; //RGB or Y
         public byte[] DataU, DataV;
 
@@ -30,10 +30,10 @@ namespace NTR {
         /// <summary>
         /// Only call this from GL Render
         /// </summary>
-        public TextureScreen(bool isYUV=false) {
-            IsYUV = isYUV;
+        public TextureScreen(KLC_Finch.DecodeMode decodeMode) {
+            DecodeMode = decodeMode;
             ID = GL.GenTexture();
-            if(IsYUV) {
+            if(DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
                 IDu = GL.GenTexture();
                 IDv = GL.GenTexture();
             }
@@ -61,7 +61,6 @@ namespace NTR {
         }
 
         public void LoadRaw(Rectangle rect, byte[] buffer, int stride) {
-            IsYUV = true;
             if (this.rect.Width != rect.Width || this.rect.Height != rect.Height)
                 vertBufferNeedUpdate = true;
             this.rect = rect;
@@ -75,17 +74,20 @@ namespace NTR {
                 //Console.WriteLine("[LoadTexture:Legacy] Array needs to be resized");
 
                 Data = new byte[stride * height];
-                DataU = new byte[stride * height / 4];
-                DataV = new byte[stride * height / 4];
+                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+                    DataU = new byte[stride * height / 4];
+                    DataV = new byte[stride * height / 4];
+                }
             }
 
             int pos = 0;
             System.Buffer.BlockCopy(buffer, pos, Data, 0, Data.Length);
-            pos += Data.Length;
-            System.Buffer.BlockCopy(buffer, pos, DataU, 0, DataU.Length);
-            pos += DataU.Length;
-            System.Buffer.BlockCopy(buffer, pos, DataV, 0, DataV.Length);
-
+            if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+                pos += Data.Length;
+                System.Buffer.BlockCopy(buffer, pos, DataU, 0, DataU.Length);
+                pos += DataU.Length;
+                System.Buffer.BlockCopy(buffer, pos, DataV, 0, DataV.Length);
+            }
             IsNew = true;
         }
 
@@ -93,44 +95,7 @@ namespace NTR {
             if (!IsNew || ID == -1 || rect == null)
                 return;
 
-            if (IsYUV) {
-                GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride);
-
-                //Y
-                GL.ActiveTexture(TextureUnit.Texture1);
-                GL.BindTexture(TextureTarget.Texture2D, ID);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, width, height, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, Data);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-                GL.Uniform1(m_shader_sampler[0], 1);
-
-                GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride / 2);
-
-                //U
-                GL.ActiveTexture(TextureUnit.Texture2);
-                GL.BindTexture(TextureTarget.Texture2D, IDu);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, width / 2, height / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, DataU);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-                GL.Uniform1(m_shader_sampler[1], 2);
-
-                //V
-                GL.ActiveTexture(TextureUnit.Texture3);
-                GL.BindTexture(TextureTarget.Texture2D, IDv);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, width / 2, height / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, DataV);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-                GL.Uniform1(m_shader_sampler[2], 3);
-
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.PixelStore(PixelStoreParameter.UnpackRowLength, 0); //Reset stride
-            } else {
+            if(DecodeMode == KLC_Finch.DecodeMode.BitmapRGB) {
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, ID);
 
@@ -150,6 +115,47 @@ namespace NTR {
 
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            } else {
+                GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride);
+
+                //Y
+                GL.ActiveTexture(TextureUnit.Texture1);
+                GL.BindTexture(TextureTarget.Texture2D, ID);
+                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, width, height, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, Data);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+
+                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+                    //Y
+                    GL.Uniform1(m_shader_sampler[0], 1);
+
+                    GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride / 2);
+
+                    //U
+                    GL.ActiveTexture(TextureUnit.Texture2);
+                    GL.BindTexture(TextureTarget.Texture2D, IDu);
+                    GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, width / 2, height / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, DataU);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+                    GL.Uniform1(m_shader_sampler[1], 2);
+
+                    //V
+                    GL.ActiveTexture(TextureUnit.Texture3);
+                    GL.BindTexture(TextureTarget.Texture2D, IDv);
+                    GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.One, width / 2, height / 2, 0, OpenTK.Graphics.OpenGL.PixelFormat.Luminance, PixelType.UnsignedByte, DataV);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+                    GL.Uniform1(m_shader_sampler[2], 3);
+                }
+
+                GL.ActiveTexture(TextureUnit.Texture0);
+                GL.PixelStore(PixelStoreParameter.UnpackRowLength, 0); //Reset stride
             }
 
             IsNew = false;
@@ -177,18 +183,18 @@ namespace NTR {
 
             GL.Enable(EnableCap.Texture2D);
 
-            if (IsYUV) {
-                //GL.UseProgram(0);
-                GL.UseProgram(programYUV);
+            if (DecodeMode == KLC_Finch.DecodeMode.BitmapRGB) {
+                GL.UseProgram(0);
 
-                /*
-                float[] texcoords = {
-                    0.0f, 1.0f,
-                    1.0f, 1.0f,
-                    1.0f, 0.0f,
-                    0.0f, 0.0f
-                };
-                */
+                GL.Color3(multiplyColor ?? Color.White);
+
+                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+                GL.ActiveTexture(TextureUnit.Texture0);
+                GL.BindTexture(TextureTarget.Texture2D, ID);
+            } else {
+                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+                    GL.UseProgram(programYUV);
+                }
 
                 GL.EnableClientState(ArrayCap.VertexArray);
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
@@ -197,39 +203,36 @@ namespace NTR {
 
                 GL.ActiveTexture(TextureUnit.Texture1);
                 GL.EnableClientState(ArrayCap.TextureCoordArray);
-                //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
                 GL.BindTexture(TextureTarget.Texture2D, ID);
-                GL.Uniform1(m_shader_sampler[0], 1);
+                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+                    //Y
+                    GL.Uniform1(m_shader_sampler[0], 1);
 
-                GL.ActiveTexture(TextureUnit.Texture2);
-                GL.EnableClientState(ArrayCap.TextureCoordArray);
-                //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
-                GL.BindTexture(TextureTarget.Texture2D, IDu);
-                GL.Uniform1(m_shader_sampler[1], 2);
+                    //U
+                    GL.ActiveTexture(TextureUnit.Texture2);
+                    GL.EnableClientState(ArrayCap.TextureCoordArray);
+                    //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
+                    GL.BindTexture(TextureTarget.Texture2D, IDu);
+                    GL.Uniform1(m_shader_sampler[1], 2);
 
-                GL.ActiveTexture(TextureUnit.Texture3);
-                GL.EnableClientState(ArrayCap.TextureCoordArray);
-                //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
-                GL.BindTexture(TextureTarget.Texture2D, IDv);
-                GL.Uniform1(m_shader_sampler[2], 3);
+                    //V
+                    GL.ActiveTexture(TextureUnit.Texture3);
+                    GL.EnableClientState(ArrayCap.TextureCoordArray);
+                    //GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, texcoords);
+                    GL.BindTexture(TextureTarget.Texture2D, IDv);
+                    GL.Uniform1(m_shader_sampler[2], 3);
 
-                Color color = multiplyColor ?? Color.White;
-                GL.Uniform3(m_shader_multiplyColor, new Vector3(color.R/255f, color.G / 255f, color.B / 255f));
-            } else {
-                GL.UseProgram(0);
-
-                GL.Color3(multiplyColor ?? Color.White);
-
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-                GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, ID);
+                    //Overlay
+                    Color color = multiplyColor ?? Color.White;
+                    GL.Uniform3(m_shader_multiplyColor, new Vector3(color.R / 255f, color.G / 255f, color.B / 255f));
+                }
             }
 
             GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
             GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
             GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
 
-            if(IsYUV)
+            if(DecodeMode != KLC_Finch.DecodeMode.BitmapRGB)
                 GL.ActiveTexture(TextureUnit.Texture0);
 
             return true;
