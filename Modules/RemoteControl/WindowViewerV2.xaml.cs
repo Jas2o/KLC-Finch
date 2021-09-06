@@ -145,7 +145,7 @@ namespace KLC_Finch {
             txtRcDisconnected.Visibility = Visibility.Collapsed;
 
             glSupported = (Settings.GraphicsMode < 2);
-            if (System.Windows.Media.RenderCapability.Tier == 0) {
+            if (System.Windows.Media.RenderCapability.Tier < 0x00020000) {
                 //Software, such as RDP
                 //GLWpfControl would crash if used without the minimum version
                 OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
@@ -1708,7 +1708,8 @@ namespace KLC_Finch {
             KeyHookSet(true);
 
             if (glSupported) {
-                rcBorderBG.Visibility = Visibility.Collapsed;
+                dockCanvas.Visibility = Visibility.Collapsed;
+                //rcBorderBG.Visibility = Visibility.Collapsed;
 
                 if (Settings.GraphicsMode == 0) {
                     rc.DecodeMode = DecodeMode.RawYUV;
@@ -1717,6 +1718,8 @@ namespace KLC_Finch {
                     rc.DecodeMode = DecodeMode.BitmapRGB;
                     this.Title = Title + " (RGB)";
                 }
+
+                glVersion = GL.GetString(StringName.Version);
 
                 CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
                 m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
@@ -2107,7 +2110,7 @@ namespace KLC_Finch {
         }
 
         private void toolOpenGLInfo_Click(object sender, RoutedEventArgs e) {
-            MessageBox.Show("Render capability: " + System.Windows.Media.RenderCapability.Tier + "\r\n\r\nOpenGL Version: " + glVersion, "KLC-Finch: OpenGL Info");
+            MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glVersion, "KLC-Finch: OpenGL Info");
         }
 
         private RCScreen GetScreenUsingMouse(int x, int y) {

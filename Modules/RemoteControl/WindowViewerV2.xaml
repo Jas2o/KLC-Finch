@@ -167,7 +167,10 @@
                             x:Name="toolVersion"
                             Header="Build date: DD/MM/YYYY"
                             IsEnabled="False" />
-                        <MenuItem x:Name="toolOpenGLInfo" Header="OpenGL Info" Click="toolOpenGLInfo_Click" />
+                        <MenuItem
+                            x:Name="toolOpenGLInfo"
+                            Click="toolOpenGLInfo_Click"
+                            Header="OpenGL Info" />
                         <Separator />
                         <MenuItem
                             x:Name="toolUpdateScreenLayout"
@@ -214,30 +217,47 @@
 
         <glWpfControl:GLWpfControl x:Name="glControl" Grid.Row="2" />
 
-        <Border
-            x:Name="rcBorderBG"
-            Grid.Row="2"
-            Background="SlateGray">
-            <Viewbox
+
+        <!--<Viewbox
                 x:Name="rcViewbox"
                 ClipToBounds="True"
-                RenderTransformOrigin="0.5,0.5">
-                <Canvas
-                    x:Name="rcCanvas"
-                    Width="1920"
-                    Height="1080">
-                    <Canvas.RenderTransform>
-                        <MatrixTransform x:Name="transformCanvas" />
-                    </Canvas.RenderTransform>
-                    <Image x:Name="imageTest" />
-                    <Rectangle
-                        x:Name="rcRectangleExample"
-                        Width="1920"
-                        Height="1080"
-                        Fill="#FF003C83" />
-                </Canvas>
-            </Viewbox>
-        </Border>
+                RenderTransformOrigin="0.5,0.5">-->
+        <DockPanel x:Name="dockCanvas" Grid.Row="2">
+            <Slider
+                x:Name="ZoomSlider"
+                DockPanel.Dock="Bottom"
+                Maximum="2"
+                Minimum="0.23"
+                Value="0.50" />
+            <Border x:Name="rcBorderBG" Background="SlateGray">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <Viewbox
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Stretch="Uniform">
+                        <Canvas
+                            x:Name="rcCanvas"
+                            Width="1920"
+                            Height="1080">
+                            <Canvas.RenderTransform>
+                                <MatrixTransform x:Name="transformCanvas" />
+                            </Canvas.RenderTransform>
+                            <Image x:Name="imageTest" />
+                            <Rectangle
+                                x:Name="rcRectangleExample"
+                                Width="1920"
+                                Height="1080"
+                                Fill="#FF003C83" />
+                        </Canvas>
+                        <!--</Viewbox>-->
+                        <Viewbox.LayoutTransform>
+                            <ScaleTransform ScaleX="{Binding ElementName=ZoomSlider, Path=Value}" ScaleY="{Binding ElementName=ZoomSlider, Path=Value}" />
+                        </Viewbox.LayoutTransform>
+                    </Viewbox>
+                </ScrollViewer>
+            </Border>
+        </DockPanel>
+
 
         <Grid
             Grid.Row="2"
