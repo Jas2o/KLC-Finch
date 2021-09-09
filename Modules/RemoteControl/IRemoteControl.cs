@@ -24,9 +24,11 @@ namespace KLC_Finch {
         void SendKeyDown(int javascriptKeyCode, int uSBKeyCode);
         void UploadDrop(string file, Progress<int> progress);
         void SendMouseUp(MouseButton changedButton);
+        void SendMouseUp(System.Windows.Forms.MouseButtons changedButton);
         void SendMouseWheel(int delta);
         void SendMousePosition(int x, int y);
         void SendMouseDown(MouseButton changedButton);
+        void SendMouseDown(System.Windows.Forms.MouseButtons changedButton);
         void ShowCursor(bool enabled);
         void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB);
     }

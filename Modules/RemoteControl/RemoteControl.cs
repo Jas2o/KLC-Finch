@@ -15,9 +15,11 @@ using System.Windows.Forms;
 using System.Windows.Input;
 
 namespace KLC_Finch {
-    public class RemoteControl : IRemoteControl {
 
-        public WindowViewerV2 Viewer;
+    public class RemoteControl : IRemoteControl {
+        public WindowViewer Viewer;
+
+        //public WindowViewerV2 Viewer;
         //public bool UseYUVShader { get; set; }
         public DecodeMode DecodeMode { get; set; }
 
@@ -28,6 +30,7 @@ namespace KLC_Finch {
 
         //private string activeScreenID;
         private VP8.Decoder decoder;
+
         //private Vpx.Net.VP8Codec decoder2; //Test
 
         private IWebSocketConnection serverB;
@@ -50,7 +53,7 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
 
-            Viewer = App.viewer = new WindowViewerV2(this, 1920, 1080, session.agent.OSTypeProfile, session.agent.UserLast);
+            Viewer = App.viewer = new WindowViewerV3(this, 1920, 1080, session.agent.OSTypeProfile, session.agent.UserLast);
             Viewer.SetTitle(session.agent.Name, modePrivate);
             Viewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             Viewer.Show();
@@ -96,7 +99,7 @@ namespace KLC_Finch {
 
         public void CloseViewer() {
             Disconnect(rcSessionId);
-            if(Viewer != null)
+            if (Viewer != null)
                 Viewer.Close();
         }
 
@@ -112,7 +115,7 @@ namespace KLC_Finch {
                 timerHeartbeat.Stop();
             if (serverB != null)
                 serverB.Close();
-            if(Viewer != null)
+            if (Viewer != null)
                 Viewer.NotifySocketClosed(sessionId);
         }
 
@@ -195,7 +198,6 @@ namespace KLC_Finch {
 
                     Viewer.UpdateScreenLayout(json, jsonstr);
                     Viewer.SetControlEnabled(true, !modePrivate);
-
                 } else if (type == (byte)Enums.KaseyaMessageTypes.HostTerminalSessionsList) {
 #if DEBUG
                     Console.WriteLine("HostTerminalSessionsList");
@@ -205,7 +207,6 @@ namespace KLC_Finch {
                     string default_session = json["default_session"].ToString();
                     Viewer.ClearTSSessions();
                     foreach (dynamic session in json["sessions"]) {
-
                         string session_id = session["session_id"].ToString(); //int or BigInteger
                         string session_name = (string)session["session_name"];
 
@@ -216,12 +217,11 @@ namespace KLC_Finch {
                     }
 
                     //Viewer.SetActiveTSSession(default_session);
-
                 } else if (type == (byte)Enums.KaseyaMessageTypes.CursorImage) {
                     //Only provided when the cursor image changes, can be from cher end user or remote controller.
                     //{"height":32,"hotspotX":0,"hotspotY":0,"screenPosX":433,"screenPosY":921,"width":32}
 
-                    if (Viewer.powerSaving)
+                    if (Viewer.GetStatePowerSaving())
                         return;
 
                     int cursorX = (int)json["screenPosX"];
@@ -236,17 +236,15 @@ namespace KLC_Finch {
                     //Console.WriteLine(jsonstr + " = " + remaining.Length);
                     //Console.WriteLine("Hotspot: " + cursorHotspotX + ", " + cursorHotspotY);
                     Viewer.LoadCursor(cursorX, cursorY, cursorWidth, cursorHeight, cursorHotspotX, cursorHotspotY, remaining);
-
                 } else if (type == (byte)Enums.KaseyaMessageTypes.Ping) {
                     long receivedEpoch = (long)json["timestamp"];
                     Viewer.UpdateLatency(DateTimeOffset.Now.ToUnixTimeMilliseconds() - receivedEpoch);
                 } else if (type == (byte)Enums.KaseyaMessageTypes.Video) {
-
                     //Just send it anyway, otherwise Kaseya gets sad and stops sending frames
                     //PostFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
                     //Moved to after decode
 
-                    if(DecodeMode == DecodeMode.BitmapRGB) {
+                    if (DecodeMode == DecodeMode.BitmapRGB) {
                         Bitmap b1 = null;
                         try {
                             if (decoder == null)
@@ -257,7 +255,7 @@ namespace KLC_Finch {
                         } catch (Exception ex) {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
                         } finally {
-                            if (b1 != null && !Viewer.powerSaving) {
+                            if (b1 != null && !Viewer.GetStatePowerSaving()) {
                                 Viewer.LoadTexture(b1.Width, b1.Height, b1);
 
                                 if (captureScreen) {
@@ -289,7 +287,7 @@ namespace KLC_Finch {
                                 decoder = new VP8.Decoder(); //Due to Soft Reconnect
                             lock (decoder) {
                                 //This causes GC pressure
-                                if(DecodeMode == DecodeMode.RawYUV || captureScreen)
+                                if (DecodeMode == DecodeMode.RawYUV || captureScreen)
                                     rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride);
                                 else
                                     rawYUV = decoder.DecodeRawBW(remaining, out rawWidth, out rawHeight, out rawStride);
@@ -304,7 +302,7 @@ namespace KLC_Finch {
                             }
                             */
 
-                            if (rawWidth != 0 && rawHeight != 0 && !Viewer.powerSaving) {
+                            if (rawWidth != 0 && rawHeight != 0 && !Viewer.GetStatePowerSaving()) {
                                 Viewer.LoadTextureRaw(rawYUV, rawWidth, rawHeight, rawStride);
 
                                 if (captureScreen) {
@@ -329,7 +327,6 @@ namespace KLC_Finch {
                     }
 
                     PostFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
-
                 } else if (type == (byte)Enums.KaseyaMessageTypes.Clipboard) {
                     //string remainingHex = BitConverter.ToString(bytes, remStart, remLength).Replace("-", "");
                     string remainingstr = Encoding.UTF8.GetString(remaining); // bytes, 5 + jsonLength, remLength);
@@ -507,6 +504,7 @@ namespace KLC_Finch {
 
         private ulong lastFrameAckSeq;
         private ulong lastFrameAckTimestamp;
+
         private void PostFrameAcknowledgementMessage(ulong sequence_number, ulong timestamp) {
             if (timestamp > lastFrameAckTimestamp) {
                 lastFrameAckSeq = sequence_number;
@@ -555,7 +553,7 @@ namespace KLC_Finch {
             //{"black_out_screen":0,"block_mouse_keyboard":1}
 
             JObject json = new JObject {
-                ["black_out_screen"] = (blackOutScreen ? 1: 0), //This doesn't seem to work yet
+                ["black_out_screen"] = (blackOutScreen ? 1 : 0), //This doesn't seem to work yet
                 ["block_mouse_keyboard"] = (blockMouseKB ? 1 : 2)
             };
             SendJson(Enums.KaseyaMessageTypes.BlackScreenBlockInput, json.ToString());
@@ -585,7 +583,7 @@ namespace KLC_Finch {
             }
 
             bool proceed = session.ModuleFileExplorer.IsUsable();
-            if(!proceed) {
+            if (!proceed) {
                 //Terrible timeout
                 for (int i = 0; i < 10; i++) {
                     Thread.Sleep(1000);

@@ -29,7 +29,10 @@ namespace KLC_Finch {
         public bool MultiAltFit { get; set; } = false;
         public bool MultiShowCursor { get; set; } = false;
         public bool ScreenSelectNew { get; set; } = true;
-        public int GraphicsMode { get; set; } = 0; //OpenGL YUV, OpenGL RGB, Canvas RGB, Canvas Y
+        
+        //public int GraphicsMode { get; set; } = 0; //OpenGL YUV, OpenGL RGB, Canvas RGB, Canvas Y
+        public GraphicsMode GraphicsModeV3 { get; set; } = GraphicsMode.OpenGL_YUV;
+
         //[JsonIgnore] private bool UseYUVShader { get; set; } = true;
         //[JsonIgnore] private bool ForceCanvas { get; set; } = false;
         public bool PowerSaveOnMinimize { get; set; } = false;

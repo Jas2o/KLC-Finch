@@ -112,17 +112,24 @@ namespace KLC_Finch {
             moduleStaticImage.RequestRefreshFull();
         }
 
-        public void DisplayRCNotify(int policy) {
-            if (policy == 1)
-                txtRCNotify.Visibility = Visibility.Collapsed;
-            else if (policy == 2)
-                txtRCNotify.Text = "Notification prompt only.";
-            else if (policy == 3)
-                txtRCNotify.Text = "Approve prompt - allow if no one logged in.";
-            else if (policy == 4)
-                txtRCNotify.Text = "Approve prompt - denied if no one logged in.";
-            else
-                txtRCNotify.Text = "Unknown RC notify policy: " + policy;
+        public void DisplayRCNotify(LibKaseya.Enums.NotifyApproval policy) {
+            switch(policy) {
+                case LibKaseya.Enums.NotifyApproval.None:
+                    txtRCNotify.Visibility = Visibility.Collapsed;
+                    break;
+                case LibKaseya.Enums.NotifyApproval.NotifyOnly:
+                    txtRCNotify.Text = "Notification prompt only.";
+                    break;
+                case LibKaseya.Enums.NotifyApproval.ApproveAllowIfNoUser:
+                    txtRCNotify.Text = "Approve prompt - allow if no one logged in.";
+                    break;
+                case LibKaseya.Enums.NotifyApproval.ApproveDenyIfNoUser:
+                    txtRCNotify.Text = "Approve prompt - denied if no one logged in.";
+                    break;
+                default:
+                    txtRCNotify.Text = "Unknown RC notify policy: " + policy;
+                    break;
+            }
         }
 
         //session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink

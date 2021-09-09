@@ -1,5 +1,5 @@
-﻿<Window
-    x:Class="KLC_Finch.WindowViewerV2"
+﻿<local:WindowViewer
+    x:Class="KLC_Finch.WindowViewerCanvas"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -380,4 +380,4 @@
         </Grid>
 
     </Grid>
-</Window>
+</local:WindowViewer>

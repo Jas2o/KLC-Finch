@@ -7,8 +7,8 @@ using System.Net;
 using System.Net.Sockets;
 
 namespace KLC {
-    public class LiveConnectSession {
 
+    public class LiveConnectSession {
         public static List<LiveConnectSession> listSession = new List<LiveConnectSession>();
 
         public WsM WebsocketM;
@@ -24,7 +24,7 @@ namespace KLC {
         public Structure.EAL Eal { get; private set; }
         public Structure.EIRC Eirc { get; private set; }
         public string RandSessionGuid { get; private set; }
-        public int RCNotify { get; private set; }
+        public Enums.NotifyApproval RCNotify { get; private set; }
 
         public Dashboard ModuleDashboard;
         public StaticImage ModuleStaticImage; //Sub-module of Dashboard
@@ -39,7 +39,7 @@ namespace KLC {
 
         public WindowAlternative.HasConnected Callback;
 
-        public LiveConnectSession(string shortToken, string agentID, WindowAlternative.HasConnected callback=null) {
+        public LiveConnectSession(string shortToken, string agentID, WindowAlternative.HasConnected callback = null) {
             agentGuid = agentID;
             shorttoken = shortToken;
             Callback = callback;
@@ -50,8 +50,11 @@ namespace KLC {
             Eal = Api15.EndpointsAdminLogin(shorttoken);
 
             JObject rcNotifyPolicy = agent.GetRemoteControlNotifyPolicyFromAPI(shortToken);
-            if (rcNotifyPolicy["Result"] != null && rcNotifyPolicy["Result"]["RemoteControlNotify"] != null)
-                RCNotify = (int)rcNotifyPolicy["Result"]["RemoteControlNotify"];
+            if (rcNotifyPolicy["Result"] != null) {
+                if (rcNotifyPolicy["Result"]["RemoteControlNotify"] != null)
+                    RCNotify = (Enums.NotifyApproval)(int)rcNotifyPolicy["Result"]["RemoteControlNotify"];
+            } else
+                return; //AgentID doesn't exist?
 
             ////dynamic agentSettings = agent.GetAgentSettingsInfoFromAPI(shorttoken);
             ////dynamic auditSummary = agent.GetAgentAuditSummaryFromAPI(shorttoken);
@@ -81,9 +84,9 @@ namespace KLC {
         }
 
         public void Close() {
-            if(WebsocketB != null)
+            if (WebsocketB != null)
                 WebsocketB.Close();
-            if(WebsocketA != null)
+            if (WebsocketA != null)
                 WebsocketA.Close();
         }
 

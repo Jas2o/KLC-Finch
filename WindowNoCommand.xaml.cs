@@ -105,14 +105,7 @@ namespace KLC_Finch {
         }
 
         private void BtnRCSettings_Click(object sender, RoutedEventArgs e) {
-            string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
-            Settings Settings;
-            if (File.Exists(pathSettings))
-                Settings = JsonSettings.Load<Settings>(pathSettings);
-            else
-                Settings = JsonSettings.Construct<Settings>(pathSettings);
-
-            Modules.RemoteControl.WindowOptions winOptions = new Modules.RemoteControl.WindowOptions(ref Settings) {
+            Modules.RemoteControl.WindowOptions winOptions = new Modules.RemoteControl.WindowOptions(ref App.Settings) {
                 Owner = this
             };
             winOptions.ShowDialog();

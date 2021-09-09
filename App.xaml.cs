@@ -1,9 +1,11 @@
 ﻿using LibKaseya;
+using nucs.JsonSettings;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -16,7 +18,8 @@ namespace KLC_Finch {
 
         public static string Version;
         public static WindowAlternative alternative;
-        public static WindowViewerV2 viewer;
+        public static WindowViewer viewer;
+        public static Settings Settings;
 
         public App() : base() {
             if (!Debugger.IsAttached) {
@@ -34,6 +37,12 @@ namespace KLC_Finch {
             }
 
             Version = KLC_Finch.Properties.Resources.BuildDate.Trim();
+
+            string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
+            if (File.Exists(pathSettings))
+                Settings = JsonSettings.Load<Settings>(pathSettings);
+            else
+                Settings = JsonSettings.Construct<Settings>(pathSettings);
         }
 
         public static void ShowUnhandledExceptionFromSrc(Exception e, string source) {

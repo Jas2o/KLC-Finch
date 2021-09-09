@@ -6,7 +6,7 @@ using System.Windows.Input;
 namespace KLC_Finch {
     public class RemoteControlTest : IRemoteControl {
 
-        public WindowViewerV2 Viewer;
+        public WindowViewer Viewer;
         //public bool UseYUVShader { get { return false; } set { } }
         public DecodeMode DecodeMode { get { return DecodeMode.BitmapRGB; } set { } }
 
@@ -22,7 +22,7 @@ namespace KLC_Finch {
         };
         private int colorPos;
 
-        public void LoopStart(WindowViewerV2 viewer) {
+        public void LoopStart(WindowViewer viewer) {
             if (threadTest != null)
                 LoopStop();
 
@@ -46,10 +46,11 @@ namespace KLC_Finch {
             while (Viewer.IsVisible) {
                 Thread.Sleep(500);
 
-                if (Viewer.CurrentScreen == null)
+                NTR.RCScreen screen = Viewer.GetCurrentScreen();
+                if (screen == null)
                     continue;
                 
-                Bitmap bTest = new Bitmap(Viewer.CurrentScreen.rect.Width, Viewer.CurrentScreen.rect.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                Bitmap bTest = new Bitmap(screen.rect.Width, screen.rect.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
                 using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(colors[colorPos]); }
                 Viewer.LoadTexture(bTest.Width, bTest.Height, bTest);
                 bTest.Dispose();
@@ -109,11 +110,19 @@ namespace KLC_Finch {
             //throw new NotImplementedException();
         }
 
+        public void SendMouseDown(System.Windows.Forms.MouseButtons changedButton) {
+            //throw new NotImplementedException();
+        }
+
         public void SendMousePosition(int x, int y) {
             //throw new NotImplementedException();
         }
 
         public void SendMouseUp(MouseButton changedButton) {
+            //throw new NotImplementedException();
+        }
+
+        public void SendMouseUp(System.Windows.Forms.MouseButtons changedButton) {
             //throw new NotImplementedException();
         }
 

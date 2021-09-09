@@ -23,8 +23,10 @@ namespace KLC {
             request.AddHeader("Authorization", "Bearer " + shorttoken);
             //request.AddParameter("Content-Type", "application/json");
             IRestResponse response = K_Client.Execute(request);
+            if(response.StatusCode == System.Net.HttpStatusCode.OK)
+                return new EIRC(response.Content);
 
-            return new EIRC(response.Content);
+            return null;
         }
 
     }

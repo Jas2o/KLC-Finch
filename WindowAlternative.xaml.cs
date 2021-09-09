@@ -73,6 +73,10 @@ namespace KLC_Finch {
 
             HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : null);
             session = new KLC.LiveConnectSession(shortToken, agentID, callback);
+            if(session.Eirc == null) {
+                session = null;
+                return;
+            }
             this.Title = session.agent.Name + " - KLC-Finch";
 
             WindowUtilities.ActivateWindow(this);
@@ -114,7 +118,7 @@ namespace KLC_Finch {
         private void Window_Loaded(object sender, RoutedEventArgs e) {
             txtVersion.Text = App.Version;
 
-            if (shortToken == null || agentID == null)
+            if (shortToken == null || agentID == null || session == null)
                 return; //Dragablz
 
             if (session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac) {

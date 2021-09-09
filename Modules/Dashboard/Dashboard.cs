@@ -31,7 +31,8 @@ namespace KLC_Finch {
 
             timerStart = new System.Timers.Timer(1000);
             timerStart.Elapsed += TimerStart_Elapsed;
-            timerStart.Start();
+            if(session.WebsocketB != null)
+                timerStart.Start();
 
             //timerRefresh = new System.Timers.Timer(30000);
             //timerRefresh.Elapsed += TimerRefresh_Elapsed;

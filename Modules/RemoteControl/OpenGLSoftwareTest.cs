@@ -8,7 +8,7 @@ namespace KLC_Finch {
 
         public string Version { get; private set; }
 
-        public OpenGLSoftwareTest(int width, int height, string title) : base(width, height, GraphicsMode.Default, title) {
+        public OpenGLSoftwareTest(int width, int height, string title) : base(width, height, OpenTK.Graphics.GraphicsMode.Default, title) {
             Run(0);
         }
 

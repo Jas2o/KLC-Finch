@@ -77,6 +77,9 @@
     <Reference Include="OpenTK, Version=3.3.1.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
       <HintPath>..\packages\OpenTK.3.3.1\lib\net20\OpenTK.dll</HintPath>
     </Reference>
+    <Reference Include="OpenTK.GLControl, Version=3.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenTK.GLControl.3.1.0\lib\net20\OpenTK.GLControl.dll</HintPath>
+    </Reference>
     <Reference Include="PresentationFramework.Aero2" />
     <Reference Include="RestSharp, Version=106.12.0.0, Culture=neutral, PublicKeyToken=598062e77f915f75, processorArchitecture=MSIL">
       <HintPath>..\packages\RestSharp.106.12.0\lib\net452\RestSharp.dll</HintPath>
@@ -202,6 +205,20 @@
     <Compile Include="Modules\RemoteControl\RemoteControlTest.cs" />
     <Compile Include="Modules\RemoteControl\Shaders.cs" />
     <Compile Include="Modules\RemoteControl\TSSession.cs" />
+    <Compile Include="Modules\RemoteControl\V3\RCstate.cs" />
+    <Compile Include="Modules\RemoteControl\V3\RCv.cs" />
+    <Compile Include="Modules\RemoteControl\V3\RCvCanvas.xaml.cs">
+      <DependentUpon>RCvCanvas.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\V3\RCvOpenGLWPF.xaml.cs">
+      <DependentUpon>RCvOpenGLWPF.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\V3\RCvOpenGL.xaml.cs">
+      <DependentUpon>RCvOpenGL.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\V3\WindowViewerV3.xaml.cs">
+      <DependentUpon>WindowViewerV3.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Modules\RemoteControl\WindowOptions.xaml.cs">
       <DependentUpon>WindowOptions.xaml</DependentUpon>
     </Compile>
@@ -211,8 +228,12 @@
     <Compile Include="Modules\RemoteControl\WindowScreens.xaml.cs">
       <DependentUpon>WindowScreens.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Modules\RemoteControl\WindowViewerV2.xaml.cs">
-      <DependentUpon>WindowViewerV2.xaml</DependentUpon>
+    <Compile Include="Modules\RemoteControl\WindowViewer.cs" />
+    <Compile Include="Modules\RemoteControl\WindowViewerCanvas.xaml.cs">
+      <DependentUpon>WindowViewerCanvas.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\RemoteControl\WindowViewerOpenGL.xaml.cs">
+      <DependentUpon>WindowViewerOpenGL.xaml</DependentUpon>
     </Compile>
     <Compile Include="Modules\Services\controlServices.xaml.cs">
       <DependentUpon>controlServices.xaml</DependentUpon>
@@ -296,6 +317,22 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Modules\RemoteControl\V3\RCvCanvas.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\RemoteControl\V3\RCvOpenGLWPF.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Modules\RemoteControl\V3\RCvOpenGL.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\RemoteControl\V3\WindowViewerV3.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Modules\RemoteControl\WindowOptions.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -308,9 +345,13 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Modules\RemoteControl\WindowViewerV2.xaml">
+    <Page Include="Modules\RemoteControl\WindowViewerCanvas.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Modules\RemoteControl\WindowViewerOpenGL.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Modules\Services\controlServices.xaml">
       <SubType>Designer</SubType>

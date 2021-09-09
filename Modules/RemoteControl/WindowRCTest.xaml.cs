@@ -33,7 +33,7 @@ namespace KLC_Finch {
         private const string example3 = @"{""default_screen"":131073,""screens"":[{""screen_height"":900,""screen_id"":131073,""screen_name"":""\\\\.\\DISPLAY1"",""screen_width"":1600,""screen_x"":0,""screen_y"":0},{""screen_height"":1080,""screen_id"":1245327,""screen_name"":""\\\\.\\DISPLAY2"",""screen_width"":1920,""screen_x"":1615,""screen_y"":-741},{""screen_height"":1080,""screen_id"":196759,""screen_name"":""\\\\.\\DISPLAY3"",""screen_width"":1920,""screen_x"":-305,""screen_y"":-1080}]}";
 
         private readonly RemoteControlTest rcTest;
-        private WindowViewerV2 myViewer;
+        private WindowViewer myViewer;
 
         public WindowRCTest() {
             InitializeComponent();
@@ -45,8 +45,13 @@ namespace KLC_Finch {
             }
 
             rcTest = new RemoteControlTest();
-            myViewer = App.viewer = new WindowViewerV2(rcTest, width, height);
-            
+            myViewer = App.viewer = new WindowViewerV3(rcTest, width, height);
+            /*
+            if (App.Settings.GraphicsMode < 2)
+                myViewer = App.viewer = new WindowViewerOpenGL(rcTest, width, height);
+            else
+                myViewer = App.viewer = new WindowViewerCanvas(rcTest, width, height);
+            */
             dynamic json = JsonConvert.DeserializeObject(txtInputJson.Text);
             myViewer.UpdateScreenLayout(json, txtInputJson.Text);
         }
@@ -73,8 +78,15 @@ namespace KLC_Finch {
         private void BtnTest_Click(object sender, RoutedEventArgs e) {
             dynamic json = JsonConvert.DeserializeObject(txtInputJson.Text);
 
-            if(PresentationSource.FromVisual(myViewer) == null)
-                myViewer = App.viewer = new WindowViewerV2(rcTest, width, height);
+            if (PresentationSource.FromVisual(myViewer) == null) {
+                myViewer = App.viewer = new WindowViewerV3(rcTest, width, height);
+                /*
+                if (App.Settings.GraphicsMode < 2)
+                    myViewer = new WindowViewerOpenGL(rcTest, width, height);
+                else
+                    myViewer = App.viewer = new WindowViewerCanvas(rcTest, width, height);
+                */
+            }
 
             myViewer.UpdateScreenLayout(json, txtInputJson.Text);
             myViewer.Show();
