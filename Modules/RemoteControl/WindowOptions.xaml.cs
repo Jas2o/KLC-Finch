@@ -60,7 +60,9 @@ namespace KLC_Finch.Modules.RemoteControl {
             settings.MultiAltFit = true;
             settings.MultiShowCursor = true;
             settings.ScreenSelectNew = true;
-            settings.GraphicsModeV3 = GraphicsMode.OpenGL_YUV;
+
+            settings.Renderer = 0;
+            settings.RendererAlt = false;
 
             txtSizeWidth.Text = "1370";
             txtSizeHeight.Text = "800";
@@ -76,13 +78,16 @@ namespace KLC_Finch.Modules.RemoteControl {
             settings.DisplayOverlayKeyboardMod = false;
             settings.DisplayOverlayKeyboardOther = false;
             settings.DisplayOverlayKeyboardHook = false;
+            settings.DisplayOverlayPanZoom = false;
             settings.KeyboardHook = true;
             settings.MacSwapCtrlWin = false;
             settings.StartMultiScreen = false;
             settings.MultiAltFit = false;
             settings.MultiShowCursor = false;
             settings.ScreenSelectNew = false;
-            settings.GraphicsModeV3 = GraphicsMode.OpenGL_YUV;
+            
+            settings.Renderer = 0;
+            settings.RendererAlt = false;
 
             txtSizeWidth.Text = "1370";
             txtSizeHeight.Text = "800";

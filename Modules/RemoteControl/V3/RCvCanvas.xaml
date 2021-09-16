@@ -14,10 +14,15 @@
                 x:Name="ZoomSlider"
                 DockPanel.Dock="Bottom"
                 Maximum="2"
-                Minimum="0.23"
+                Minimum="0.1"
                 Value="0.50" />
             <Border x:Name="rcBorderBG" Background="SlateGray">
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer
+                    x:Name="rcScrollViewer"
+                    HorizontalScrollBarVisibility="Visible"
+                    PreviewMouseWheel="rcScrollViewer_PreviewMouseWheel"
+                    SizeChanged="rcScrollViewer_SizeChanged"
+                    VerticalScrollBarVisibility="Visible">
                     <Viewbox
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
@@ -26,9 +31,6 @@
                             x:Name="rcCanvas"
                             Width="1920"
                             Height="1080">
-                            <Canvas.RenderTransform>
-                                <MatrixTransform x:Name="transformCanvas" />
-                            </Canvas.RenderTransform>
                             <Image x:Name="imageTest" />
                             <Rectangle
                                 x:Name="rcRectangleExample"
@@ -36,7 +38,6 @@
                                 Height="1080"
                                 Fill="#FF003C83" />
                         </Canvas>
-                        <!--</Viewbox>-->
                         <Viewbox.LayoutTransform>
                             <ScaleTransform ScaleX="{Binding ElementName=ZoomSlider, Path=Value}" ScaleY="{Binding ElementName=ZoomSlider, Path=Value}" />
                         </Viewbox.LayoutTransform>
@@ -45,6 +46,22 @@
             </Border>
         </DockPanel>
 
+        <!--
+        <Border
+            x:Name="legacyBorderBG"
+            Background="SlateGray"
+            Visibility="Hidden">
+            <Viewbox
+                x:Name="legacyViewbox"
+                ClipToBounds="True"
+                Stretch="Uniform"
+                StretchDirection="Both">
+                <Canvas x:Name="legacyCanvas">
+                    <Rectangle Width="1000" Height="50" />
+                </Canvas>
+            </Viewbox>
+        </Border>
+        -->
 
         <Grid Panel.ZIndex="1000" IsHitTestVisible="False">
             <TextBlock
@@ -160,6 +177,31 @@
                     FontFamily="Arial"
                     FontSize="32"
                     Foreground="#FF78FF00" />
+                <TextBlock
+                    x:Name="txtZoom"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="#7F000000"
+                    FontFamily="Arial"
+                    FontSize="26"
+                    Foreground="White">
+                    <Run Text="Zoom: " />
+                    <Run Text="{Binding ElementName=ZoomSlider, Path=Value, StringFormat=N4}" />
+                    <LineBreak />
+                    <Run Text="Scroll Offset: " />
+                    <Run Text="{Binding ElementName=rcScrollViewer, Path=HorizontalOffset, Mode=OneWay, StringFormat=N2}" />
+                    <Run Text=", " />
+                    <Run Text="{Binding ElementName=rcScrollViewer, Path=VerticalOffset, Mode=OneWay, StringFormat=N2}" />
+                    <LineBreak />
+                    <Run Text="Canvas: " />
+                    <Run Text="{Binding ElementName=rcCanvas, Path=ActualWidth, Mode=OneWay}" />
+                    <Run Text=" x " />
+                    <Run Text="{Binding ElementName=rcCanvas, Path=ActualHeight, Mode=OneWay}" />
+                    <Run Text=", Scroll:" />
+                    <Run Text="{Binding ElementName=rcScrollViewer, Path=ActualWidth, Mode=OneWay}" />
+                    <Run Text=" x " />
+                    <Run Text="{Binding ElementName=rcScrollViewer, Path=ActualHeight, Mode=OneWay}" />
+                </TextBlock>
             </StackPanel>
         </Grid>
     </Grid>

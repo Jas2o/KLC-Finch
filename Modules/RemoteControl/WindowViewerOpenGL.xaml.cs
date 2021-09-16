@@ -1715,12 +1715,12 @@ namespace KLC_Finch {
             winScreens.Owner = this;
             KeyHookSet(true);
 
-            if (Settings.GraphicsModeV3 == GraphicsMode.OpenGL_YUV) {
+            if (Settings.RendererAlt) {
+                rc.DecodeMode = DecodeMode.BitmapRGB;
+                this.Title = Title + " (RGB)"; 
+            } else {
                 rc.DecodeMode = DecodeMode.RawYUV;
                 this.Title = Title + " (YUV)";
-            } else {
-                rc.DecodeMode = DecodeMode.BitmapRGB;
-                this.Title = Title + " (RGB)";
             }
 
             glVersion = GL.GetString(StringName.Version);

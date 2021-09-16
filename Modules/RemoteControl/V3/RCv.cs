@@ -12,7 +12,13 @@ namespace KLC_Finch {
             this.state = state;
         }
 
+        public abstract bool SupportsLegacy { get; }
+
+        public abstract bool SupportsZoom { get; }
+
         public abstract void Refresh();
+
+        public abstract void CheckHealth();
 
         public abstract void ControlLoaded(IRemoteControl rc, RCstate state);
 

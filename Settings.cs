@@ -21,6 +21,7 @@ namespace KLC_Finch {
         public bool DisplayOverlayKeyboardMod { get; set; } = false;
         public bool DisplayOverlayKeyboardOther { get; set; } = false;
         public bool DisplayOverlayKeyboardHook { get; set; } = false;
+        public bool DisplayOverlayPanZoom { get; set; } = false;
         public uint RemoteControlWidth { get; set; } = 1370;  //The same as Kaseya
         public uint RemoteControlHeight { get; set; } = 800;
         public bool KeyboardHook { get; set; } = false;
@@ -30,11 +31,9 @@ namespace KLC_Finch {
         public bool MultiShowCursor { get; set; } = false;
         public bool ScreenSelectNew { get; set; } = true;
         
-        //public int GraphicsMode { get; set; } = 0; //OpenGL YUV, OpenGL RGB, Canvas RGB, Canvas Y
-        public GraphicsMode GraphicsModeV3 { get; set; } = GraphicsMode.OpenGL_YUV;
-
-        //[JsonIgnore] private bool UseYUVShader { get; set; } = true;
-        //[JsonIgnore] private bool ForceCanvas { get; set; } = false;
+        //Graphics
+        public int Renderer { get; set; } = 0; //GLControl, GLWpfControl, Canvas
+        public bool RendererAlt { get; set; } = false;
         public bool PowerSaveOnMinimize { get; set; } = false;
     }
 }

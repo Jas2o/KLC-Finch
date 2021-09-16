@@ -79,6 +79,13 @@ namespace NTR {
             SetCanvasImage(image);
         }
 
+        public void SetCanvasFilled() {
+            Bitmap bTest = new Bitmap(rect.Width, rect.Height, PixelFormat.Format24bppRgb);
+            using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(Color.Gray); }
+            SetCanvasImage(bTest);
+            bTest.Dispose();
+        }
+
         public void SetCanvasImage(Bitmap bitmap) {
             BitmapSource bs = null;
 
@@ -106,7 +113,7 @@ namespace NTR {
             CanvasImage.Source = bs;
         }
 
-        [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-        private static extern bool DeleteObject(IntPtr hObject);
+        //[System.Runtime.InteropServices.DllImport("gdi32.dll")]
+        //private static extern bool DeleteObject(IntPtr hObject);
     }
 }

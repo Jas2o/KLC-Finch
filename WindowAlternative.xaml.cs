@@ -138,7 +138,7 @@ namespace KLC_Finch {
             if (session == null)
                 return; //Dragablz
 
-            if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer.IsVisible) {
+            if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible) {
                 this.Visibility = Visibility.Collapsed;
                 e.Cancel = true;
             } else {
@@ -166,8 +166,21 @@ namespace KLC_Finch {
             if (session != null && session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
 
+            WindowState tempState = this.WindowState;
+            this.WindowState = WindowState.Normal;
+            int tempLeft = (int)this.Left;
+            int tempTop = (int)this.Top;
+            int tempWidth = (int)this.Width;
+            int tempHeight = (int)this.Height;
+
             App.alternative = new WindowAlternative(agentID, shortToken);
             App.alternative.Show();
+            App.alternative.Left = tempLeft;
+            App.alternative.Top = tempTop;
+            App.alternative.Width = tempWidth;
+            App.alternative.Height = tempHeight;
+            App.alternative.WindowState = tempState;
+
             this.Close();
         }
 

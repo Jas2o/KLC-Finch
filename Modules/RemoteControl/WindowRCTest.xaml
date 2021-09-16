@@ -48,8 +48,18 @@
             <Button
                 x:Name="btnTemplate3"
                 Width="20"
+                Margin="0,0,5,0"
                 Click="BtnTemplate3_Click"
                 Content="3" />
+            <ComboBox
+                x:Name="cmbRenderer"
+                Grid.Column="1"
+                Width="105"
+                VerticalAlignment="Center">
+                <ComboBoxItem>GLControl</ComboBoxItem>
+                <ComboBoxItem>GLWpfControl</ComboBoxItem>
+                <ComboBoxItem>Canvas</ComboBoxItem>
+            </ComboBox>
         </StackPanel>
         <TextBox
             x:Name="txtInputJson"

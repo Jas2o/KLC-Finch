@@ -80,6 +80,9 @@ namespace KLC_Finch {
 
         public void Disconnect(string sessionId) {
             LoopStop();
+
+            if (Viewer != null)
+                Viewer.NotifySocketClosed(sessionId);
         }
 
         public void Reconnect() {

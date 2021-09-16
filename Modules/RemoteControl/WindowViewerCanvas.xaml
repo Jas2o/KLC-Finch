@@ -211,10 +211,6 @@
             </ext:DropdownButton>
         </ToolBar>
 
-        <!--<StackPanel Grid.Row="1" Background="Black" >
-            <TextBlock x:Name="txtRcNotify" Text="Awaiting approval..." HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Foreground="White"/>
-        </StackPanel>-->
-
         <glWpfControl:GLWpfControl x:Name="glControl" Grid.Row="2" />
 
 

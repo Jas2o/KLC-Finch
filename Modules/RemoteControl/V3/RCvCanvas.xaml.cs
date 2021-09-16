@@ -14,6 +14,9 @@ namespace KLC_Finch {
         private List<System.Windows.Shapes.Rectangle> canvasListRectangle;
         private int canvasOffsetX, canvasOffsetY;
 
+        public override bool SupportsLegacy { get { return false; } }
+        public override bool SupportsZoom { get { return false; } }
+
         public RCvCanvas(IRemoteControl rc, RCstate state) : base(rc, state) {
             InitializeComponent();
             txtDebugLeft.Text = "";
@@ -21,26 +24,57 @@ namespace KLC_Finch {
             //txtRcConnecting.Visibility = Visibility.Visible; //Default
             txtRcFrozen.Visibility = Visibility.Collapsed;
             txtRcDisconnected.Visibility = Visibility.Collapsed;
+            txtZoom.Visibility = Visibility.Collapsed;
         }
 
         public override void Refresh() {
+            if (state.useMultiScreen) return;
+
+            /*
+            Dispatcher.Invoke((Action)delegate {
+                //Canvas.SetLeft(state.legacyScreen.CanvasImage, 0);
+                //Canvas.SetTop(state.legacyScreen.CanvasImage, 0);
+
+                legacyCanvas.Width = legacyViewbox.ActualWidth;
+                legacyCanvas.Height = legacyViewbox.ActualHeight;
+            });
+            */
         }
 
         public override void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight) { //More like lowX, lowY, highX, highY
-            //Canvasdidn't have anything active here
+            if (rcScrollViewer.ActualHeight == 0 || rcScrollViewer.ViewportHeight == 0)
+                return;
 
-            //Dispatcher.Invoke((Action)delegate {
-            //transformCanvas.Matrix.Reset
-            //System.Windows.Media.Matrix matrix = transformCanvas.Matrix;
+            float currentAspectRatio = (float)rcScrollViewer.ViewportWidth / (float)rcScrollViewer.ViewportHeight;
+            float targetAspectRatio = (float)virtualWidth / (float)virtualHeight;
+            int width = virtualWidth;
+            int height = virtualHeight;
 
-            //scaleX = rcCanvas.ActualWidth / (double)rcViewbox.ActualWidth;
-            //scaleY = rcCanvas.ActualHeight / (double)rcViewbox.ActualHeight;
+            if (currentAspectRatio > targetAspectRatio) {
+                //Pillarbox
+                width = (int)((float)height * currentAspectRatio);
+                //vpX = (width - state.virtualViewWant.Width) / 2;
+            } else {
+                //Letterbox
+                height = (int)((float)width / currentAspectRatio);
+                //vpY = (height - state.virtualViewWant.Height) / 2;
+            }
 
-            //matrix.ScaleAt(scaleX, scaleY, virtualWidth, virtualHeight);
-            //transformCanvas.Matrix = matrix;
-            //rcCanvas.Width = virtualWidth;
-            //rcCanvas.Height = virtualHeight;
-            //});
+            double scaleX = (double)rcScrollViewer.ViewportWidth / (double)width;
+            double scaleY = (double)rcScrollViewer.ViewportHeight / (double)height;
+
+            Dispatcher.Invoke((Action)delegate {
+                //rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
+                //rcScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
+
+                ZoomSlider.Value = scaleY;
+
+                rcScrollViewer.ScrollToHorizontalOffset((virtualX - canvasOffsetX) * ZoomSlider.Value);
+                rcScrollViewer.ScrollToVerticalOffset((virtualY - canvasOffsetY) * ZoomSlider.Value);
+
+                //rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
+                //rcScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Visible;
+            });
         }
 
         public override void ControlUnload() {
@@ -48,7 +82,7 @@ namespace KLC_Finch {
 
         public override void CameraFromClickedScreen(RCScreen screen, bool moveCamera = true) {
             if (state.useMultiScreen && moveCamera)
-                SetCanvas(state.CurrentScreen.rect.X, state.CurrentScreen.rect.Y, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height);
+                CameraToCurrentScreen();
         }
 
         public override void ControlLoaded(IRemoteControl rc, RCstate state) {
@@ -62,7 +96,7 @@ namespace KLC_Finch {
             rcRectangleExample.Visibility = Visibility.Hidden;
             canvasListRectangle = new List<System.Windows.Shapes.Rectangle>();
 
-            if (App.Settings.GraphicsModeV3 == GraphicsMode.Canvas_Y) {
+            if (App.Settings.RendererAlt) {
                 rc.DecodeMode = DecodeMode.RawY;
                 state.Window.Title = state.BaseTitle + " (Canvas Y) Alpha";
             } else {
@@ -146,7 +180,8 @@ namespace KLC_Finch {
                     return;
 
                 if (state.controlEnabled) {
-                    if (state.virtualViewWant != state.virtualCanvas && screenPointingTo != state.CurrentScreen) {
+                    //state.virtualViewWant != state.virtualCanvas
+                    if (screenPointingTo != state.CurrentScreen) {
                         state.Window.FromGlChangeScreen(screenPointingTo, true);
                         return;
                     }
@@ -208,7 +243,11 @@ namespace KLC_Finch {
                 if (screenPointingTo == null)
                     return;
 
-                if (state.virtualViewWant == state.virtualCanvas && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
+                Console.WriteLine(string.Format("{0},{1} of {2},{3}", point.X, point.Y, screenPointingTo.rectFixed.X, screenPointingTo.rectFixed.Y));
+                Console.WriteLine(state.CurrentScreen.screen_id + " != " + screenPointingTo.screen_id);
+
+                //state.virtualViewWant == state.virtualCanvas
+                if (state.useMultiScreenOverview && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
                     //We are in overview, change which screen gets texture updates
                     state.Window.FromGlChangeScreen(screenPointingTo, false);
                 }
@@ -261,7 +300,45 @@ namespace KLC_Finch {
         }
 
         public override void CameraToCurrentScreen() {
-            SetCanvas(state.CurrentScreen.rect.X, state.CurrentScreen.rect.Y, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height);
+            if (!state.useMultiScreen || state.CurrentScreen == null)
+                return;
+
+            state.useMultiScreenOverview = false;
+
+            if (App.Settings.MultiAltFit) {
+                bool adjustLeft = false;
+                bool adjustUp = false;
+                bool adjustRight = false;
+                bool adjustDown = false;
+
+                foreach (RCScreen screen in state.ListScreen) {
+                    if (screen == state.CurrentScreen)
+                        continue;
+
+                    if (screen.rect.Right <= state.CurrentScreen.rect.Left)
+                        adjustLeft = true;
+                    if (screen.rect.Bottom <= state.CurrentScreen.rect.Top)
+                        adjustUp = true;
+                    if (screen.rect.Left >= state.CurrentScreen.rect.Right)
+                        adjustRight = true;
+                    if (screen.rect.Top >= state.CurrentScreen.rect.Bottom)
+                        adjustDown = true;
+                }
+
+                int virtualX = state.CurrentScreen.rectFixed.X - (adjustLeft ? 80 : 0);
+                int virtualY = state.CurrentScreen.rectFixed.Y - (adjustUp ? 80 : 0);
+
+                //SetCanvas(Math.Max(canvasOffsetX, virtualX), Math.Max(canvasOffsetY, virtualY),
+                    //state.CurrentScreen.rectFixed.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
+                    //state.CurrentScreen.rectFixed.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
+
+                SetCanvas(virtualX, virtualY,
+                    state.CurrentScreen.rectFixed.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
+                    state.CurrentScreen.rectFixed.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
+            } else
+                SetCanvas(state.CurrentScreen.rectFixed.X, state.CurrentScreen.rectFixed.Y, state.CurrentScreen.rectFixed.Width, state.CurrentScreen.rectFixed.Height);
+
+            //SetCanvas(state.CurrentScreen.rect.X, state.CurrentScreen.rect.Y, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height);
         }
 
         public override void CameraToOverview() {
@@ -283,15 +360,22 @@ namespace KLC_Finch {
 
             SetCanvas(lowestX, lowestY, Math.Abs(lowestX) + highestX, Math.Abs(lowestY) + highestY);
 
-            state.virtualViewWant = state.virtualCanvas;
-            state.virtualRequireViewportUpdate = true;
+            //state.virtualViewWant = state.virtualCanvas;
+            //state.virtualRequireViewportUpdate = true;
         }
 
         public override bool SwitchToMultiScreen() {
+            state.useMultiScreen = true;
+
+            //dockCanvas.Visibility = Visibility.Visible;
+            //legacyBorderBG.Visibility = Visibility.Hidden;
+
             return true;
         }
 
         public override bool SwitchToLegacy() {
+            state.useMultiScreen = true;
+
             return false;
         }
 
@@ -314,8 +398,80 @@ namespace KLC_Finch {
                     rcCanvas.Children.Add(screen.CanvasImage);
                     Canvas.SetLeft(screen.CanvasImage, screen.rect.X - canvasOffsetX);
                     Canvas.SetTop(screen.CanvasImage, screen.rect.Y - canvasOffsetY);
+
+                    screen.SetCanvasFilled();
                 }
+
+                //ZoomSlider.Minimum = rcScrollViewer.ScrollableHeight / virtualHeight;
+
+                //--
+
+                state.legacyScreen.CanvasImage = new System.Windows.Controls.Image();
+                state.legacyScreen.SetCanvasFilled();
+
+                //legacyCanvas.Children.Clear();
+                //legacyCanvas.Children.Add(state.legacyScreen.CanvasImage);
             });
+
+            if (state.useMultiScreen) {
+                if (!App.Settings.StartControlEnabled)
+                    CameraToOverview();
+                else
+                    CameraToCurrentScreen();
+            }
+        }
+
+        private void rcScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e) {
+            e.Handled = true;
+
+            HandleCanvasMouseWheel(sender, e);
+        }
+
+        private void rcScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e) {
+            if(state.useMultiScreen) {
+                if(state.useMultiScreenOverview)
+                    CameraToOverview();
+                else
+                    CameraToCurrentScreen();
+            }
+        }
+
+        public override void CheckHealth() {
+            txtDebugLeft.Visibility = (App.Settings.DisplayOverlayKeyboardMod || App.Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
+            txtDebugRight.Visibility = (App.Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
+            txtZoom.Visibility = (App.Settings.DisplayOverlayPanZoom ? Visibility.Visible : Visibility.Collapsed);
+
+            switch (state.connectionStatus) {
+                case ConnectionStatus.FirstConnectionAttempt:
+                    txtRcFrozen.Visibility = Visibility.Collapsed;
+                    txtRcConnecting.Visibility = Visibility.Visible;
+                    break;
+
+                case ConnectionStatus.Connected:
+                    txtRcConnecting.Visibility = Visibility.Collapsed;
+                    /*
+                    if (state.fpsCounter.SeemsAlive(5000)) {
+                        txtRcFrozen.Visibility = Visibility.Collapsed;
+                    } else {
+                        txtRcFrozen.Visibility = Visibility.Visible;
+                    }
+                    */
+                    break;
+
+                case ConnectionStatus.Disconnected:
+                    txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = txtRcNotify.Visibility = Visibility.Collapsed;
+                    txtRcFrozen.Visibility = Visibility.Collapsed;
+                    txtRcDisconnected.Visibility = Visibility.Visible;
+                    rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Maroon);
+
+                    /*
+                    if (state.keyHook.IsActive) {
+                        keyHook.Uninstall();
+                        txtRcHookOn.Visibility = Visibility.Collapsed;
+                    }
+                    */
+                    break;
+            }
         }
     }
 }

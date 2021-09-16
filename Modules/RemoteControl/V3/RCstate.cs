@@ -25,6 +25,7 @@ namespace KLC_Finch {
         public List<RCScreen> ListScreen;
         public RCScreen CurrentScreen;
         public RCScreen previousScreen;
+        public RCScreen legacyScreen;
         public TextureCursor textureCursor = null;
         public TextureScreen textureLegacy;
         public bool windowActivatedMouseMove;
@@ -82,6 +83,7 @@ namespace KLC_Finch {
         Disconnected
     }
 
+    /*
     public enum GraphicsMode {
         OpenGL_YUV = 0,
         OpenGL_RGB = 1,
@@ -90,4 +92,5 @@ namespace KLC_Finch {
         Canvas_RGB = 20,
         Canvas_Y = 21
     }
+    */
 }

@@ -1684,12 +1684,12 @@ namespace KLC_Finch {
                 dockCanvas.Visibility = Visibility.Collapsed;
                 //rcBorderBG.Visibility = Visibility.Collapsed;
 
-                if (Settings.GraphicsModeV3 == GraphicsMode.OpenGL_WPF_YUV) {
-                    rc.DecodeMode = DecodeMode.RawYUV;
-                    this.Title = Title + " (YUV)";
-                } else {
+                if (Settings.RendererAlt) {
                     rc.DecodeMode = DecodeMode.BitmapRGB;
                     this.Title = Title + " (RGB)";
+                } else {
+                    rc.DecodeMode = DecodeMode.RawYUV;
+                    this.Title = Title + " (YUV)";
                 }
 
                 glVersion = GL.GetString(StringName.Version);
@@ -1716,7 +1716,7 @@ namespace KLC_Finch {
                 rcRectangleExample.Visibility = Visibility.Hidden;
                 canvasListRectangle = new List<System.Windows.Shapes.Rectangle>();
 
-                if (Settings.GraphicsModeV3 == GraphicsMode.Canvas_Y) {
+                if (App.Settings.RendererAlt) {
                     rc.DecodeMode = DecodeMode.RawY;
                     this.Title = Title + " (Canvas Y) Alpha";
                 } else {

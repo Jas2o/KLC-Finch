@@ -32,6 +32,9 @@ namespace KLC_Finch {
         private int vpX, vpY;
         private double scaleX, scaleY;
 
+        public override bool SupportsLegacy { get { return true; } }
+        public override bool SupportsZoom { get { return true; } }
+
         public RCvOpenGLWPF(IRemoteControl rc, RCstate state) : base(rc, state) {
             InitializeComponent();
             MainCamera = new Camera(Vector2.Zero); //for Multi-screen
@@ -76,12 +79,12 @@ namespace KLC_Finch {
 
             //--
 
-            if (App.Settings.GraphicsModeV3 == GraphicsMode.OpenGL_WPF_YUV) {
+            if (App.Settings.RendererAlt) {
+                rc.DecodeMode = DecodeMode.BitmapRGB;
+                state.Window.Title = state.BaseTitle + " (RGB)"; 
+            } else {
                 rc.DecodeMode = DecodeMode.RawYUV;
                 state.Window.Title = state.BaseTitle + " (YUV)";
-            } else {
-                rc.DecodeMode = DecodeMode.BitmapRGB;
-                state.Window.Title = state.BaseTitle + " (RGB)";
             }
 
             glVersion = GL.GetString(StringName.Version);
@@ -669,6 +672,43 @@ namespace KLC_Finch {
                 return;
 
             rc.SendMouseWheel(e.Delta);
+        }
+
+        public override void CheckHealth() {
+            txtDebugLeft.Visibility = (App.Settings.DisplayOverlayKeyboardMod || App.Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
+            txtDebugRight.Visibility = (App.Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
+
+            switch (state.connectionStatus) {
+                case ConnectionStatus.FirstConnectionAttempt:
+                    txtRcFrozen.Visibility = Visibility.Collapsed;
+                    txtRcConnecting.Visibility = Visibility.Visible;
+                    break;
+
+                case ConnectionStatus.Connected:
+                    txtRcConnecting.Visibility = Visibility.Collapsed;
+                    /*
+                    if (state.fpsCounter.SeemsAlive(5000)) {
+                        txtRcFrozen.Visibility = Visibility.Collapsed;
+                    } else {
+                        txtRcFrozen.Visibility = Visibility.Visible;
+                    }
+                    */
+                    break;
+
+                case ConnectionStatus.Disconnected:
+                    txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = txtRcNotify.Visibility = Visibility.Collapsed;
+                    txtRcFrozen.Visibility = Visibility.Collapsed;
+                    txtRcDisconnected.Visibility = Visibility.Visible;
+                    //rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Maroon);
+
+                    /*
+                    if (state.keyHook.IsActive) {
+                        keyHook.Uninstall();
+                        txtRcHookOn.Visibility = Visibility.Collapsed;
+                    }
+                    */
+                    break;
+            }
         }
     }
 }

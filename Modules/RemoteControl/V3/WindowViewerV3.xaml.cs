@@ -38,7 +38,7 @@ namespace KLC_Finch {
 
         private bool keyDownWin;
         private readonly List<TSSession> listTSSession = new List<TSSession>();
-        private readonly RCScreen legacyScreen;
+        
         //private readonly object lockFrameBuf = new object();
 
         private readonly Timer timerHealth;
@@ -53,7 +53,7 @@ namespace KLC_Finch {
         private bool ssKeyHookAllow;
         private bool ssClipboardSync;
 
-        public WindowViewerV3(IRemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, Agent.OSProfile endpointOS = Agent.OSProfile.Other, string endpointLastUser = "") {
+        public WindowViewerV3(int renderer, IRemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, Agent.OSProfile endpointOS = Agent.OSProfile.Other, string endpointLastUser = "") {
             InitializeComponent();
 
             this.rc = rc;
@@ -69,17 +69,14 @@ namespace KLC_Finch {
             this.endpointLastUser = endpointLastUser;
 
             Settings = App.Settings;
-            switch (App.Settings.GraphicsModeV3) {
-                case GraphicsMode.OpenGL_YUV:
-                case GraphicsMode.OpenGL_RGB:
+            switch (renderer) {
+                case 0:
                     rcv = new RCvOpenGL(rc, state);
                     break;
-                case GraphicsMode.OpenGL_WPF_YUV:
-                case GraphicsMode.OpenGL_WPF_RGB:
+                case 1:
                     rcv = new RCvOpenGLWPF(rc, state);
                     break;
-                case GraphicsMode.Canvas_RGB:
-                case GraphicsMode.Canvas_Y:
+                case 2:
                     rcv = new RCvCanvas(rc, state);
                     break;
             }
@@ -111,7 +108,7 @@ namespace KLC_Finch {
             timerClipboard.Elapsed += TimerClipboard_Elapsed;
             fpsCounter = new FPSCounter();
 
-            legacyScreen = new RCScreen("Legacy", "Legacy", 800, 600, 0, 0);
+            state.legacyScreen = new RCScreen("Legacy", "Legacy", 800, 600, 0, 0);
 
             WindowUtilities.ActivateWindow(this);
         }
@@ -134,31 +131,26 @@ namespace KLC_Finch {
 
         private void LoadSettings(bool isStart = false) {
             if (isStart) {
-                state.useMultiScreen = Settings.StartMultiScreen;
 
-                ////Fix for Canvas
-                //toolScreenMode.IsEnabled = glSupported;
-                //if (!glSupported)
-                //state.useMultiScreen = true;
+                if(rcv.SupportsLegacy) {
+                    state.useMultiScreen = Settings.StartMultiScreen;
+                } else {
+                    state.useMultiScreen = true;
+                }
 
                 if (state.useMultiScreen) {
-                    /*
-                    if (Settings.StartControlEnabled)
-                        PositionCameraToCurrentScreen();
-                    else
-                        ChangeViewToOverview();
-                    */
                     toolScreenMode.Content = "Multi";
                     toolScreenOverview.Visibility = Visibility.Visible;
-                    toolZoomIn.Visibility = Visibility.Visible;
-                    toolZoomOut.Visibility = Visibility.Visible;
+
                 } else {
                     toolScreenMode.Content = "Legacy";
                     toolScreenOverview.Visibility = Visibility.Collapsed;
-                    toolZoomIn.Visibility = Visibility.Collapsed;
-                    toolZoomOut.Visibility = Visibility.Collapsed;
                 }
+
                 //SetControlEnabled(Settings.StartControlEnabled, true);
+
+                toolScreenMode.Visibility = rcv.SupportsLegacy ? Visibility.Visible : Visibility.Collapsed;
+                toolZoomIn.Visibility = toolZoomOut.Visibility = rcv.SupportsZoom ? Visibility.Visible : Visibility.Collapsed;
             }
 
             autotypeAlwaysConfirmed = Settings.AutotypeSkipLengthCheck;
@@ -301,13 +293,15 @@ namespace KLC_Finch {
                 if (state.textureLegacy != null)
                     state.textureLegacy.Load(new Rectangle(0, 0, width, height), decomp);
                 else {
-                    Dispatcher.Invoke((Action)delegate {
-                        if (legacyScreen.CanvasImage == null)
-                            legacyScreen.CanvasImage = new System.Windows.Controls.Image();
-                        legacyScreen.CanvasImage.Height = width;
-                        legacyScreen.CanvasImage.Width = height;
+                    state.legacyScreen.rect = state.legacyScreen.rectFixed = new Rectangle(0, 0, width, height);
 
-                        legacyScreen.SetCanvasImage(decomp);
+                    Dispatcher.Invoke((Action)delegate {
+                        if (state.legacyScreen.CanvasImage == null)
+                            state.legacyScreen.CanvasImage = new System.Windows.Controls.Image();
+                        state.legacyScreen.CanvasImage.Height = width;
+                        state.legacyScreen.CanvasImage.Width = height;
+
+                        state.legacyScreen.SetCanvasImage(decomp);
                     });
                 }
 
@@ -582,8 +576,7 @@ namespace KLC_Finch {
         }
 
         private void CheckHealth(object sender, ElapsedEventArgs e) {
-            /*
-            if (powerSaving)
+            if (state.powerSaving)
                 return;
 
             Dispatcher.Invoke((Action)delegate {
@@ -592,50 +585,44 @@ namespace KLC_Finch {
                     MessageBox.Show("[RC:CheckHealth] Keyhook active but not RC window.");
                 }
 #endif
+                rcv.CheckHealth();
 
                 //txtDebugLeft.Visibility = (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
                 //txtDebugRight.Visibility = (Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
 
-                switch (connectionStatus) {
+                switch (state.connectionStatus) {
                     case ConnectionStatus.FirstConnectionAttempt:
-                        txtRcFrozen.Visibility = Visibility.Collapsed;
-                        txtRcConnecting.Visibility = Visibility.Visible;
+                        //txtRcFrozen.Visibility = Visibility.Collapsed;
+                        //txtRcConnecting.Visibility = Visibility.Visible;
                         break;
 
                     case ConnectionStatus.Connected:
-                        txtRcConnecting.Visibility = Visibility.Collapsed;
+                        //txtRcConnecting.Visibility = Visibility.Collapsed;
 
                         if (fpsCounter.SeemsAlive(5000)) {
-                            //toolLatency.FontWeight = FontWeights.Normal;
-                            txtRcFrozen.Visibility = Visibility.Collapsed;
+                            toolLatency.FontWeight = FontWeights.Normal;
+                            //txtRcFrozen.Visibility = Visibility.Collapsed;
                         } else {
                             fpsLast = 0;
-                            //toolLatency.Content = string.Format("Frozen? | {0} ms", lastLatency);
-                            //toolLatency.FontWeight = FontWeights.Bold;
-                            txtRcFrozen.Visibility = Visibility.Visible;
+                            toolLatency.Content = string.Format("Frozen? | {0} ms", state.lastLatency);
+                            toolLatency.FontWeight = FontWeights.Bold;
+                            //txtRcFrozen.Visibility = Visibility.Visible;
                         }
-                        toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, lastLatency);
+                        toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, state.lastLatency);
                         break;
 
                     case ConnectionStatus.Disconnected:
                         toolLatency.Content = "N/C";
                         if (App.alternative == null || !App.alternative.socketActive)
                             toolReconnect.Header = "Hard Reconnect Required";
-                        txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = txtRcNotify.Visibility = Visibility.Collapsed;
-                        txtRcFrozen.Visibility = Visibility.Collapsed;
-                        txtRcDisconnected.Visibility = Visibility.Visible;
-                        rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Maroon);
 
-                        if (keyHook.IsActive) {
+                        if (keyHook.IsActive)
                             keyHook.Uninstall();
-                            txtRcHookOn.Visibility = Visibility.Collapsed;
-                        }
 
                         timerHealth.Stop();
                         break;
                 }
             });
-            */
         }
 
         public void PerformAutotype() {
@@ -682,9 +669,27 @@ namespace KLC_Finch {
             return false;
         }
 
+        private bool SwitchToMultiScreenRendering() {
+            if (rcv.SwitchToMultiScreen()) {
+                state.useMultiScreenOverview = false;
+                rcv.CameraToCurrentScreen();
+
+                Dispatcher.Invoke((Action)delegate {
+                    toolScreenMode.Content = "Multi";
+                    toolScreenOverview.Visibility = Visibility.Visible;
+                    toolZoomIn.Visibility = Visibility.Visible;
+                    toolZoomOut.Visibility = Visibility.Visible;
+                });
+
+                return true;
+            }
+
+            return false;
+        }
+
         private void SyncClipboard(object sender, EventArgs e) {
             try {
-                if (ssClipboardSync) {
+                if (ssClipboardSync && state.controlEnabled) {
                     string temp = clipboard;
                     this.ToolClipboardSend_Click(sender, e);
                     if (clipboard != temp) {
@@ -1192,6 +1197,13 @@ namespace KLC_Finch {
         }
 
         private void ToolScreenMode_Click(object sender, RoutedEventArgs e) {
+            if(state.useMultiScreen) {
+                SwitchToLegacyRendering();
+            } else {
+                SwitchToMultiScreenRendering();
+            }
+
+            /*
             state.useMultiScreen = !state.useMultiScreen;
             if (state.useMultiScreen) {
                 state.useMultiScreenOverview = false;
@@ -1207,6 +1219,7 @@ namespace KLC_Finch {
                 toolZoomIn.Visibility = Visibility.Collapsed;
                 toolZoomOut.Visibility = Visibility.Collapsed;
             }
+            */
         }
 
         private void ToolScreen_Click(object sender, RoutedEventArgs e) {
@@ -1264,8 +1277,11 @@ namespace KLC_Finch {
         }
 
         private void toolOpenGLInfo_Click(object sender, RoutedEventArgs e) {
-            throw new NotImplementedException();
-            //MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glVersion, "KLC-Finch: OpenGL Info");
+            OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
+            MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
+
+            if(!(rcv is RCvCanvas))
+                ToolReconnect_Click(sender, e); //Issue with spawning an OpenGL when using GLControl
         }
 
         private void KeyWinSet(bool set) {
@@ -1428,5 +1444,10 @@ namespace KLC_Finch {
         }
 
         #endregion Mouse and Keyboard
+
+        private void toolViewRCLogs_Click(object sender, RoutedEventArgs e) {
+            string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
+            MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
+        }
     }
 }

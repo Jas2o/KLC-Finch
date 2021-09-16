@@ -56,6 +56,9 @@ namespace KLC_Finch {
         private Vector2[] vertBufferScreen;
         private Vector2[] vertBufferMouse, vertBufferKeyboard, vertBufferTop, vertBufferCenter;
 
+        public override bool SupportsLegacy { get { return true; } }
+        public override bool SupportsZoom { get { return true; } }
+
         public RCvOpenGL(IRemoteControl rc, RCstate state) : base(rc, state) {
             InitializeComponent();
             MainCamera = new Camera(Vector2.Zero); //for Multi-screen
@@ -143,13 +146,17 @@ namespace KLC_Finch {
             #region Texture - Disconnected
 
             using (Graphics gfx = Graphics.FromImage(overlay2dDisconnected)) {
+                gfx.SmoothingMode = SmoothingMode.AntiAlias;
                 //gfx.Clear(System.Drawing.Color.Transparent);
                 gfx.Clear(System.Drawing.Color.FromArgb(128, 0, 0, 0));
 
                 using (GraphicsPath gp = new GraphicsPath())
-                using (System.Drawing.Pen outline = new System.Drawing.Pen(System.Drawing.Color.Black, 4) { LineJoin = LineJoin.Round }) //outline width=1
+                using (System.Drawing.Pen outline = new System.Drawing.Pen(System.Drawing.Color.Black, 3) { LineJoin = LineJoin.Round }) //outline width=1
                 using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
                 using (System.Drawing.Brush foreBrush = new SolidBrush(System.Drawing.Color.Lime)) {
+
+                    
+
                     gp.AddString("Disconnected", arial.FontFamily, (int)arial.Style, arial.Size, gfx.VisibleClipBounds, sf);
                     gfx.DrawPath(outline, gp);
                     gfx.FillPath(foreBrush, gp);
@@ -182,10 +189,11 @@ namespace KLC_Finch {
             #region Texture - Control Off
 
             using (Graphics gfx = Graphics.FromImage(overlay2dControlOff)) {
+                gfx.SmoothingMode = SmoothingMode.AntiAlias;
                 gfx.Clear(System.Drawing.Color.Transparent);
 
                 using (GraphicsPath gp = new GraphicsPath())
-                using (System.Drawing.Pen outline = new System.Drawing.Pen(Color.FromArgb(128, Color.Black), 4) { LineJoin = LineJoin.Round }) //outline width=1
+                using (System.Drawing.Pen outline = new System.Drawing.Pen(Color.FromArgb(128, Color.Black), 3) { LineJoin = LineJoin.Round }) //outline width=1
                 using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
                 using (System.Drawing.Brush foreBrush = new SolidBrush(Color.FromArgb(128, Color.White))) {
                     gp.AddString("F2 or double-click to enable control", arial.FontFamily, (int)arial.Style, arial.Size, gfx.VisibleClipBounds, sf);
@@ -581,12 +589,12 @@ namespace KLC_Finch {
             this.rc = rc;
             this.state = state;
 
-            if (App.Settings.GraphicsModeV3 == GraphicsMode.OpenGL_YUV) {
-                rc.DecodeMode = DecodeMode.RawYUV;
-                state.Window.Title = state.BaseTitle + " (YUV)";
-            } else {
+            if (App.Settings.RendererAlt) {
                 rc.DecodeMode = DecodeMode.BitmapRGB;
                 state.Window.Title = state.BaseTitle + " (RGB)";
+            } else {
+                rc.DecodeMode = DecodeMode.RawYUV;
+                state.Window.Title = state.BaseTitle + " (YUV)";
             }
 
             glVersion = GL.GetString(StringName.Version);
@@ -907,5 +915,9 @@ namespace KLC_Finch {
             GL.UseProgram(program);
         }
 
+        public override void CheckHealth() {
+            if (state.connectionStatus == ConnectionStatus.Disconnected)
+                glControl.Invalidate();
+        }
     }
 }

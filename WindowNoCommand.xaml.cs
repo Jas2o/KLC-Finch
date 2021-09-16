@@ -65,7 +65,7 @@ namespace KLC_Finch {
         }
 
         private void BtnLaunchMacMini_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative("718548734128395", txtAuthToken.Password);
+            App.alternative = new WindowAlternative("428588645237770", txtAuthToken.Password);
             App.alternative.Show();
         }
 

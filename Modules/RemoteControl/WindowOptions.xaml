@@ -52,6 +52,12 @@
                                     Content="Show Mouse Move Events"
                                     IsChecked="{Binding DisplayOverlayMouse}"
                                     ToolTip="Overlay at top right." />
+                                <CheckBox
+                                    x:Name="chkDebugPanZoom"
+                                    Margin="0,5,0,0"
+                                    Content="Show Zoom/Pan Text (Canvas only)"
+                                    IsChecked="{Binding DisplayOverlayPanZoom}"
+                                    ToolTip="Overlay in the center." />
                             </StackPanel>
                         </GroupBox>
                         <GroupBox Header="Control">
@@ -181,35 +187,33 @@
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition />
                                     </Grid.ColumnDefinitions>
-                                    <Label
-                                        Padding="0,5,5,5"
-                                        Content="Mode:"
-                                        ToolTipService.ShowDuration="24000">
-                                        <Label.ToolTip>
-                                            <TextBlock>
-                                                Kaseya's video feed is VP8 format, which uses YUV to reduce bandwidth.<LineBreak />
-                                                However displaying YUV requires it to be converted to RGB at some point,<LineBreak />
-                                                which has a CPU usage cost.<LineBreak />
-                                                <LineBreak />
-                                                When OpenGL YUV/RGB is expected to fail, Finch with use Canvas RGB instead.<LineBreak />
-                                                <LineBreak />
-                                                OpenGL YUV: uses a shader to handle the conversion (faster).<LineBreak />
-                                                OpenGL RGB: CPU handles the conversion (slower).<LineBreak />
-                                                <LineBreak />
-                                                Canvas RGB: compatible with low-end graphics, but high CPU.<LineBreak />
-                                                OpenGL Y: compatible, but less CPU because it's greyscale.</TextBlock>
-                                        </Label.ToolTip>
-                                    </Label>
+                                    <Label Padding="0,5,5,5" Content="Renderer:" />
                                     <ComboBox
                                         Grid.Column="1"
                                         VerticalAlignment="Center"
-                                        SelectedIndex="{Binding GraphicsMode}">
-                                        <ComboBoxItem>OpenGL YUV (Best)</ComboBoxItem>
-                                        <ComboBoxItem>OpenGL RGB (Toaster)</ComboBoxItem>
-                                        <ComboBoxItem>Canvas RGB (Potato)</ComboBoxItem>
-                                        <ComboBoxItem>Canvas Y (Greyscale)</ComboBoxItem>
+                                        SelectedIndex="{Binding Renderer}">
+                                        <ComboBoxItem>GLControl</ComboBoxItem>
+                                        <ComboBoxItem>GLWpfControl (Unstable)</ComboBoxItem>
+                                        <ComboBoxItem>Canvas (Fallback)</ComboBoxItem>
                                     </ComboBox>
                                 </Grid>
+                                <CheckBox
+                                    Content="Alternate renderer mode"
+                                    IsChecked="{Binding RendererAlt}"
+                                    ToolTipService.ShowDuration="12000">
+                                    <CheckBox.ToolTip>
+                                        <TextBlock>
+                                            Enable a trade-off that might be needed for less capable systems.<LineBreak />
+                                            <LineBreak />
+                                            OpenGL (GLControl and GLWpfControl)<LineBreak />
+                                            - Primary: YUV (Shader)<LineBreak />
+                                            - Alternate: RGB<LineBreak />
+                                            <LineBreak />
+                                            Canvas<LineBreak />
+                                            - Primary: RGB<LineBreak />
+                                            - Alternate: Y (Greyscale)</TextBlock>
+                                    </CheckBox.ToolTip>
+                                </CheckBox>
                                 <!--
                                 <CheckBox
                                     x:Name="chkSettingUseYUVShader"

@@ -43,13 +43,14 @@ namespace KLC {
             agentGuid = agentID;
             shorttoken = shortToken;
             Callback = callback;
-            agent = new Agent(agentGuid, shorttoken);
+            Kaseya.LoadToken(shortToken);
+            agent = new Agent(agentGuid);
 
             Auth = KaseyaAuth.ApiAuthX(shorttoken);
             shortToken = Auth.Token; //Works fine without this line, but it's something KLC does.
             Eal = Api15.EndpointsAdminLogin(shorttoken);
 
-            JObject rcNotifyPolicy = agent.GetRemoteControlNotifyPolicyFromAPI(shortToken);
+            JObject rcNotifyPolicy = agent.GetRemoteControlNotifyPolicyFromAPI();
             if (rcNotifyPolicy["Result"] != null) {
                 if (rcNotifyPolicy["Result"]["RemoteControlNotify"] != null)
                     RCNotify = (Enums.NotifyApproval)(int)rcNotifyPolicy["Result"]["RemoteControlNotify"];

@@ -38,6 +38,7 @@ namespace KLC_Finch {
         public WindowRCTest() {
             InitializeComponent();
             txtInputJson.Text = exampleDefault;
+            cmbRenderer.SelectedIndex = App.Settings.Renderer;
 
             if (App.viewer != null) {
                 App.viewer.Close();
@@ -45,15 +46,6 @@ namespace KLC_Finch {
             }
 
             rcTest = new RemoteControlTest();
-            myViewer = App.viewer = new WindowViewerV3(rcTest, width, height);
-            /*
-            if (App.Settings.GraphicsMode < 2)
-                myViewer = App.viewer = new WindowViewerOpenGL(rcTest, width, height);
-            else
-                myViewer = App.viewer = new WindowViewerCanvas(rcTest, width, height);
-            */
-            dynamic json = JsonConvert.DeserializeObject(txtInputJson.Text);
-            myViewer.UpdateScreenLayout(json, txtInputJson.Text);
         }
 
         private void BtnTemplateDefault_Click(object sender, RoutedEventArgs e) {
@@ -78,18 +70,13 @@ namespace KLC_Finch {
         private void BtnTest_Click(object sender, RoutedEventArgs e) {
             dynamic json = JsonConvert.DeserializeObject(txtInputJson.Text);
 
-            if (PresentationSource.FromVisual(myViewer) == null) {
-                myViewer = App.viewer = new WindowViewerV3(rcTest, width, height);
-                /*
-                if (App.Settings.GraphicsMode < 2)
-                    myViewer = new WindowViewerOpenGL(rcTest, width, height);
-                else
-                    myViewer = App.viewer = new WindowViewerCanvas(rcTest, width, height);
-                */
-            }
-
-            myViewer.UpdateScreenLayout(json, txtInputJson.Text);
+            if (myViewer != null && myViewer.Visibility == Visibility.Visible)
+                myViewer.Close();
+            myViewer = App.viewer = new WindowViewerV3(cmbRenderer.SelectedIndex, rcTest, width, height);
+            myViewer.SetTitle("Test", true);
             myViewer.Show();
+            myViewer.UpdateScreenLayout(json, txtInputJson.Text);
+
             rcTest.LoopStart(myViewer);
         }
 

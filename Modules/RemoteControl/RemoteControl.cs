@@ -53,7 +53,7 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
 
-            Viewer = App.viewer = new WindowViewerV3(this, 1920, 1080, session.agent.OSTypeProfile, session.agent.UserLast);
+            Viewer = App.viewer = new WindowViewerV3(App.Settings.Renderer, this, 1920, 1080, session.agent.OSTypeProfile, session.agent.UserLast);
             Viewer.SetTitle(session.agent.Name, modePrivate);
             Viewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             Viewer.Show();
