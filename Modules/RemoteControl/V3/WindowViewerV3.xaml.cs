@@ -1297,8 +1297,22 @@ namespace KLC_Finch {
                 rcv.CameraToOverview();
             }
 
-            if (state.connectionStatus != ConnectionStatus.Connected || !state.controlEnabled)
+            if (state.connectionStatus != ConnectionStatus.Connected)
                 return false;
+            if(!state.controlEnabled) {
+                if (state.useMultiScreenPanZoom) {
+                    if (e2.KeyCode == System.Windows.Forms.Keys.W) {
+                        rcv.MoveUp();
+                    } else if (e2.KeyCode == System.Windows.Forms.Keys.S) {
+                        rcv.MoveDown();
+                    } else if (e2.KeyCode == System.Windows.Forms.Keys.A) {
+                        rcv.MoveLeft();
+                    } else if (e2.KeyCode == System.Windows.Forms.Keys.D) {
+                        rcv.MoveRight();
+                    }
+                }
+                return false;
+            }
 
             if (e2.KeyCode == System.Windows.Forms.Keys.Pause || e2.KeyCode == System.Windows.Forms.Keys.Scroll) {
                 //Done on release

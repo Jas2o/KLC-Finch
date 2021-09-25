@@ -137,6 +137,22 @@ namespace KLC_Finch {
             state.virtualRequireViewportUpdate = true;
         }
 
+        public override void MoveDown() {
+            MainCamera.Move(new Vector2(0f, 10f));
+        }
+
+        public override void MoveLeft() {
+            MainCamera.Move(new Vector2(-10f, 0f));
+        }
+
+        public override void MoveRight() {
+            MainCamera.Move(new Vector2(10f, 0f));
+        }
+
+        public override void MoveUp() {
+            MainCamera.Move(new Vector2(0f, -10f));
+        }
+
         public override void ZoomIn() {
             state.ZoomIn();
         }

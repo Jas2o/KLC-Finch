@@ -102,6 +102,18 @@ namespace KLC_Finch {
             SetCanvas(lowestX, lowestY, Math.Abs(lowestX) + highestX, Math.Abs(lowestY) + highestY);
         }
 
+        public override void MoveDown() {
+        }
+
+        public override void MoveLeft() {
+        }
+
+        public override void MoveRight() {
+        }
+
+        public override void MoveUp() {
+        }
+
         public override void ZoomIn() {
             state.useMultiScreenPanZoom = true;
 
@@ -335,7 +347,7 @@ namespace KLC_Finch {
                     return;
 
                 if (state.controlEnabled) {
-                    if (!state.useMultiScreenPanZoom &&  screenPointingTo != state.CurrentScreen) {
+                    if (!state.useMultiScreenPanZoom && screenPointingTo != state.CurrentScreen) {
                         state.Window.FromGlChangeScreen(screenPointingTo, true);
                         return;
                     }

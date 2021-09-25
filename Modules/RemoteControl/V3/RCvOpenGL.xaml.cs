@@ -70,6 +70,7 @@ namespace KLC_Finch {
                 return;
 
             state.useMultiScreenOverview = false;
+            state.useMultiScreenPanZoom = false;
 
             //MainCamera.Rotation = 0f;
             MainCamera.Position = Vector2.Zero;
@@ -109,6 +110,7 @@ namespace KLC_Finch {
                 return;
 
             state.useMultiScreenOverview = true;
+            state.useMultiScreenPanZoom = false;
 
             int lowestX = 0;
             int lowestY = 0;
@@ -189,6 +191,26 @@ namespace KLC_Finch {
             //txtRcHookOn.Visibility = (enabled ? Visibility.Visible : Visibility.Hidden);
         }
 
+        public override void MoveDown() {
+            MainCamera.Move(new Vector2(0f, 10f));
+            glControl.Invalidate();
+        }
+
+        public override void MoveLeft() {
+            MainCamera.Move(new Vector2(-10f, 0f));
+            glControl.Invalidate();
+        }
+
+        public override void MoveRight() {
+            MainCamera.Move(new Vector2(10f, 0f));
+            glControl.Invalidate();
+        }
+
+        public override void MoveUp() {
+            MainCamera.Move(new Vector2(0f, -10f));
+            glControl.Invalidate();
+        }
+
         public override void ParentStateChange(bool visible) {
             if (visible && powerSaving) {
                 powerSaving = false;
@@ -233,11 +255,15 @@ namespace KLC_Finch {
         }
 
         public override void ZoomIn() {
+            state.useMultiScreenPanZoom = true;
+
             state.ZoomIn();
             glControl.Invalidate();
         }
 
         public override void ZoomOut() {
+            state.useMultiScreenPanZoom = true;
+
             state.ZoomOut();
             glControl.Invalidate();
         }
@@ -316,7 +342,7 @@ namespace KLC_Finch {
                     return;
 
                 if (state.controlEnabled) {
-                    if (!state.useMultiScreenOverview && screenPointingTo != state.CurrentScreen) {
+                    if (!state.useMultiScreenPanZoom && screenPointingTo != state.CurrentScreen) {
                         state.Window.FromGlChangeScreen(screenPointingTo, true);
                         return;
                     }
@@ -324,11 +350,13 @@ namespace KLC_Finch {
                     if (e.Clicks == 2) {
                         state.Window.SetControlEnabled(true);
                     } else if (e.Button == System.Windows.Forms.MouseButtons.Left) {
-                        if (state.CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
-                            state.Window.FromGlChangeScreen(screenPointingTo, false);
-                        //Else
-                        //We already changed the active screen by moving the mouse
-                        CameraToCurrentScreen();
+                        if (!state.useMultiScreenPanZoom) {
+                            if (state.CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
+                                state.Window.FromGlChangeScreen(screenPointingTo, false);
+                            //Else
+                            //We already changed the active screen by moving the mouse
+                            CameraToCurrentScreen();
+                        }
                     }
 
                     return;
@@ -376,7 +404,7 @@ namespace KLC_Finch {
                 if (screenPointingTo == null)
                     return;
 
-                if (state.useMultiScreenOverview && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
+                if ((state.useMultiScreenOverview || state.useMultiScreenPanZoom) && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
                     //We are in overview, change which screen gets texture updates
                     state.Window.FromGlChangeScreen(screenPointingTo, false);
                 }
@@ -432,17 +460,20 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseWheel(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!state.controlEnabled || rc == null || state.connectionStatus != ConnectionStatus.Connected)
+            if (rc == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
-            rc.SendMouseWheel(e.Delta);
-        }
-
-        private void HandleMouseWheel(object sender, MouseWheelEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            rc.SendMouseWheel(e.Delta);
+            if(state.controlEnabled)
+                rc.SendMouseWheel(e.Delta);
+            else if(state.useMultiScreenPanZoom) {
+                //Console.WriteLine(e.Delta + " " + MainCamera.Scale);
+                if (e.Delta > 0) {
+                    MainCamera.Scale = Vector2.Add(MainCamera.Scale, new Vector2(0.1f, 0.1f));
+                } else {
+                    MainCamera.Scale = Vector2.Subtract(MainCamera.Scale, new Vector2(0.1f, 0.1f));
+                }
+                glControl.Invalidate();
+            }
         }
 
         private void InitOverlayTexture(ref Bitmap overlay2d, ref int textureOverlay2d, int overlayW = overlayWidth, int overlayH = overlayHeight) {

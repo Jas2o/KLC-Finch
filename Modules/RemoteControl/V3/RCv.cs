@@ -51,7 +51,10 @@ namespace KLC_Finch {
         public abstract void UpdateScreenLayout(int lowestX, int lowestY, int highestX, int highestY);
 
         public abstract void ZoomIn();
-
         public abstract void ZoomOut();
+        public abstract void MoveUp();
+        public abstract void MoveDown();
+        public abstract void MoveLeft();
+        public abstract void MoveRight();
     }
 }
