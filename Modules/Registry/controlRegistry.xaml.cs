@@ -363,5 +363,16 @@ namespace KLC_Finch {
             }
         }
 
+        private void UserControl_Loaded(object sender, RoutedEventArgs e) {
+            if (!this.IsVisible)
+                return;
+
+            if (App.Settings.AltModulesStartAuto) {
+                if (btnRegistryStart.IsEnabled) {
+                    BtnRegistryStart_Click(sender, e);
+                    btnRegistryStart.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
     }
 }

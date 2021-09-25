@@ -36,6 +36,10 @@
             IsReadOnly="True"
             ItemsSource="{Binding Source={StaticResource GridItems}}"
             SelectionMode="Single">
+            <DataGrid.Resources>
+                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{Binding Path=Color, Source={x:Static SystemColors.HighlightBrush}}" />
+                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White" />
+            </DataGrid.Resources>
             <DataGrid.Columns>
                 <DataGridTextColumn Binding="{Binding Key}" Header="Key" />
                 <DataGridTextColumn Binding="{Binding Value}" Header="Value" />

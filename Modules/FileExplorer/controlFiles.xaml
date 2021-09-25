@@ -3,11 +3,13 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ext="clr-namespace:System.Windows.Controls.Extensions"
     xmlns:local="clr-namespace:KLC_Finch"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
     d:DesignHeight="450"
     d:DesignWidth="800"
+    Loaded="UserControl_Loaded"
     mc:Ignorable="d">
     <UserControl.Resources>
         <CollectionViewSource x:Key="GridItems" Source="{Binding ListFile}">
@@ -37,6 +39,45 @@
                     VerticalAlignment="Top"
                     Click="btnFilesStart_Click"
                     Content="Start" />
+                <Grid Margin="0,0,5,0" VerticalAlignment="Top">
+                    <Button
+                        x:Name="btnShortcuts"
+                        Grid.ColumnSpan="2"
+                        Click="BtnShortcuts_Click">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem
+                                    x:Name="contextShortcutsKRCTransferFiles"
+                                    Click="ContextShortcutsKRCTransferFiles_Click"
+                                    Header="KRCTransferFiles" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Label
+                        Margin="10,0,15,0"
+                        Padding="0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Content="Shortcuts"
+                        IsHitTestVisible="False" />
+                    <StackPanel
+                        Grid.Column="1"
+                        Height="20"
+                        Margin="0,0,10,0"
+                        HorizontalAlignment="Right"
+                        IsHitTestVisible="False"
+                        Orientation="Horizontal">
+                        <Path
+                            Width="5"
+                            Height="5"
+                            Margin="-3,-10"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Data="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z "
+                            Fill="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"
+                            Stretch="Uniform" />
+                    </StackPanel>
+                </Grid>
                 <Button
                     x:Name="btnFilesPathUp"
                     Width="75"
@@ -81,6 +122,8 @@
                 SelectedCellsChanged="dgvFilesFiles_SelectedCellsChanged">
                 <DataGrid.Resources>
                     <local:FormatKbSizeConverter x:Key="FormatKbSizeConverter" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{Binding Path=Color, Source={x:Static SystemColors.HighlightBrush}}" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White" />
                 </DataGrid.Resources>
                 <DataGrid.Columns>
                     <DataGridTextColumn Binding="{Binding Name}" Header="Name" />

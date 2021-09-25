@@ -105,7 +105,7 @@ namespace KLC_Finch {
         }
 
         private void BtnRCSettings_Click(object sender, RoutedEventArgs e) {
-            Modules.RemoteControl.WindowOptions winOptions = new Modules.RemoteControl.WindowOptions(ref App.Settings) {
+            WindowOptions winOptions = new WindowOptions(ref App.Settings, true) {
                 Owner = this
             };
             winOptions.ShowDialog();

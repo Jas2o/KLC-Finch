@@ -257,5 +257,31 @@ namespace KLC_Finch {
                 txtFilesSelected.Content = dgvFilesFiles.SelectedItems.Count + " files selected";
             }
         }
+
+        private void ContextShortcutsKRCTransferFiles_Click(object sender, RoutedEventArgs e) {
+            if (moduleFileExplorer != null) {
+                if(window.session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac)
+                    txtFilesPath.Text = "/Library/Kaseya/kworking/KRCTransferFiles/";
+                else
+                    txtFilesPath.Text = "C:\\kworking\\System\\KRCTransferFiles";
+                moduleFileExplorer.GoTo(txtFilesPath.Text);
+            }
+        }
+
+        private void BtnShortcuts_Click(object sender, RoutedEventArgs e) {
+            btnShortcuts.ContextMenu.IsOpen = true;
+        }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e) {
+            if (!this.IsVisible)
+                return;
+
+            if (App.Settings.AltModulesStartAuto) {
+                if (btnFilesStart.IsEnabled) {
+                    btnFilesStart_Click(sender, e);
+                    btnFilesStart.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
     }
 }

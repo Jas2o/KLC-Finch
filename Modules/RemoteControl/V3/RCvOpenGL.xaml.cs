@@ -23,26 +23,20 @@ namespace KLC_Finch {
     /// </summary>
     public partial class RCvOpenGL : RCv {
 
-        public bool powerSaving { get; protected set; }
-
-        private string glVersion;
-        private int shader_program = 0;
-        private int m_shader_multiplyColor = 0;
-        private readonly int[] m_shader_sampler = new int[3];
-        private int fragment_shader_object = 0;
-        private int vertex_shader_object = 0;
-
-        private readonly Camera MainCamera;
-        private int vpX, vpY;
-        private double scaleX, scaleY;
-
         private const int overlayHeight = 100;
         private const int overlayWidth = 400;
         private static Font arial = new Font("Arial", 32);
+        private readonly int[] m_shader_sampler = new int[3];
+        private readonly Camera MainCamera;
+        private int fragment_shader_object = 0;
+        private string glVersion;
+        private int m_shader_multiplyColor = 0;
         private Bitmap overlay2dControlOff;
         private Bitmap overlay2dDisconnected;
         private Bitmap overlay2dKeyboard;
         private Bitmap overlay2dMouse;
+        private double scaleX, scaleY;
+        private int shader_program = 0;
         private int textureOverlay2dControlOff;
         private int textureOverlay2dDisconnected;
         private int textureOverlay2dKeyboard;
@@ -51,32 +45,128 @@ namespace KLC_Finch {
         private byte[] textureOverlayDataDisconnected;
         private byte[] textureOverlayDataKeyboard;
         private byte[] textureOverlayDataMouse;
-        private int VBOScreen;
         private int VBOmouse, VBOkeyboard, VBOtop, VBOcenter;
-        private Vector2[] vertBufferScreen;
+        private int VBOScreen;
         private Vector2[] vertBufferMouse, vertBufferKeyboard, vertBufferTop, vertBufferCenter;
-
-        public override bool SupportsLegacy { get { return true; } }
-        public override bool SupportsZoom { get { return true; } }
-
+        private Vector2[] vertBufferScreen;
+        private int vertex_shader_object = 0;
+        private int vpX, vpY;
+        
         public RCvOpenGL(IRemoteControl rc, RCstate state) : base(rc, state) {
             InitializeComponent();
             MainCamera = new Camera(Vector2.Zero); //for Multi-screen
             glControl.Load += glControl_Load;
         }
 
-        public override void Refresh() {
-            glControl.Invalidate();
+        public bool powerSaving { get; protected set; }
+        public override bool SupportsLegacy { get { return true; } }
+        public override void CameraFromClickedScreen(RCScreen screen, bool moveCamera = true) {
+            if (state.useMultiScreen && moveCamera)
+                CameraToCurrentScreen();
         }
 
-        public override void ParentStateChange(bool visible) {
-            if(visible && powerSaving) {
-                powerSaving = false;
-                //glControl.Render += GlControl_Render;
-            } else {
-                powerSaving = true;
-                //glControl.Render -= GlControl_Render;
+        public override void CameraToCurrentScreen() {
+            if (!state.useMultiScreen)
+                return;
+
+            state.useMultiScreenOverview = false;
+
+            //MainCamera.Rotation = 0f;
+            MainCamera.Position = Vector2.Zero;
+            MainCamera.Scale = new Vector2(1f, 1f);
+            //DebugKeyboard();
+
+            if (App.Settings.MultiAltFit) {
+                bool adjustLeft = false;
+                bool adjustUp = false;
+                bool adjustRight = false;
+                bool adjustDown = false;
+
+                foreach (RCScreen screen in state.ListScreen) {
+                    if (screen == state.CurrentScreen)
+                        continue;
+
+                    if (screen.rect.Right <= state.CurrentScreen.rect.Left)
+                        adjustLeft = true;
+                    if (screen.rect.Bottom <= state.CurrentScreen.rect.Top)
+                        adjustUp = true;
+                    if (screen.rect.Left >= state.CurrentScreen.rect.Right)
+                        adjustRight = true;
+                    if (screen.rect.Top >= state.CurrentScreen.rect.Bottom)
+                        adjustDown = true;
+                }
+
+                state.SetVirtual(state.CurrentScreen.rect.X - (adjustLeft ? 80 : 0),
+                    state.CurrentScreen.rect.Y - (adjustUp ? 80 : 0),
+                    state.CurrentScreen.rect.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
+                    state.CurrentScreen.rect.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
+            } else
+                state.SetVirtual(state.CurrentScreen.rect.X, state.CurrentScreen.rect.Y, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height);
+        }
+
+        public override void CameraToOverview() {
+            if (!state.useMultiScreen)
+                return;
+
+            state.useMultiScreenOverview = true;
+
+            int lowestX = 0;
+            int lowestY = 0;
+            int highestX = 0;
+            int highestY = 0;
+            foreach (RCScreen screen in state.ListScreen) {
+                lowestX = Math.Min(screen.rect.X, lowestX);
+                lowestY = Math.Min(screen.rect.Y, lowestY);
+                highestX = Math.Max(screen.rect.X + screen.rect.Width, highestX);
+                highestY = Math.Max(screen.rect.Y + screen.rect.Height, highestY);
             }
+
+            SetCanvas(lowestX, lowestY, highestX, highestY);
+
+            //--
+
+            //MainCamera.Rotation = 0f;
+            MainCamera.Position = Vector2.Zero;
+            MainCamera.Scale = new Vector2(1f, 1f);
+            //DebugKeyboard();
+
+            state.virtualViewWant = state.virtualCanvas;
+            state.virtualRequireViewportUpdate = true;
+        }
+
+        public override void CheckHealth() {
+            if (state.connectionStatus == ConnectionStatus.Disconnected)
+                glControl.Invalidate();
+        }
+
+        public override void ControlLoaded(IRemoteControl rc, RCstate state) {
+            this.rc = rc;
+            this.state = state;
+
+            if (App.Settings.RendererAlt) {
+                rc.DecodeMode = DecodeMode.BitmapRGB;
+                state.Window.Title = state.BaseTitle + " (RGB)";
+            } else {
+                rc.DecodeMode = DecodeMode.RawYUV;
+                state.Window.Title = state.BaseTitle + " (YUV)";
+            }
+
+            glVersion = GL.GetString(StringName.Version);
+
+            CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
+            m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
+            m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
+            m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
+            m_shader_multiplyColor = GL.GetUniformLocation(shader_program, "multiplyColor");
+        }
+
+        public override void ControlUnload() {
+            if (shader_program != 0)
+                GL.DeleteProgram(shader_program);
+            if (fragment_shader_object != 0)
+                GL.DeleteShader(fragment_shader_object);
+            if (vertex_shader_object != 0)
+                GL.DeleteShader(vertex_shader_object);
         }
 
         public override void DisplayApproval(bool visible) {
@@ -89,14 +179,97 @@ namespace KLC_Finch {
 
         }
 
-        public override void DisplayKeyHook(bool enabled) {
-            //txtRcHookOn.Visibility = (enabled ? Visibility.Visible : Visibility.Hidden);
-        }
-
         public override void DisplayDebugKeyboard(string strKeyboard) {
         }
 
         public override void DisplayDebugMouseEvent(int X, int Y) {
+        }
+
+        public override void DisplayKeyHook(bool enabled) {
+            //txtRcHookOn.Visibility = (enabled ? Visibility.Visible : Visibility.Hidden);
+        }
+
+        public override void ParentStateChange(bool visible) {
+            if (visible && powerSaving) {
+                powerSaving = false;
+                //glControl.Render += GlControl_Render;
+            } else {
+                powerSaving = true;
+                //glControl.Render -= GlControl_Render;
+            }
+        }
+
+        public override void Refresh() {
+            glControl.Invalidate();
+        }
+        public override void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight) { //More like lowX, lowY, highX, highY
+            if (state.useMultiScreen) {
+                state.virtualCanvas = new Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
+                state.SetVirtual(virtualX, virtualY, state.virtualCanvas.Width, state.virtualCanvas.Height);
+            } else {
+                state.virtualCanvas = new Rectangle(0, 0, virtualWidth, virtualHeight);
+                state.SetVirtual(0, 0, virtualWidth, virtualHeight);
+            }
+
+            state.virtualRequireViewportUpdate = true;
+        }
+
+        public override bool SwitchToLegacy() {
+            state.useMultiScreen = false;
+            state.virtualRequireViewportUpdate = true;
+
+            return true;
+        }
+
+        public override bool SwitchToMultiScreen() {
+            state.useMultiScreen = true;
+            state.virtualRequireViewportUpdate = true;
+
+            return true;
+        }
+
+        public override void UpdateScreenLayout(int lowestX, int lowestY, int highestX, int highestY) {
+            //Empty
+        }
+
+        public override void ZoomIn() {
+            state.ZoomIn();
+            glControl.Invalidate();
+        }
+
+        public override void ZoomOut() {
+            state.ZoomOut();
+            glControl.Invalidate();
+        }
+
+        private void CreateShaders(string vs, string fs, out int vertexObject, out int fragmentObject, out int program) {
+            vertexObject = GL.CreateShader(ShaderType.VertexShader);
+            fragmentObject = GL.CreateShader(ShaderType.FragmentShader);
+
+            // Compile vertex shader
+            GL.ShaderSource(vertexObject, vs);
+            GL.CompileShader(vertexObject);
+            GL.GetShaderInfoLog(vertexObject, out string info);
+            GL.GetShader(vertexObject, ShaderParameter.CompileStatus, out int status_code);
+
+            if (status_code != 1)
+                throw new ApplicationException(info);
+
+            // Compile vertex shader
+            GL.ShaderSource(fragmentObject, fs);
+            GL.CompileShader(fragmentObject);
+            GL.GetShaderInfoLog(fragmentObject, out info);
+            GL.GetShader(fragmentObject, ShaderParameter.CompileStatus, out status_code);
+
+            if (status_code != 1)
+                throw new ApplicationException(info);
+
+            program = GL.CreateProgram();
+            GL.AttachShader(program, fragmentObject);
+            GL.AttachShader(program, vertexObject);
+
+            GL.LinkProgram(program);
+            GL.UseProgram(program);
         }
 
         private void glControl_Load(object sender, EventArgs e) {
@@ -120,6 +293,156 @@ namespace KLC_Finch {
             glControl.MouseDown += HandleMouseDown;
             glControl.MouseUp += HandleMouseUp;
             glControl.MouseWheel += HandleMouseWheel;
+        }
+
+        private void glControl_Paint(object sender, System.Windows.Forms.PaintEventArgs e) {
+            //This happens when initialized and when resized
+            Render();
+        }
+
+        private void glControl_Resize(object sender, EventArgs e) {
+            RefreshVirtual();
+            state.virtualRequireViewportUpdate = true;
+        }
+
+        private void HandleMouseDown(object sender, System.Windows.Forms.MouseEventArgs e) {
+            if (rc == null || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            if (state.useMultiScreen) {
+                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
+                RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
+                if (screenPointingTo == null)
+                    return;
+
+                if (state.controlEnabled) {
+                    if (!state.useMultiScreenOverview && screenPointingTo != state.CurrentScreen) {
+                        state.Window.FromGlChangeScreen(screenPointingTo, true);
+                        return;
+                    }
+                } else {
+                    if (e.Clicks == 2) {
+                        state.Window.SetControlEnabled(true);
+                    } else if (e.Button == System.Windows.Forms.MouseButtons.Left) {
+                        if (state.CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
+                            state.Window.FromGlChangeScreen(screenPointingTo, false);
+                        //Else
+                        //We already changed the active screen by moving the mouse
+                        CameraToCurrentScreen();
+                    }
+
+                    return;
+                }
+            } else {
+                //Use legacy behavior
+
+                if (!state.controlEnabled) {
+                    if (e.Clicks == 2)
+                        state.Window.SetControlEnabled(true);
+
+                    return;
+                }
+            }
+
+            if (e.Button == System.Windows.Forms.MouseButtons.Middle) {
+                if (e.Clicks == 1) //Logitech bug
+                    state.Window.PerformAutotype(false);
+            } else {
+                if (state.windowActivatedMouseMove)
+                    HandleMouseMove(sender, e);
+
+                rc.SendMouseDown(e.Button);
+
+                if (e.Button == System.Windows.Forms.MouseButtons.Left)
+                    state.mouseHeldLeft = true;
+                if (e.Button == System.Windows.Forms.MouseButtons.Right)
+                    state.mouseHeldRight = true;
+
+                state.Window.DebugKeyboard();
+            }
+        }
+
+        private void HandleMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
+            if (state.CurrentScreen == null || rc == null || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            state.windowActivatedMouseMove = false;
+
+            if (state.useMultiScreen) {
+                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
+                state.Window.DebugMouseEvent((int)point.X, (int)point.Y);
+
+                RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
+                if (screenPointingTo == null)
+                    return;
+
+                if (state.useMultiScreenOverview && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
+                    //We are in overview, change which screen gets texture updates
+                    state.Window.FromGlChangeScreen(screenPointingTo, false);
+                }
+
+                if (!state.controlEnabled || !state.WindowIsActive())
+                    return;
+
+                rc.SendMousePosition((int)point.X, (int)point.Y);
+            } else {
+                //Legacy behavior
+                if (!state.controlEnabled || !state.WindowIsActive())
+                    return;
+
+                System.Drawing.Point legacyPoint = new System.Drawing.Point(e.X - vpX, e.Y - vpY);
+                if (legacyPoint.X < 0 || legacyPoint.Y < 0)
+                    if (legacyPoint.X < 0 || legacyPoint.Y < 0)
+                        return;
+
+                if (vpX > 0) {
+                    legacyPoint.X = (int)(legacyPoint.X / scaleY);
+                    legacyPoint.Y = (int)(legacyPoint.Y / scaleY);
+                } else {
+                    legacyPoint.X = (int)(legacyPoint.X / scaleX);
+                    legacyPoint.Y = (int)(legacyPoint.Y / scaleX);
+                }
+
+                if (legacyPoint.X > state.legacyVirtualWidth || legacyPoint.Y > state.legacyVirtualHeight)
+                    return;
+
+                legacyPoint.X = legacyPoint.X + state.CurrentScreen.rect.X;
+                legacyPoint.Y = legacyPoint.Y + state.CurrentScreen.rect.Y;
+
+                state.Window.DebugMouseEvent(legacyPoint.X, legacyPoint.Y);
+
+                rc.SendMousePosition(legacyPoint.X, legacyPoint.Y);
+            }
+        }
+
+        private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
+            if (!state.controlEnabled || rc == null || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            if (glControl.ClientRectangle.Contains(e.Location)) {
+                rc.SendMouseUp(e.Button);
+
+                if (e.Button == System.Windows.Forms.MouseButtons.Left)
+                    state.mouseHeldLeft = false;
+                if (e.Button == System.Windows.Forms.MouseButtons.Right)
+                    state.mouseHeldRight = false;
+
+                state.Window.DebugKeyboard();
+            }
+        }
+
+        private void HandleMouseWheel(object sender, System.Windows.Forms.MouseEventArgs e) {
+            if (!state.controlEnabled || rc == null || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            rc.SendMouseWheel(e.Delta);
+        }
+
+        private void HandleMouseWheel(object sender, MouseWheelEventArgs e) {
+            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            rc.SendMouseWheel(e.Delta);
         }
 
         private void InitOverlayTexture(ref Bitmap overlay2d, ref int textureOverlay2d, int overlayW = overlayWidth, int overlayH = overlayHeight) {
@@ -235,88 +558,63 @@ namespace KLC_Finch {
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         }
+        private void RefreshVirtual() {
+            vertBufferScreen = new Vector2[8] {
+                new Vector2(state.virtualCanvas.Left, state.virtualCanvas.Top), new Vector2(0, 1),
+                new Vector2(state.virtualCanvas.Right, state.virtualCanvas.Top), new Vector2(1, 1),
+                new Vector2(state.virtualCanvas.Right, state.virtualCanvas.Bottom), new Vector2(1, 0),
+                new Vector2(state.virtualCanvas.Left, state.virtualCanvas.Bottom), new Vector2(0, 0)
+            };
 
-        private void glControl_Paint(object sender, System.Windows.Forms.PaintEventArgs e) {
-            //This happens when initialized and when resized
-            Render();
-        }
+            VBOScreen = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
+            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
 
-        private void RenderStartLegacy() {
-            if (state.virtualRequireViewportUpdate) {
-                RefreshVirtual();
-                state.virtualRequireViewportUpdate = false;
-            }
+            vertBufferMouse = new Vector2[8] {
+                new Vector2(glControl.Width - overlayWidth,overlayHeight), new Vector2(0, 1),
+                new Vector2(glControl.Width,overlayHeight), new Vector2(1, 1),
+                new Vector2(glControl.Width,0), new Vector2(1, 0),
+                new Vector2(glControl.Width - overlayWidth,0), new Vector2(0, 0)
+            };
 
-            int screenWidth = glControl.Width;
-            int screenHeight = glControl.Height;
+            VBOmouse = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOmouse);
+            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferMouse.Length), vertBufferMouse, BufferUsageHint.StaticDraw);
 
-            float targetAspectRatio = (float)state.legacyVirtualWidth / (float)state.legacyVirtualHeight;
+            vertBufferKeyboard = new Vector2[8] {
+                new Vector2(0,overlayHeight), new Vector2(0, 1),
+                new Vector2(overlayWidth,overlayHeight), new Vector2(1, 1),
+                new Vector2(overlayWidth,0), new Vector2(1, 0),
+                new Vector2(0,0), new Vector2(0, 0)
+            };
 
-            int width = screenWidth;
-            int height = (int)((float)width / targetAspectRatio/* + 0.5f*/);
+            VBOkeyboard = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOkeyboard);
+            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferKeyboard.Length), vertBufferKeyboard, BufferUsageHint.StaticDraw);
 
-            if (height > screenHeight) {
-                //Pillarbox
-                height = screenHeight;
-                width = (int)((float)height * targetAspectRatio/* + 0.5f*/);
-            }
+            int leftCenter = (glControl.Width - 400) / 2;
+            int topCenter = (glControl.Height - overlayHeight) / 2;
+            vertBufferCenter = new Vector2[8] {
+                new Vector2(leftCenter, topCenter + overlayHeight), new Vector2(0, 1),
+                new Vector2(leftCenter + 400, topCenter + overlayHeight), new Vector2(1, 1),
+                new Vector2(leftCenter + 400, topCenter), new Vector2(1, 0),
+                new Vector2(leftCenter, topCenter), new Vector2(0, 0)
+            };
 
-            vpX = (screenWidth / 2) - (width / 2);
-            vpY = (screenHeight / 2) - (height / 2);
+            VBOcenter = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOcenter);
+            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferCenter.Length), vertBufferCenter, BufferUsageHint.StaticDraw);
 
-            GL.Viewport(vpX, vpY, width, height);
+            vertBufferTop = new Vector2[8] {
+                new Vector2(leftCenter, overlayHeight), new Vector2(0, 1),
+                new Vector2(leftCenter + 400, overlayHeight), new Vector2(1, 1),
+                new Vector2(leftCenter + 400, 0), new Vector2(1, 0),
+                new Vector2(leftCenter, 0), new Vector2(0, 0)
+            };
 
-            GL.MatrixMode(MatrixMode.Projection);
-            GL.LoadIdentity();
-            GL.Ortho(0, state.legacyVirtualWidth, state.legacyVirtualHeight, 0, -1, 1);//Upsidedown
-            //GL.Ortho(0, legacyVirtualWidth, 0, legacyVirtualHeight, -1, 1);
-
-            GL.MatrixMode(MatrixMode.Modelview);
-            //GL.PushMatrix();
-
-            //Now to calculate the scale considering the screen size and virtual size
-            scaleX = (double)screenWidth / (double)state.legacyVirtualWidth;
-            scaleY = (double)screenHeight / (double)state.legacyVirtualHeight;
-            GL.Scale(scaleX, scaleY, 1.0f);
-
-            GL.LoadIdentity();
-
-            GL.Disable(EnableCap.DepthTest);
-        }
-
-        private void RenderStartMulti() {
-            if (state.virtualRequireViewportUpdate) {
-                float currentAspectRatio = (float)glControl.Width / (float)glControl.Height;
-                float targetAspectRatio = (float)state.virtualViewWant.Width / (float)state.virtualViewWant.Height;
-                int width = state.virtualViewWant.Width;
-                int height = state.virtualViewWant.Height;
-                vpX = 0;
-                vpY = 0;
-
-                if (currentAspectRatio > targetAspectRatio) {
-                    //Pillarbox
-                    width = (int)((float)height * currentAspectRatio);
-                    vpX = (width - state.virtualViewWant.Width) / 2;
-                } else {
-                    //Letterbox
-                    height = (int)((float)width / currentAspectRatio);
-                    vpY = (height - state.virtualViewWant.Height) / 2;
-                }
-
-                scaleX = (double)glControl.Width / (double)width;
-                scaleY = (double)glControl.Height / (double)height;
-
-                state.virtualViewNeed = new Rectangle(state.virtualViewWant.X - vpX, state.virtualViewWant.Y - vpY, width, height);
-
-                state.virtualRequireViewportUpdate = false;
-            }
-
-            GL.MatrixMode(MatrixMode.Projection);
-            GL.LoadIdentity();
-            GL.Ortho(state.virtualViewNeed.Left, state.virtualViewNeed.Right, state.virtualViewNeed.Bottom, state.virtualViewNeed.Top, MainCamera.ZNear, MainCamera.ZFar);
-            GL.Viewport(0, 0, glControl.Width, glControl.Height);
-            MainCamera.ApplyTransform();
-            GL.MatrixMode(MatrixMode.Modelview);
+            VBOtop = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOtop);
+            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferTop.Length), vertBufferTop, BufferUsageHint.StaticDraw);
         }
 
         private void Render() {
@@ -376,7 +674,7 @@ namespace KLC_Finch {
                         Color multiplyColor;
                         if (screen == state.CurrentScreen)
                             multiplyColor = Color.White;
-                        else if (state.controlEnabled || state.virtualViewWant == state.virtualCanvas) //In overview, or it's on the edge of focused screen
+                        else if (state.controlEnabled || state.useMultiScreenOverview)
                             multiplyColor = Color.Gray;
                         else
                             multiplyColor = Color.Cyan;
@@ -391,10 +689,10 @@ namespace KLC_Finch {
                             GL.PointSize(5f);
                             GL.LineWidth(5f);
 
-                            GL.Vertex2(screen.rectFixed.Left, screen.rectFixed.Bottom);
-                            GL.Vertex2(screen.rectFixed.Left, screen.rectFixed.Top);
-                            GL.Vertex2(screen.rectFixed.Right, screen.rectFixed.Top);
-                            GL.Vertex2(screen.rectFixed.Right, screen.rectFixed.Bottom);
+                            GL.Vertex2(screen.rect.Left, screen.rect.Bottom);
+                            GL.Vertex2(screen.rect.Left, screen.rect.Top);
+                            GL.Vertex2(screen.rect.Right, screen.rect.Top);
+                            GL.Vertex2(screen.rect.Right, screen.rect.Bottom);
 
                             //GL.Vertex2(vertBufferScreen[0].X, vertBufferScreen[0].Y);
 
@@ -547,377 +845,82 @@ namespace KLC_Finch {
             glControl.SwapBuffers();
         }
 
-        private void glControl_Resize(object sender, EventArgs e) {
-            RefreshVirtual();
-            state.virtualRequireViewportUpdate = true;
-        }
-
-        private void HandleMouseWheel(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!state.controlEnabled || rc == null || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            rc.SendMouseWheel(e.Delta);
-        }
-
-        public override void ControlUnload() {
-            if (shader_program != 0)
-                GL.DeleteProgram(shader_program);
-            if (fragment_shader_object != 0)
-                GL.DeleteShader(fragment_shader_object);
-            if (vertex_shader_object != 0)
-                GL.DeleteShader(vertex_shader_object);
-        }
-
-        public override void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight) { //More like lowX, lowY, highX, highY
-            if (state.useMultiScreen) {
-                state.virtualCanvas = new Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
-                state.SetVirtual(virtualX, virtualY, state.virtualCanvas.Width, state.virtualCanvas.Height);
-            } else {
-                state.virtualCanvas = new Rectangle(0, 0, virtualWidth, virtualHeight);
-                state.SetVirtual(0, 0, virtualWidth, virtualHeight);
+        private void RenderStartLegacy() {
+            if (state.virtualRequireViewportUpdate) {
+                RefreshVirtual();
+                state.virtualRequireViewportUpdate = false;
             }
 
-            state.virtualRequireViewportUpdate = true;
-        }
+            int screenWidth = glControl.Width;
+            int screenHeight = glControl.Height;
 
-        public override void CameraFromClickedScreen(RCScreen screen, bool moveCamera = true) {
-            if (state.useMultiScreen && moveCamera)
-                CameraToCurrentScreen();
-        }
+            float targetAspectRatio = (float)state.legacyVirtualWidth / (float)state.legacyVirtualHeight;
 
-        public override void ControlLoaded(IRemoteControl rc, RCstate state) {
-            this.rc = rc;
-            this.state = state;
+            int width = screenWidth;
+            int height = (int)((float)width / targetAspectRatio/* + 0.5f*/);
 
-            if (App.Settings.RendererAlt) {
-                rc.DecodeMode = DecodeMode.BitmapRGB;
-                state.Window.Title = state.BaseTitle + " (RGB)";
-            } else {
-                rc.DecodeMode = DecodeMode.RawYUV;
-                state.Window.Title = state.BaseTitle + " (YUV)";
+            if (height > screenHeight) {
+                //Pillarbox
+                height = screenHeight;
+                width = (int)((float)height * targetAspectRatio/* + 0.5f*/);
             }
 
-            glVersion = GL.GetString(StringName.Version);
+            vpX = (screenWidth / 2) - (width / 2);
+            vpY = (screenHeight / 2) - (height / 2);
 
-            CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
-            m_shader_sampler[0] = GL.GetUniformLocation(shader_program, "y_sampler");
-            m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
-            m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
-            m_shader_multiplyColor = GL.GetUniformLocation(shader_program, "multiplyColor");
+            GL.Viewport(vpX, vpY, width, height);
+
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(0, state.legacyVirtualWidth, state.legacyVirtualHeight, 0, -1, 1);//Upsidedown
+            //GL.Ortho(0, legacyVirtualWidth, 0, legacyVirtualHeight, -1, 1);
+
+            GL.MatrixMode(MatrixMode.Modelview);
+            //GL.PushMatrix();
+
+            //Now to calculate the scale considering the screen size and virtual size
+            scaleX = (double)screenWidth / (double)state.legacyVirtualWidth;
+            scaleY = (double)screenHeight / (double)state.legacyVirtualHeight;
+            GL.Scale(scaleX, scaleY, 1.0f);
+
+            GL.LoadIdentity();
+
+            GL.Disable(EnableCap.DepthTest);
         }
 
-        public override void CameraToCurrentScreen() {
-            if (!state.useMultiScreen)
-                return;
+        private void RenderStartMulti() {
+            if (state.virtualRequireViewportUpdate) {
+                float currentAspectRatio = (float)glControl.Width / (float)glControl.Height;
+                float targetAspectRatio = (float)state.virtualViewWant.Width / (float)state.virtualViewWant.Height;
+                int width = state.virtualViewWant.Width;
+                int height = state.virtualViewWant.Height;
+                vpX = 0;
+                vpY = 0;
 
-            state.useMultiScreenOverview = false;
-
-            //MainCamera.Rotation = 0f;
-            MainCamera.Position = Vector2.Zero;
-            MainCamera.Scale = new Vector2(1f, 1f);
-            //DebugKeyboard();
-
-            if (App.Settings.MultiAltFit) {
-                bool adjustLeft = false;
-                bool adjustUp = false;
-                bool adjustRight = false;
-                bool adjustDown = false;
-
-                foreach (RCScreen screen in state.ListScreen) {
-                    if (screen == state.CurrentScreen)
-                        continue;
-
-                    if (screen.rect.Right <= state.CurrentScreen.rect.Left)
-                        adjustLeft = true;
-                    if (screen.rect.Bottom <= state.CurrentScreen.rect.Top)
-                        adjustUp = true;
-                    if (screen.rect.Left >= state.CurrentScreen.rect.Right)
-                        adjustRight = true;
-                    if (screen.rect.Top >= state.CurrentScreen.rect.Bottom)
-                        adjustDown = true;
-                }
-
-                state.SetVirtual(state.CurrentScreen.rectFixed.X - (adjustLeft ? 80 : 0),
-                    state.CurrentScreen.rectFixed.Y - (adjustUp ? 80 : 0),
-                    state.CurrentScreen.rectFixed.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
-                    state.CurrentScreen.rectFixed.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
-            } else
-                state.SetVirtual(state.CurrentScreen.rectFixed.X, state.CurrentScreen.rectFixed.Y, state.CurrentScreen.rectFixed.Width, state.CurrentScreen.rectFixed.Height);
-        }
-
-        public override void CameraToOverview() {
-            if (!state.useMultiScreen)
-                return;
-
-            state.useMultiScreenOverview = true;
-
-            int lowestX = 0;
-            int lowestY = 0;
-            int highestX = 0;
-            int highestY = 0;
-            foreach (RCScreen screen in state.ListScreen) {
-                lowestX = Math.Min(screen.rectFixed.X, lowestX);
-                lowestY = Math.Min(screen.rectFixed.Y, lowestY);
-                highestX = Math.Max(screen.rectFixed.X + screen.rectFixed.Width, highestX);
-                highestY = Math.Max(screen.rectFixed.Y + screen.rectFixed.Height, highestY);
-            }
-
-            SetCanvas(lowestX, lowestY, highestX, highestY);
-
-            //--
-
-            //MainCamera.Rotation = 0f;
-            MainCamera.Position = Vector2.Zero;
-            MainCamera.Scale = new Vector2(1f, 1f);
-            //DebugKeyboard();
-
-            state.virtualViewWant = state.virtualCanvas;
-            state.virtualRequireViewportUpdate = true;
-        }
-
-        public override bool SwitchToMultiScreen() {
-            return false;
-        }
-        public override bool SwitchToLegacy() {
-            state.useMultiScreen = false;
-            state.virtualRequireViewportUpdate = true;
-
-            return true;
-        }
-
-        public override void UpdateScreenLayout(int lowestX, int lowestY, int highestX, int highestY) {
-            //Empty
-        }
-
-        private void RefreshVirtual() {
-            vertBufferScreen = new Vector2[8] {
-                new Vector2(state.virtualCanvas.Left, state.virtualCanvas.Top), new Vector2(0, 1),
-                new Vector2(state.virtualCanvas.Right, state.virtualCanvas.Top), new Vector2(1, 1),
-                new Vector2(state.virtualCanvas.Right, state.virtualCanvas.Bottom), new Vector2(1, 0),
-                new Vector2(state.virtualCanvas.Left, state.virtualCanvas.Bottom), new Vector2(0, 0)
-            };
-
-            VBOScreen = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferScreen.Length), vertBufferScreen, BufferUsageHint.StaticDraw);
-
-            vertBufferMouse = new Vector2[8] {
-                new Vector2(glControl.Width - overlayWidth,overlayHeight), new Vector2(0, 1),
-                new Vector2(glControl.Width,overlayHeight), new Vector2(1, 1),
-                new Vector2(glControl.Width,0), new Vector2(1, 0),
-                new Vector2(glControl.Width - overlayWidth,0), new Vector2(0, 0)
-            };
-
-            VBOmouse = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOmouse);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferMouse.Length), vertBufferMouse, BufferUsageHint.StaticDraw);
-
-            vertBufferKeyboard = new Vector2[8] {
-                new Vector2(0,overlayHeight), new Vector2(0, 1),
-                new Vector2(overlayWidth,overlayHeight), new Vector2(1, 1),
-                new Vector2(overlayWidth,0), new Vector2(1, 0),
-                new Vector2(0,0), new Vector2(0, 0)
-            };
-
-            VBOkeyboard = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOkeyboard);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferKeyboard.Length), vertBufferKeyboard, BufferUsageHint.StaticDraw);
-
-            int leftCenter = (glControl.Width - 400) / 2;
-            int topCenter = (glControl.Height - overlayHeight) / 2;
-            vertBufferCenter = new Vector2[8] {
-                new Vector2(leftCenter, topCenter + overlayHeight), new Vector2(0, 1),
-                new Vector2(leftCenter + 400, topCenter + overlayHeight), new Vector2(1, 1),
-                new Vector2(leftCenter + 400, topCenter), new Vector2(1, 0),
-                new Vector2(leftCenter, topCenter), new Vector2(0, 0)
-            };
-
-            VBOcenter = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOcenter);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferCenter.Length), vertBufferCenter, BufferUsageHint.StaticDraw);
-
-            vertBufferTop = new Vector2[8] {
-                new Vector2(leftCenter, overlayHeight), new Vector2(0, 1),
-                new Vector2(leftCenter + 400, overlayHeight), new Vector2(1, 1),
-                new Vector2(leftCenter + 400, 0), new Vector2(1, 0),
-                new Vector2(leftCenter, 0), new Vector2(0, 0)
-            };
-
-            VBOtop = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOtop);
-            GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferTop.Length), vertBufferTop, BufferUsageHint.StaticDraw);
-        }
-
-        private void HandleMouseDown(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (rc == null || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            if (state.useMultiScreen) {
-                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
-                RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
-                if (screenPointingTo == null)
-                    return;
-
-                if (state.controlEnabled) {
-                    if (state.virtualViewWant != state.virtualCanvas && screenPointingTo != state.CurrentScreen) {
-                        state.Window.FromGlChangeScreen(screenPointingTo, true);
-                        return;
-                    }
+                if (currentAspectRatio > targetAspectRatio) {
+                    //Pillarbox
+                    width = (int)((float)height * currentAspectRatio);
+                    vpX = (width - state.virtualViewWant.Width) / 2;
                 } else {
-                    if (e.Clicks == 2) {
-                        state.Window.SetControlEnabled(true);
-                    } else if (e.Button == System.Windows.Forms.MouseButtons.Left) {
-                        if (state.CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
-                            state.Window.FromGlChangeScreen(screenPointingTo, false);
-                        //Else
-                        //We already changed the active screen by moving the mouse
-                        CameraToCurrentScreen();
-                    }
-
-                    return;
-                }
-            } else {
-                //Use legacy behavior
-
-                if (!state.controlEnabled) {
-                    if (e.Clicks == 2)
-                        state.Window.SetControlEnabled(true);
-
-                    return;
-                }
-            }
-
-            if (e.Button == System.Windows.Forms.MouseButtons.Middle) {
-                if (e.Clicks == 1) //Logitech bug
-                    state.Window.PerformAutotype();
-            } else {
-                if (state.windowActivatedMouseMove)
-                    HandleMouseMove(sender, e);
-
-                rc.SendMouseDown(e.Button);
-
-                if (e.Button == System.Windows.Forms.MouseButtons.Left)
-                    state.mouseHeldLeft = true;
-                if (e.Button == System.Windows.Forms.MouseButtons.Right)
-                    state.mouseHeldRight = true;
-
-                state.Window.DebugKeyboard();
-            }
-        }
-
-        private void HandleMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (state.CurrentScreen == null || rc == null || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            state.windowActivatedMouseMove = false;
-
-            if (state.useMultiScreen) {
-                Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
-                state.Window.DebugMouseEvent((int)point.X, (int)point.Y);
-
-                RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
-                if (screenPointingTo == null)
-                    return;
-
-                if (state.virtualViewWant == state.virtualCanvas && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
-                    //We are in overview, change which screen gets texture updates
-                    state.Window.FromGlChangeScreen(screenPointingTo, false);
-
-                    //previousScreen = currentScreen;
-                    //currentScreen = screenPointingTo;
-                    //rc.ChangeScreen(currentScreen.screen_id);
+                    //Letterbox
+                    height = (int)((float)width / currentAspectRatio);
+                    vpY = (height - state.virtualViewWant.Height) / 2;
                 }
 
-                if (!state.controlEnabled || !state.WindowIsActive())
-                    return;
+                scaleX = (double)glControl.Width / (double)width;
+                scaleY = (double)glControl.Height / (double)height;
 
-                rc.SendMousePosition((int)point.X, (int)point.Y);
-            } else {
-                //Legacy behavior
-                if (!state.controlEnabled || !state.WindowIsActive())
-                    return;
+                state.virtualViewNeed = new Rectangle(state.virtualViewWant.X - vpX, state.virtualViewWant.Y - vpY, width, height);
 
-                System.Drawing.Point legacyPoint = new System.Drawing.Point(e.X - vpX, e.Y - vpY);
-                if (legacyPoint.X < 0 || legacyPoint.Y < 0)
-                    if (legacyPoint.X < 0 || legacyPoint.Y < 0)
-                        return;
-
-                if (vpX > 0) {
-                    legacyPoint.X = (int)(legacyPoint.X / scaleY);
-                    legacyPoint.Y = (int)(legacyPoint.Y / scaleY);
-                } else {
-                    legacyPoint.X = (int)(legacyPoint.X / scaleX);
-                    legacyPoint.Y = (int)(legacyPoint.Y / scaleX);
-                }
-
-                if (legacyPoint.X > state.legacyVirtualWidth || legacyPoint.Y > state.legacyVirtualHeight)
-                    return;
-
-                legacyPoint.X = legacyPoint.X + state.CurrentScreen.rect.X;
-                legacyPoint.Y = legacyPoint.Y + state.CurrentScreen.rect.Y;
-
-                state.Window.DebugMouseEvent(legacyPoint.X, legacyPoint.Y);
-
-                rc.SendMousePosition(legacyPoint.X, legacyPoint.Y);
+                state.virtualRequireViewportUpdate = false;
             }
-        }
 
-        private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!state.controlEnabled || rc == null || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            if (glControl.ClientRectangle.Contains(e.Location)) {
-                rc.SendMouseUp(e.Button);
-
-                if (e.Button == System.Windows.Forms.MouseButtons.Left)
-                    state.mouseHeldLeft = false;
-                if (e.Button == System.Windows.Forms.MouseButtons.Right)
-                    state.mouseHeldRight = false;
-
-                state.Window.DebugKeyboard();
-            }
-        }
-
-        private void HandleMouseWheel(object sender, MouseWheelEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            rc.SendMouseWheel(e.Delta);
-        }
-
-        private void CreateShaders(string vs, string fs, out int vertexObject, out int fragmentObject, out int program) {
-            vertexObject = GL.CreateShader(ShaderType.VertexShader);
-            fragmentObject = GL.CreateShader(ShaderType.FragmentShader);
-
-            // Compile vertex shader
-            GL.ShaderSource(vertexObject, vs);
-            GL.CompileShader(vertexObject);
-            GL.GetShaderInfoLog(vertexObject, out string info);
-            GL.GetShader(vertexObject, ShaderParameter.CompileStatus, out int status_code);
-
-            if (status_code != 1)
-                throw new ApplicationException(info);
-
-            // Compile vertex shader
-            GL.ShaderSource(fragmentObject, fs);
-            GL.CompileShader(fragmentObject);
-            GL.GetShaderInfoLog(fragmentObject, out info);
-            GL.GetShader(fragmentObject, ShaderParameter.CompileStatus, out status_code);
-
-            if (status_code != 1)
-                throw new ApplicationException(info);
-
-            program = GL.CreateProgram();
-            GL.AttachShader(program, fragmentObject);
-            GL.AttachShader(program, vertexObject);
-
-            GL.LinkProgram(program);
-            GL.UseProgram(program);
-        }
-
-        public override void CheckHealth() {
-            if (state.connectionStatus == ConnectionStatus.Disconnected)
-                glControl.Invalidate();
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(state.virtualViewNeed.Left, state.virtualViewNeed.Right, state.virtualViewNeed.Bottom, state.virtualViewNeed.Top, MainCamera.ZNear, MainCamera.ZFar);
+            GL.Viewport(0, 0, glControl.Width, glControl.Height);
+            MainCamera.ApplyTransform();
+            GL.MatrixMode(MatrixMode.Modelview);
         }
     }
 }

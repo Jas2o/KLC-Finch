@@ -1,23 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Diagnostics;
 
 namespace NTR {
-    class FPSCounter {
 
-        private Stopwatch stopwatch;
-
+    internal class FPSCounter {
         private static int MAXSAMPLES = 10;
+        private Stopwatch stopwatch;
         private int tickindex = 0;
-        private int ticksum = 0;
         private int[] ticklist;
+        private int ticksum = 0;
 
         public FPSCounter() {
             stopwatch = Stopwatch.StartNew();
-
             ticklist = new int[MAXSAMPLES];
         }
 

@@ -12,7 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace KLC_Finch.Modules.RemoteControl {
+namespace KLC_Finch {
     /// <summary>
     /// Interaction logic for WindowOptions.xaml
     /// </summary>
@@ -25,12 +25,15 @@ namespace KLC_Finch.Modules.RemoteControl {
             btnSaveSettings.IsEnabled = false;
         }
 
-        public WindowOptions(ref Settings settings) {
+        public WindowOptions(ref Settings settings, bool startTabRC) {
             InitializeComponent();
             Title += " (" + App.Version + ")";
             DataContext = this.settings = settings;
             txtSizeWidth.Text = this.settings.RemoteControlWidth.ToString();
             txtSizeHeight.Text = this.settings.RemoteControlHeight.ToString();
+
+            if (startTabRC)
+                tabRC.IsSelected = true;
         }
 
         private void btnSaveSettings_Click(object sender, RoutedEventArgs e) {

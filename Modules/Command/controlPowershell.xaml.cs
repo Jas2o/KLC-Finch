@@ -330,5 +330,17 @@ namespace KLC_Finch {
             txtCommand.Background = new SolidColorBrush(Colors.MidnightBlue);
             richCommand.Background = new SolidColorBrush(Colors.MidnightBlue);
         }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e) {
+            if (!this.IsVisible)
+                return;
+
+            if (App.Settings.AltModulesStartAuto) {
+                if (btnCommandStart.IsEnabled) {
+                    btnCommandStart_Click(sender, e);
+                    btnCommandStart.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
     }
 }

@@ -16,7 +16,7 @@ namespace KLC_Finch {
         private const bool captureAll = false; //For testing keys that aren't handled
 
         /// <summary>
-        /// Virtual Keys that will be captured, this should match KeycodeV2.ModifiersJS
+        /// Virtual Keys that will be captured, this should match KeycodeV3.ModifiersJS
         /// </summary>
         public enum VKeys {
             SHIFT = 0x10,       // SHIFT key

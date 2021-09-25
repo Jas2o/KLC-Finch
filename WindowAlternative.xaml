@@ -31,7 +31,7 @@
                 Text="Disconnected" />
         </Border>
 
-        <TabControl Grid.Row="1">
+        <TabControl x:Name="tabControl" Grid.Row="1">
             <TabItem Header="Dashboard">
                 <Grid Background="#FFE5E5E5">
                     <Grid.RowDefinitions>
@@ -82,14 +82,21 @@
                             Click="btnReconnect_Click"
                             Content="Reconnect" />
                     </StackPanel>
-                    <TextBlock
-                        x:Name="txtVersion"
-                        Grid.Row="1"
-                        Padding="0,0,0,6"
-                        Foreground="Gray"
-                        Text="Build date: DD/MM/YYYY"
-                        TextAlignment="Center"
-                        TextWrapping="Wrap" />
+                    <StackPanel Grid.Row="1">
+                        <Button
+                            x:Name="btnAltSettings"
+                            Margin="0,5"
+                            Click="btnAltSettings_Click"
+                            Content="Settings" />
+                        <TextBlock
+                            x:Name="txtVersion"
+                            Padding="0,0,0,6"
+                            Foreground="Gray"
+                            Text="Build date: DD/MM/YYYY"
+                            TextAlignment="Center"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
 
                     <command:controlDashboard
                         x:Name="ctrlDashboard"

@@ -105,6 +105,8 @@ namespace KLC_Finch {
                                 // + " - Type: " + key["type"] + " - Size: " + key["size"] + " - Date: " + key["date"]
 
                                 //foreach pathArray
+                                listExplorerFolders.Items.SortDescriptions.Clear();
+                                listExplorerFolders.Items.SortDescriptions.Add(new System.ComponentModel.SortDescription("", System.ComponentModel.ListSortDirection.Ascending));
                             }
                         }));
                     }
@@ -138,6 +140,9 @@ namespace KLC_Finch {
                                         // + " - Type: " + key["type"] + " - Size: " + key["size"] + " - Date: " + key["date"]
                                     }
                                 }
+
+                                listExplorerFolders.Items.SortDescriptions.Clear();
+                                listExplorerFolders.Items.SortDescriptions.Add(new System.ComponentModel.SortDescription("", System.ComponentModel.ListSortDirection.Ascending));
                             }));
                         }
 

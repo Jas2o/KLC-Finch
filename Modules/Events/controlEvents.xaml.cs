@@ -105,5 +105,17 @@ namespace KLC_Finch {
             );
             //collectionView.Refresh();
         }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e) {
+            if (!this.IsVisible)
+                return;
+
+            if (App.Settings.AltModulesStartAuto) {
+                if (btnEventsStart.IsEnabled) {
+                    btnEventsStart_Click(sender, e);
+                    btnEventsStart.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
     }
 }

@@ -71,8 +71,8 @@
     <Reference Include="nucs.JsonSettings, Version=1.0.7.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\nucs.JsonSettings.1.0.7\lib\net47\nucs.JsonSettings.dll</HintPath>
     </Reference>
-    <Reference Include="Ookii.Dialogs.Wpf, Version=3.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
-      <HintPath>..\packages\Ookii.Dialogs.Wpf.3.1.0\lib\net45\Ookii.Dialogs.Wpf.dll</HintPath>
+    <Reference Include="Ookii.Dialogs.Wpf, Version=4.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
+      <HintPath>..\packages\Ookii.Dialogs.Wpf.4.0.0\lib\net45\Ookii.Dialogs.Wpf.dll</HintPath>
     </Reference>
     <Reference Include="OpenTK, Version=3.3.1.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
       <HintPath>..\packages\OpenTK.3.3.1\lib\net20\OpenTK.dll</HintPath>
@@ -199,6 +199,7 @@
     <Compile Include="Modules\RemoteControl\OTK\TextureCursor.cs" />
     <Compile Include="Modules\RemoteControl\OTK\TextureScreen.cs" />
     <Compile Include="Modules\RemoteControl\RCClipboardMonitor.cs" />
+    <Compile Include="Modules\RemoteControl\RCFileUpload.cs" />
     <Compile Include="Modules\RemoteControl\RemoteControl.cs" />
     <Compile Include="Modules\RemoteControl\OTK\FPSCounter.cs" />
     <Compile Include="Modules\RemoteControl\OTK\RCScreen.cs" />
@@ -216,10 +217,13 @@
     <Compile Include="Modules\RemoteControl\V3\RCvOpenGL.xaml.cs">
       <DependentUpon>RCvOpenGL.xaml</DependentUpon>
     </Compile>
+    <None Include="Modules\RemoteControl\V3\WindowViewerV3-Backup.xaml.cs">
+      <DependentUpon>WindowViewerV3-Backup.xaml</DependentUpon>
+    </None>
     <Compile Include="Modules\RemoteControl\V3\WindowViewerV3.xaml.cs">
       <DependentUpon>WindowViewerV3.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Modules\RemoteControl\WindowOptions.xaml.cs">
+    <Compile Include="WindowOptions.xaml.cs">
       <DependentUpon>WindowOptions.xaml</DependentUpon>
     </Compile>
     <Compile Include="Modules\RemoteControl\WindowRCTest.xaml.cs">
@@ -228,13 +232,13 @@
     <Compile Include="Modules\RemoteControl\WindowScreens.xaml.cs">
       <DependentUpon>WindowScreens.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Modules\RemoteControl\WindowViewer.cs" />
-    <Compile Include="Modules\RemoteControl\WindowViewerCanvas.xaml.cs">
+    <None Include="Modules\RemoteControl\Archive\WindowViewer.cs" />
+    <None Include="Modules\RemoteControl\Archive\WindowViewerCanvas.xaml.cs">
       <DependentUpon>WindowViewerCanvas.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Modules\RemoteControl\WindowViewerOpenGL.xaml.cs">
+    </None>
+    <None Include="Modules\RemoteControl\Archive\WindowViewerOpenGL.xaml.cs">
       <DependentUpon>WindowViewerOpenGL.xaml</DependentUpon>
-    </Compile>
+    </None>
     <Compile Include="Modules\Services\controlServices.xaml.cs">
       <DependentUpon>controlServices.xaml</DependentUpon>
     </Compile>
@@ -329,11 +333,15 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <None Include="Modules\RemoteControl\V3\WindowViewerV3-Backup.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </None>
     <Page Include="Modules\RemoteControl\V3\WindowViewerV3.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Modules\RemoteControl\WindowOptions.xaml">
+    <Page Include="WindowOptions.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -345,14 +353,14 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Modules\RemoteControl\WindowViewerCanvas.xaml">
+    <None Include="Modules\RemoteControl\Archive\WindowViewerCanvas.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Modules\RemoteControl\WindowViewerOpenGL.xaml">
+    </None>
+    <None Include="Modules\RemoteControl\Archive\WindowViewerOpenGL.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
-    </Page>
+    </None>
     <Page Include="Modules\Services\controlServices.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

@@ -8,7 +8,7 @@
     xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
     d:DesignHeight="450"
     d:DesignWidth="800"
-    mc:Ignorable="d">
+    mc:Ignorable="d" Loaded="UserControl_Loaded">
     <UserControl.Resources>
         <CollectionViewSource x:Key="GridItems" Source="{Binding ListProcess}">
             <CollectionViewSource.SortDescriptions>
@@ -65,6 +65,8 @@
             SelectionMode="Single">
             <DataGrid.Resources>
                 <local:FormatKbSizeConverter x:Key="FormatKbSizeConverter" />
+                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{Binding Path=Color, Source={x:Static SystemColors.HighlightBrush}}" />
+                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White" />
             </DataGrid.Resources>
             <DataGrid.Columns>
                 <DataGridTextColumn Binding="{Binding DisplayName}" Header="Process Name" />

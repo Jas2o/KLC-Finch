@@ -22,36 +22,39 @@ namespace KLC_Finch {
     /// <summary>
     /// Interaction logic for WindowViewer.xaml
     /// </summary>
-    public partial class WindowViewerV3 : WindowViewer {
+    public partial class WindowViewerV3 : Window {
         public Settings Settings;
 
-        private RCv rcv;
-
-        private ScreenStatus screenStatus;
-        private bool requiredApproval;
+        private readonly ClipBoardMonitor clipboardMon;
+        private readonly string endpointLastUser;
+        private readonly Agent.OSProfile endpointOS;
+        private readonly FPSCounter fpsCounter;
+        private readonly KeycodeV3 keyctrl = KeycodeV3.Dictionary[System.Windows.Forms.Keys.ControlKey];
+        private readonly KeyboardHook keyHook;
+        private readonly KeycodeV3 keyshift = KeycodeV3.Dictionary[System.Windows.Forms.Keys.ShiftKey];
+        private readonly KeycodeV3 keywin = KeycodeV3.Dictionary[System.Windows.Forms.Keys.LWin];
+        private readonly List<KeycodeV3> listHeldKeysMod = new List<KeycodeV3>();
+        private readonly List<KeycodeV3> listHeldKeysOther = new List<KeycodeV3>();
+        private readonly List<TSSession> listTSSession = new List<TSSession>();
+        private readonly Timer timerClipboard;
+        private readonly Timer timerHealth;
+        private readonly WindowScreens winScreens;
+        private string[] arrAdmins = new string[] { "administrator", "brandadmin", "adminc", "company" };
         private bool autotypeAlwaysConfirmed;
         private string clipboard = "";
-        private readonly ClipBoardMonitor clipboardMon;
         private TSSession currentTSSession = null;
-        private readonly FPSCounter fpsCounter;
         private double fpsLast;
-
         private bool keyDownWin;
-        private readonly List<TSSession> listTSSession = new List<TSSession>();
-        
-        //private readonly object lockFrameBuf = new object();
-
-        private readonly Timer timerHealth;
-        private readonly Timer timerClipboard;
-
-        private readonly Agent.OSProfile endpointOS;
-        private readonly string endpointLastUser;
-        private string[] arrAdmins = new string[] { "administrator", "brandadmin", "adminc", "company" };
-
-        private readonly WindowScreens winScreens;
-        private readonly KeyboardHook keyHook;
-        private bool ssKeyHookAllow;
+        private Progress<int> progress;
+        private ProgressDialog progressDialog;
+        private int progressValue;
+        private IRemoteControl rc;
+        private RCv rcv;
+        private bool requiredApproval;
+        private ScreenStatus screenStatus;
         private bool ssClipboardSync;
+        private bool ssKeyHookAllow;
+        private RCstate state;
 
         public WindowViewerV3(int renderer, IRemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, Agent.OSProfile endpointOS = Agent.OSProfile.Other, string endpointLastUser = "") {
             InitializeComponent();
@@ -59,7 +62,7 @@ namespace KLC_Finch {
             this.rc = rc;
             state = new RCstate(this);
 
-            winScreens = new WindowScreens();
+            winScreens = new WindowScreens(endpointOS);
             keyHook = new KeyboardHook();
             keyHook.KeyDown += KeyHook_KeyDown;
             keyHook.KeyUp += KeyHook_KeyUp;
@@ -73,9 +76,11 @@ namespace KLC_Finch {
                 case 0:
                     rcv = new RCvOpenGL(rc, state);
                     break;
+
                 case 1:
                     rcv = new RCvOpenGLWPF(rc, state);
                     break;
+
                 case 2:
                     rcv = new RCvCanvas(rc, state);
                     break;
@@ -94,7 +99,7 @@ namespace KLC_Finch {
             }
             toolBlockScreen.Visibility = Visibility.Collapsed;
 
-            SetControlEnabled(false, false); //Just for the visual
+            SetControlEnabled(false, true); //Just for the visual
 
             clipboardMon = new ClipBoardMonitor();
             clipboardMon.OnUpdate += SyncClipboard;
@@ -113,170 +118,154 @@ namespace KLC_Finch {
             WindowUtilities.ActivateWindow(this);
         }
 
-        private void TimerClipboard_Elapsed(object sender, ElapsedEventArgs e) {
+        public void AddTSSession(string session_id, string session_name) {
+            TSSession newTSSession = new TSSession(session_id, session_name);
+            listTSSession.Add(newTSSession);
+
             Dispatcher.Invoke((Action)delegate {
-                toolClipboardSend.Background = System.Windows.Media.Brushes.Transparent;
-                toolClipboardGet.Background = System.Windows.Media.Brushes.Transparent;
+                MenuItem item = new MenuItem {
+                    Header = session_name
+                };
+                item.Click += new RoutedEventHandler(ToolTSSession_ItemClicked);
+
+                toolTSSession.DropdownMenu.Items.Add(item);
+                toolTSSession.Visibility = Visibility.Visible;
+
+                if (currentTSSession == null) {
+                    currentTSSession = newTSSession;
+                    toolTSSession.Content = currentTSSession.session_name;
+                }
             });
-            timerClipboard.Stop();
         }
 
-        private void KeyHook_KeyUp(KeyboardHook.VKeys key) {
-            Window_KeyUp2(new System.Windows.Forms.KeyEventArgs((System.Windows.Forms.Keys)key));
-        }
-
-        private void KeyHook_KeyDown(KeyboardHook.VKeys key) {
-            Window_PreviewKeyDown2(new System.Windows.Forms.KeyEventArgs((System.Windows.Forms.Keys)key));
-        }
-
-        private void LoadSettings(bool isStart = false) {
-            if (isStart) {
-
-                if(rcv.SupportsLegacy) {
-                    state.useMultiScreen = Settings.StartMultiScreen;
-                } else {
-                    state.useMultiScreen = true;
-                }
-
-                if (state.useMultiScreen) {
-                    toolScreenMode.Content = "Multi";
-                    toolScreenOverview.Visibility = Visibility.Visible;
-
-                } else {
-                    toolScreenMode.Content = "Legacy";
-                    toolScreenOverview.Visibility = Visibility.Collapsed;
-                }
-
-                //SetControlEnabled(Settings.StartControlEnabled, true);
-
-                toolScreenMode.Visibility = rcv.SupportsLegacy ? Visibility.Visible : Visibility.Collapsed;
-                toolZoomIn.Visibility = toolZoomOut.Visibility = rcv.SupportsZoom ? Visibility.Visible : Visibility.Collapsed;
-            }
-
-            autotypeAlwaysConfirmed = Settings.AutotypeSkipLengthCheck;
-            ssKeyHookAllow = Settings.KeyboardHook;
-            KeyHookSet(false);
-
-            if (Settings.ClipboardSync == 2 && (endpointOS == Agent.OSProfile.Server || arrAdmins.Contains(endpointLastUser.ToLower()))) {
-                //Server/Admin only
-                ssClipboardSync = true;
-            } else {
-                ssClipboardSync = (Settings.ClipboardSync == 1);
-            }
-
-            // This repetition needs to be fixed
-            toolClipboardSync.Visibility = (ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
-            toolClipboardReceiveOnly.Visibility = !ssClipboardSync ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void KeyHookSet(bool canCheckKeyboard = false) {
-            if (canCheckKeyboard) {
-                ssKeyHookAllow = Keyboard.IsKeyToggled(Key.Scroll) || Settings.KeyboardHook;
-                if (!IsActive)
-                    ssKeyHookAllow = false;
-            }
-
-            if (!state.controlEnabled || !ssKeyHookAllow) {
-                if (keyHook.IsActive)
-                    keyHook.Uninstall();
-            } else {
-                if (!keyHook.IsActive)
-                    keyHook.Install();
-            }
-
-            if (canCheckKeyboard) //More like canUpdateUI
-                rcv.DisplayKeyHook(keyHook.IsActive && Settings.DisplayOverlayKeyboardHook);
-        }
-
-        public override void ClearApproval() {
+        public void ClearApproval() {
             rcv.DisplayApproval(false);
         }
 
-        public override void LoadCursor(int cursorX, int cursorY, int cursorWidth, int cursorHeight, int cursorHotspotX, int cursorHotspotY, byte[] remaining) {
+        public void ClearTSSessions() {
+            listTSSession.Clear();
+            currentTSSession = null;
+
+            Dispatcher.Invoke((Action)delegate {
+                toolTSSession.DropdownMenu.Items.Clear();
+            });
+        }
+
+        public void DebugKeyboard() {
+            string strKeyboard = "";
+
+            if (Settings.DisplayOverlayKeyboardMod) {
+                string[] keysMod = new string[listHeldKeysMod.Count];
+                for (int i = 0; i < keysMod.Length; i++) {
+                    keysMod[i] = listHeldKeysMod[i].Display;
+                }
+
+                strKeyboard += String.Join(", ", keysMod);
+            }
+
+            if (Settings.DisplayOverlayKeyboardOther) {
+                string[] keysOther = new string[listHeldKeysOther.Count];
+                for (int i = 0; i < keysOther.Length; i++) {
+                    keysOther[i] = listHeldKeysOther[i].Display;
+                }
+
+                if (strKeyboard.Length > 0 && keysOther.Length > 0)
+                    strKeyboard += " | ";
+                strKeyboard += String.Join(", ", keysOther);
+
+                if (state.mouseHeldRight)
+                    strKeyboard = "MouseRight" + (strKeyboard == "" ? "" : " | " + strKeyboard);
+                if (state.mouseHeldLeft)
+                    strKeyboard = "MouseLeft" + (strKeyboard == "" ? "" : " | " + strKeyboard);
+            }
+
+            if (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther) {
+                rcv.DisplayDebugKeyboard(strKeyboard);
+            }
+        }
+
+        public void UpdateScreenLayoutReflow() {
+            int lowestX = state.ListScreen.Min(x => x.rect.X);
+            int lowestY = state.ListScreen.Min(x => x.rect.Y);
+            int highestX = state.ListScreen.Max(x => x.rect.Right);
+            int highestY = state.ListScreen.Max(x => x.rect.Bottom);
+            rcv.SetCanvas(lowestX, lowestY, highestX, highestY);
+            rcv.UpdateScreenLayout(lowestX, lowestY, highestX, highestY);
+            winScreens.SetCanvas(lowestX, lowestY, highestX, highestY);
+        }
+
+        public void DebugMouseEvent(int X, int Y) {
+            if (Settings.DisplayOverlayMouse)
+                rcv.DisplayDebugMouseEvent(X, Y);
+        }
+
+        public void FromGlChangeScreen(RCScreen screen, bool moveCamera = true) {
+            state.previousScreen = state.CurrentScreen;
+            state.CurrentScreen = screen;
+            rc.ChangeScreen(state.CurrentScreen.screen_id);
+
+            rcv.CameraFromClickedScreen(screen, moveCamera);
+
+            Dispatcher.Invoke((Action)delegate {
+                toolScreen.Content = screen.screen_name;
+                toolScreen.ToolTip = screen.StringResPos();
+
+                foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
+                    item.IsChecked = (item.Header.ToString() == screen.ToString());
+                }
+            });
+        }
+
+        public RCScreen GetCurrentScreen() {
+            return state.CurrentScreen;
+        }
+
+        public List<RCScreen> GetListScreen() {
+            return state.ListScreen;
+        }
+
+        public bool GetStatePowerSaving() {
+            return state.powerSaving;
+        }
+
+        public void LoadCursor(int cursorX, int cursorY, int cursorWidth, int cursorHeight, int cursorHotspotX, int cursorHotspotY, byte[] remaining) {
             if (state.textureCursor != null)
                 state.textureCursor.Load(new Rectangle(cursorX, cursorY, cursorWidth, cursorHeight), remaining);
         }
 
-        public override void LoadTexture(int width, int height, Bitmap decomp) {
+        public void LoadTexture(int width, int height, Bitmap decomp) {
             if (screenStatus == ScreenStatus.Preparing)
                 return;
 
             if (state.useMultiScreen) {
-
-                #region Multi-Screen
-
-                RCScreen scr = null;
-                if (state.CurrentScreen != null && state.CurrentScreen.rect.Width == width && state.CurrentScreen.rect.Height == height)
-                    scr = state.CurrentScreen;
-                else if (state.CurrentScreen != null && state.CurrentScreen.rectFixed.Width == width && state.CurrentScreen.rectFixed.Height == height)
-                    scr = state.CurrentScreen;
-                else if (state.previousScreen != null && state.previousScreen.rect.Width == width && state.previousScreen.rect.Height == height)
-                    scr = state.previousScreen;
-                else if (state.previousScreen != null && state.previousScreen.rectFixed.Width == width && state.previousScreen.rectFixed.Height == height)
-                    scr = state.previousScreen;
-                else {
-                    List<RCScreen> scrMatch = state.ListScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
-                    List<RCScreen> scrMatchFixed = state.ListScreen.FindAll(x => x.rectFixed.Width == width && x.rectFixed.Height == height);
-                    List<RCScreen> scrMatchHalf = state.ListScreen.FindAll(x => x.rectFixed.Width == width / 2 && x.rectFixed.Height == height / 2);
-                    if (scrMatch.Count == 1) {
-                        scr = scrMatch[0];
-                    } else if (scrMatchFixed.Count == 1) {
-                        scr = scrMatchFixed[0];
-                    } else if (scrMatchHalf.Count == 1) {
-                        //Console.WriteLine("Mac with Retina display?");
-                        scr = scrMatchHalf[0];
-                        state.legacyVirtualWidth = scr.rectFixed.Width = width;
-                        state.legacyVirtualHeight = scr.rectFixed.Height = height;
-                        rcv.CameraToCurrentScreen();
-                    } else {
-                        //Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                        if (screenStatus == ScreenStatus.Stable) {
-                            if (SwitchToLegacyRendering())
-                                LoadTexture(width, height, decomp);
-                        }
-                        return;
-                    }
-                }
-
-                if (scr == null) {
+                if (state.CurrentScreen == null) {
                     //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
                     //listScreen might be empty
                     return;
                 }
 
-                if (scr.rect.Width != width || scr.rect.Height != height) {
-                    scr.rect.Width = width;
-                    scr.rect.Height = height;
-                }
-
-                if (scr.Texture != null)
-                    scr.Texture.Load(scr.rect, decomp);
+                if (state.CurrentScreen.Texture != null)
+                    state.CurrentScreen.Texture.Load(state.CurrentScreen.rect, decomp);
                 else {
                     Dispatcher.Invoke((Action)delegate {
-                        if (scr.CanvasImage == null)
-                            scr.CanvasImage = new System.Windows.Controls.Image();
-                        scr.CanvasImage.Width = width;
-                        scr.CanvasImage.Height = height;
+                        if (state.CurrentScreen.CanvasImage == null)
+                            state.CurrentScreen.CanvasImage = new System.Windows.Controls.Image();
+                        state.CurrentScreen.CanvasImage.Width = state.CurrentScreen.rect.Width;
+                        state.CurrentScreen.CanvasImage.Height = state.CurrentScreen.rect.Height;
 
-                        scr.SetCanvasImage(decomp);
+                        state.CurrentScreen.SetCanvasImage(decomp);
                     });
                 }
-                state.socketAlive = true;
-
-                #endregion Multi-Screen
             } else {
-
-                #region Legacy
-
+                //Legacy
                 if (state.CurrentScreen == null)
                     return;
 
                 if (state.legacyVirtualWidth != width || state.legacyVirtualHeight != height) {
-#if DEBUG
-                    Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
-#endif
+                    //Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
                     SetVirtual(0, 0, width, height);
 
+                    /*
                     try {
                         state.CurrentScreen.rect.Width = width;
                         state.CurrentScreen.rect.Height = height;
@@ -288,18 +277,19 @@ namespace KLC_Finch {
                     } catch (Exception ex) {
                         Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
                     }
+                    */
                 }
 
                 if (state.textureLegacy != null)
                     state.textureLegacy.Load(new Rectangle(0, 0, width, height), decomp);
                 else {
-                    state.legacyScreen.rect = state.legacyScreen.rectFixed = new Rectangle(0, 0, width, height);
+                    state.legacyScreen.rect = new Rectangle(0, 0, width, height);
 
                     Dispatcher.Invoke((Action)delegate {
                         if (state.legacyScreen.CanvasImage == null)
                             state.legacyScreen.CanvasImage = new System.Windows.Controls.Image();
-                        state.legacyScreen.CanvasImage.Height = width;
-                        state.legacyScreen.CanvasImage.Width = height;
+                        state.CurrentScreen.CanvasImage.Width = state.CurrentScreen.rect.Width;
+                        state.CurrentScreen.CanvasImage.Height = state.CurrentScreen.rect.Height;
 
                         state.legacyScreen.SetCanvasImage(decomp);
                     });
@@ -325,11 +315,21 @@ namespace KLC_Finch {
 
                 textureLegacyNew = true;
                 */
-                state.socketAlive = true;
-
-                #endregion Legacy
             }
-            //}
+
+            if (state.CurrentScreen.rect.Width != width) {
+                state.CurrentScreen.rect.Width = width;
+                state.CurrentScreen.rect.Height = height;
+
+                if (state.useMultiScreen) {
+                    //Retina hack
+                    if (state.useMultiScreenOverview)
+                        rcv.CameraToOverview();
+                    else
+                        rcv.CameraToCurrentScreen();
+                }
+            }
+            state.socketAlive = true;
 
             fpsLast = fpsCounter.GetFPS();
             screenStatus = ScreenStatus.Stable;
@@ -337,91 +337,40 @@ namespace KLC_Finch {
             rcv.Refresh();
         }
 
-        public override void LoadTextureRaw(byte[] buffer, int width, int height, int stride) {
+        public void LoadTextureRaw(byte[] buffer, int width, int height, int stride) {
             if (screenStatus == ScreenStatus.Preparing || width * height <= 0)
                 return;
 
-            //lock (lockFrameBuf) {
             if (state.useMultiScreen) {
-
-                #region Multi-Screen
-
-                RCScreen scr = null;
-                if (state.CurrentScreen != null && state.CurrentScreen.rect.Width == width && state.CurrentScreen.rect.Height == height)
-                    scr = state.CurrentScreen;
-                else if (state.CurrentScreen != null && state.CurrentScreen.rectFixed.Width == width && state.CurrentScreen.rectFixed.Height == height)
-                    scr = state.CurrentScreen;
-                else if (state.previousScreen != null && state.previousScreen.rect.Width == width && state.previousScreen.rect.Height == height)
-                    scr = state.previousScreen;
-                else if (state.previousScreen != null && state.previousScreen.rectFixed.Width == width && state.previousScreen.rectFixed.Height == height)
-                    scr = state.previousScreen;
-                else {
-                    List<RCScreen> scrMatch = state.ListScreen.FindAll(x => x.rect.Width == width && x.rect.Height == height);
-                    List<RCScreen> scrMatchFixed = state.ListScreen.FindAll(x => x.rectFixed.Width == width && x.rectFixed.Height == height);
-                    List<RCScreen> scrMatchHalf = state.ListScreen.FindAll(x => x.rectFixed.Width == width / 2 && x.rectFixed.Height == height / 2);
-                    if (scrMatch.Count == 1) {
-                        scr = scrMatch[0];
-                    } else if (scrMatchFixed.Count == 1) {
-                        scr = scrMatchFixed[0];
-                    } else if (scrMatchHalf.Count == 1) {
-                        //Console.WriteLine("Mac with Retina display?");
-                        scr = scrMatchHalf[0];
-                        state.legacyVirtualWidth = scr.rectFixed.Width = width;
-                        state.legacyVirtualHeight = scr.rectFixed.Height = height;
-                        rcv.CameraToCurrentScreen();
-                    } else {
-                        if (screenStatus == ScreenStatus.Stable) {
-                            //Console.WriteLine("Forced switch from Multi-Screen to Legacy");
-                            if (SwitchToLegacyRendering())
-                                LoadTextureRaw(buffer, width, height, stride);
-                            else
-                                UpdateScreenLayoutHack();
-                        }
-                        return;
-                    }
-                }
-
-                if (scr == null) {
+                if (state.CurrentScreen == null) {
                     //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
                     //listScreen might be empty
                     return;
                 }
 
-                if (scr.rect.Width != width || scr.rect.Height != height) {
-                    scr.rect.Width = width;
-                    scr.rect.Height = height;
-                }
-
-                if (scr.Texture != null)
-                    scr.Texture.LoadRaw(scr.rect, buffer, stride);
-                else {
+                if (state.CurrentScreen.Texture != null) {
+                    state.CurrentScreen.Texture.LoadRaw(state.CurrentScreen.rect, width, height, stride, buffer);
+                } else {
                     //Canvas
                     Dispatcher.Invoke((Action)delegate {
-                        if (scr.CanvasImage == null)
-                            scr.CanvasImage = new System.Windows.Controls.Image();
-                        scr.CanvasImage.Width = width;
-                        scr.CanvasImage.Height = height;
+                        if (state.CurrentScreen.CanvasImage == null)
+                            state.CurrentScreen.CanvasImage = new System.Windows.Controls.Image();
+                        state.CurrentScreen.CanvasImage.Width = width;
+                        state.CurrentScreen.CanvasImage.Height = height;
 
-                        scr.SetCanvasImageBW(width, height, stride, buffer);
+                        state.CurrentScreen.SetCanvasImageBW(width, height, stride, buffer);
                     });
                 }
-
-                state.socketAlive = true;
-
-                #endregion Multi-Screen
             } else {
-
-                #region Legacy
-
+                //Legacy
                 if (state.CurrentScreen == null)
                     return;
 
                 if (state.legacyVirtualWidth != width || state.legacyVirtualHeight != height) {
-#if DEBUG
-                    Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
-#endif
+                    //Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
                     SetVirtual(0, 0, width, height);
 
+                    /*
                     try {
                         state.CurrentScreen.rect.Width = state.CurrentScreen.rectFixed.Width = width;
                         state.CurrentScreen.rect.Height = state.CurrentScreen.rectFixed.Height = height;
@@ -433,15 +382,25 @@ namespace KLC_Finch {
                     } catch (Exception ex) {
                         Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
                     }
+                    */
                 }
 
-                state.textureLegacy.LoadRaw(new Rectangle(0, 0, width, height), buffer, stride);
-
-                state.socketAlive = true;
-
-                #endregion Legacy
+                state.textureLegacy.LoadRaw(new Rectangle(0, 0, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height), width, height, stride, buffer);
             }
-            //}
+
+            if (state.CurrentScreen.rect.Width != width) {
+                state.CurrentScreen.rect.Width = width;
+                state.CurrentScreen.rect.Height = height;
+
+                if (state.useMultiScreen) {
+                    //Retina hack
+                    if (state.useMultiScreenOverview)
+                        rcv.CameraToOverview();
+                    else
+                        rcv.CameraToCurrentScreen();
+                }
+            }
+            state.socketAlive = true;
 
             fpsLast = fpsCounter.GetFPS();
             screenStatus = ScreenStatus.Stable;
@@ -449,7 +408,7 @@ namespace KLC_Finch {
             rcv.Refresh();
         }
 
-        public override void NotifySocketClosed(string sessionId) {
+        public void NotifySocketClosed(string sessionId) {
             if (sessionId == "/control/agent") {
             } else if (state.sessionId != sessionId)
                 return;
@@ -460,7 +419,40 @@ namespace KLC_Finch {
             //rc = null; //Can result in exceptions if a Send event results in a disconnection. Also stops Soft Reconnect is some situations.
         }
 
-        public override void ReceiveClipboard(string content) {
+        /// <summary>
+        /// Now uses Kaseya's Paste Clipboard, unless the Autotype toolbar button is used.
+        /// </summary>
+        public void PerformAutotype(bool fromToolbar=false) {
+            string text = Clipboard.GetText().Trim();
+
+            if (!text.Contains('\n') && !text.Contains('\r')) {
+                //Console.WriteLine("Attempt autotype of " + text, "autotype");
+
+                bool confirmed;
+                if (text.Length < 51 || autotypeAlwaysConfirmed) {
+                    confirmed = true;
+                } else {
+                    WindowConfirmation winConfirm = new WindowConfirmation("You really want to autotype this?", text);
+                    confirmed = (bool)winConfirm.ShowDialog();
+                    if (confirmed && (bool)winConfirm.chkDoNotAsk.IsChecked)
+                        autotypeAlwaysConfirmed = true;
+                }
+                if (confirmed) {
+                    foreach (KeycodeV3 k in listHeldKeysMod)
+                        rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
+                    listHeldKeysMod.Clear();
+
+                    if(fromToolbar)
+                        rc.SendAutotype(text);
+                    else
+                        rc.SendPasteClipboard(text);
+                }
+            } else {
+                //Console.WriteLine("Autotype blocked: too long or had a new line character");
+            }
+        }
+
+        public void ReceiveClipboard(string content) {
             if (clipboard == content) {
                 Dispatcher.Invoke((Action)delegate {
                     if (toolClipboardGet.Background == System.Windows.Media.Brushes.Transparent) {
@@ -484,7 +476,7 @@ namespace KLC_Finch {
             });
         }
 
-        public override void SetApprovalAndSpecialNote(Enums.NotifyApproval rcNotify, int machineShowToolTip, string machineNote, string machineNoteLink) {
+        public void SetApprovalAndSpecialNote(Enums.NotifyApproval rcNotify, int machineShowToolTip, string machineNote, string machineNoteLink) {
             switch (rcNotify) {
                 case Enums.NotifyApproval.ApproveAllowIfNoUser:
                 case Enums.NotifyApproval.ApproveDenyIfNoUser:
@@ -513,7 +505,7 @@ namespace KLC_Finch {
             toolMachineNoteLink.Visibility = (machineNoteLink == null ? Visibility.Collapsed : Visibility.Visible);
         }
 
-        public override void SetControlEnabled(bool value, bool isStart = false) {
+        public void SetControlEnabled(bool value, bool isStart = false) {
             if (isStart) {
                 state.controlEnabled = Settings.StartControlEnabled;
                 if (Settings.StartMultiScreen && state.controlEnabled)
@@ -540,7 +532,25 @@ namespace KLC_Finch {
             });
         }
 
-        public override void SetSessionID(string sessionId) {
+        public void SetScreen(string id) {
+            state.previousScreen = state.CurrentScreen;
+            state.CurrentScreen = state.ListScreen.First(x => x.screen_id == id);
+            rc.ChangeScreen(state.CurrentScreen.screen_id);
+
+            if (state.useMultiScreen)
+                rcv.CameraToCurrentScreen();
+
+            Dispatcher.Invoke((Action)delegate {
+                toolScreen.Content = state.CurrentScreen.screen_name;
+                toolScreen.ToolTip = state.CurrentScreen.StringResPos();
+
+                foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
+                    item.IsChecked = (item.Header.ToString() == state.CurrentScreen.ToString());
+                }
+            });
+        }
+
+        public void SetSessionID(string sessionId) {
             state.sessionId = sessionId;
 
             if (sessionId != null) {
@@ -549,7 +559,7 @@ namespace KLC_Finch {
             }
         }
 
-        public override void SetTitle(string title, bool modePrivate) {
+        public void SetTitle(string title, bool modePrivate) {
             this.Title = state.BaseTitle = title + "::" + (modePrivate ? "Private" : "Shared");
             if (modePrivate)
                 toolReconnect.Header = "Reconnect (lose private session)";
@@ -567,7 +577,7 @@ namespace KLC_Finch {
             state.virtualRequireViewportUpdate = true;
         }
 
-        public override void UpdateLatency(long ms) {
+        public void UpdateLatency(long ms) {
             state.lastLatency = ms;
 
             //Dipatcher.Invoke((Action)delegate {
@@ -575,394 +585,7 @@ namespace KLC_Finch {
             //});
         }
 
-        private void CheckHealth(object sender, ElapsedEventArgs e) {
-            if (state.powerSaving)
-                return;
-
-            Dispatcher.Invoke((Action)delegate {
-#if DEBUG
-                if (keyHook.IsActive && !IsActive) {
-                    MessageBox.Show("[RC:CheckHealth] Keyhook active but not RC window.");
-                }
-#endif
-                rcv.CheckHealth();
-
-                //txtDebugLeft.Visibility = (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
-                //txtDebugRight.Visibility = (Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
-
-                switch (state.connectionStatus) {
-                    case ConnectionStatus.FirstConnectionAttempt:
-                        //txtRcFrozen.Visibility = Visibility.Collapsed;
-                        //txtRcConnecting.Visibility = Visibility.Visible;
-                        break;
-
-                    case ConnectionStatus.Connected:
-                        //txtRcConnecting.Visibility = Visibility.Collapsed;
-
-                        if (fpsCounter.SeemsAlive(5000)) {
-                            toolLatency.FontWeight = FontWeights.Normal;
-                            //txtRcFrozen.Visibility = Visibility.Collapsed;
-                        } else {
-                            fpsLast = 0;
-                            toolLatency.Content = string.Format("Frozen? | {0} ms", state.lastLatency);
-                            toolLatency.FontWeight = FontWeights.Bold;
-                            //txtRcFrozen.Visibility = Visibility.Visible;
-                        }
-                        toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, state.lastLatency);
-                        break;
-
-                    case ConnectionStatus.Disconnected:
-                        toolLatency.Content = "N/C";
-                        if (App.alternative == null || !App.alternative.socketActive)
-                            toolReconnect.Header = "Hard Reconnect Required";
-
-                        if (keyHook.IsActive)
-                            keyHook.Uninstall();
-
-                        timerHealth.Stop();
-                        break;
-                }
-            });
-        }
-
-        public void PerformAutotype() {
-            string text = Clipboard.GetText().Trim();
-
-            if (!text.Contains('\n') && !text.Contains('\r')) {
-                //Console.WriteLine("Attempt autotype of " + text, "autotype");
-
-                bool confirmed;
-                if (text.Length < 51 || autotypeAlwaysConfirmed) {
-                    confirmed = true;
-                } else {
-                    WindowConfirmation winConfirm = new WindowConfirmation("You really want to autotype this?", text);
-                    confirmed = (bool)winConfirm.ShowDialog();
-                    if (confirmed && (bool)winConfirm.chkDoNotAsk.IsChecked)
-                        autotypeAlwaysConfirmed = true;
-                }
-                if (confirmed) {
-                    foreach (KeycodeV2 k in listHeldKeysMod)
-                        rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
-                    listHeldKeysMod.Clear();
-
-                    rc.SendAutotype(text);
-                }
-            } else {
-#if DEBUG
-                Console.WriteLine("Autotype blocked: too long or had a new line character");
-#endif
-            }
-        }
-
-        private bool SwitchToLegacyRendering() {
-            if (rcv.SwitchToLegacy()) {
-                Dispatcher.Invoke((Action)delegate {
-                    toolScreenMode.Content = "Legacy";
-                    toolScreenOverview.Visibility = Visibility.Collapsed;
-                    toolZoomIn.Visibility = Visibility.Collapsed;
-                    toolZoomOut.Visibility = Visibility.Collapsed;
-                });
-
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool SwitchToMultiScreenRendering() {
-            if (rcv.SwitchToMultiScreen()) {
-                state.useMultiScreenOverview = false;
-                rcv.CameraToCurrentScreen();
-
-                Dispatcher.Invoke((Action)delegate {
-                    toolScreenMode.Content = "Multi";
-                    toolScreenOverview.Visibility = Visibility.Visible;
-                    toolZoomIn.Visibility = Visibility.Visible;
-                    toolZoomOut.Visibility = Visibility.Visible;
-                });
-
-                return true;
-            }
-
-            return false;
-        }
-
-        private void SyncClipboard(object sender, EventArgs e) {
-            try {
-                if (ssClipboardSync && state.controlEnabled) {
-                    string temp = clipboard;
-                    this.ToolClipboardSend_Click(sender, e);
-                    if (clipboard != temp) {
-                        toolClipboardSend.Background = System.Windows.Media.Brushes.Orange;
-                        timerClipboard.Start();
-                    }
-#if DEBUG
-                    Console.WriteLine("[Clipboard sync] Success?");
-#endif
-                }
-            } catch (Exception) {
-#if DEBUG
-                Console.WriteLine("[Clipboard sync] Fail");
-#endif
-            }
-        }
-
-        private void ToolClipboardAutotype_Click(object sender, RoutedEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            PerformAutotype();
-        }
-
-        private void ToolClipboardGet_Click(object sender, RoutedEventArgs e) {
-            if (clipboard.Length > 0)
-                Clipboard.SetDataObject(clipboard);
-        }
-
-        private void ToolClipboardSend_Click(object sender, EventArgs e) {
-            if (state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            clipboard = Clipboard.GetText();
-            rc.SendClipboard(clipboard);
-
-            //if (Settings.ClipboardSync > 0) toolClipboardGetText.Text = clipboard.Truncate(50);
-        }
-
-        private void ToolClipboardSend_MouseEnter(object sender, MouseEventArgs e) {
-            clipboard = Clipboard.GetText();
-            toolClipboardSendText.Text = clipboard.Truncate(50);
-        }
-
-        private void ToolClipboardSync_Click(object sender, RoutedEventArgs e) {
-            ssClipboardSync = !ssClipboardSync;
-
-            toolClipboardSync.Visibility = (ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
-            toolClipboardReceiveOnly.Visibility = (!ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
-        }
-
-        private void ToolDisconnect_Click(object sender, RoutedEventArgs e) {
-            //if (sessionId == null)
-            //NotifySocketClosed(null);
-            //else
-            rc.Disconnect(state.sessionId);
-        }
-
-        private void ToolKeyWin_Click(object sender, RoutedEventArgs e) {
-            KeyWinSet(!keyDownWin);
-        }
-
-        private void ToolMachineNoteLink_Click(object sender, RoutedEventArgs e) {
-            string link = toolMachineNoteLink.Header.ToString();
-            if (link.Contains("http"))
-                Process.Start(new ProcessStartInfo(link) { UseShellExecute = true });
-        }
-
-        private void ToolOptions_Click(object sender, RoutedEventArgs e) {
-            Modules.RemoteControl.WindowOptions winOptions = new Modules.RemoteControl.WindowOptions(ref Settings) {
-                Owner = this
-            };
-            winOptions.ShowDialog();
-            LoadSettings();
-            if (state.virtualViewWant != state.virtualCanvas) //Not in Overview?
-                rcv.CameraToCurrentScreen(); //Multi-Screen Alt Fit
-        }
-
-        private void ToolPanicRelease_Click(object sender, RoutedEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            rc.SendPanicKeyRelease();
-            listHeldKeysMod.Clear();
-            KeyWinSet(false);
-
-            DebugKeyboard();
-        }
-
-        private void ToolReconnect_Click(object sender, RoutedEventArgs e) {
-            //if (App.alternative != null && (socketAlive || App.alternative.socketActive))
-            if (state.socketAlive && !requiredApproval)
-                rc.Reconnect();
-            else
-                ToolShowAlternative_Click(sender, e);
-        }
-
-        private void ToolScreenOverview_Click(object sender, RoutedEventArgs e) {
-            state.useMultiScreenOverview = !state.useMultiScreenOverview;
-            if (state.useMultiScreenOverview) {
-                SetControlEnabled(false);
-                rcv.CameraToOverview();
-            } else {
-                rcv.CameraToCurrentScreen();
-            }
-        }
-
-        private void ToolScreenshotToClipboard_Click(object sender, RoutedEventArgs e) {
-            if (state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            rc.CaptureNextScreen();
-        }
-
-        private void ToolSendCtrlAltDel_Click(object sender, RoutedEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            rc.SendSecureAttentionSequence();
-        }
-
-        private void ToolShowAlternative_Click(object sender, RoutedEventArgs e) {
-            if (App.alternative == null)
-                return;
-
-            if (App.alternative.WindowState == System.Windows.WindowState.Minimized)
-                App.alternative.WindowState = System.Windows.WindowState.Normal;
-            App.alternative.Visibility = Visibility.Visible;
-            App.alternative.Focus();
-
-            foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens) {
-                if (screen.Bounds.IntersectsWith(new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height))) {
-                    App.alternative.Left = screen.Bounds.X + ((screen.Bounds.Width - App.alternative.Width) / 2);
-                    App.alternative.Top = screen.Bounds.Y + ((screen.Bounds.Height - App.alternative.Height) / 2);
-                    break;
-                }
-            }
-        }
-
-        private void ToolToggleControl_Click(object sender, RoutedEventArgs e) {
-            SetControlEnabled(!state.controlEnabled);
-        }
-
-        private void ToolZoomIn_Click(object sender, RoutedEventArgs e) {
-            if (!state.useMultiScreen)
-                return;
-            if (state.virtualViewWant.Width - 200 < 0 || state.virtualViewWant.Height - 200 < 0)
-                return;
-
-            state.virtualViewWant = new Rectangle(state.virtualViewWant.X + 100, state.virtualViewWant.Y + 100, state.virtualViewWant.Width - 200, state.virtualViewWant.Height - 200);
-            state.virtualRequireViewportUpdate = true;
-
-            //DebugKeyboard();
-        }
-
-        private void ToolZoomOut_Click(object sender, RoutedEventArgs e) {
-            if (!state.useMultiScreen)
-                return;
-
-            state.virtualViewWant = new Rectangle(state.virtualViewWant.X - 100, state.virtualViewWant.Y - 100, state.virtualViewWant.Width + 200, state.virtualViewWant.Height + 200);
-            state.virtualRequireViewportUpdate = true;
-
-            //DebugKeyboard();
-        }
-
-        private void Window_Activated(object sender, EventArgs e) {
-            if (!state.controlEnabled || state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            KeyHookSet(true);
-            state.windowActivatedMouseMove = true;
-        }
-
-        private void Window_Closed(object sender, EventArgs e) {
-            rcv.ControlUnload();
-
-            if (App.alternative != null && App.alternative.Visibility != Visibility.Visible)
-                Environment.Exit(0);
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
-            if (keyHook.IsActive)
-                keyHook.Uninstall();
-
-            //NotifySocketClosed(sessionId);
-            rc.Disconnect(state.sessionId);
-
-            clipboardMon.OnUpdate -= SyncClipboard;
-        }
-
-        private void Window_Deactivated(object sender, EventArgs e) {
-            KeyHookSet(true);
-            if (!state.controlEnabled || state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            //Release modifier keys because the remote control window lost focus
-            if (listHeldKeysMod.Count > 0) {
-                foreach (KeycodeV2 k in listHeldKeysMod)
-                    rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
-                listHeldKeysMod.Clear();
-
-                KeyWinSet(false);
-
-                DebugKeyboard();
-            }
-        }
-
-        private int progressValue;
-        private Progress<int> progress;
-        private ProgressDialog progressDialog;
-
-        private void Window_Drop(object sender, DragEventArgs e) {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
-                if (progressDialog != null && progressDialog.IsBusy)
-                    return;
-
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-
-                bool doUpload = false;
-                using (TaskDialog dialog = new TaskDialog()) {
-                    dialog.WindowTitle = "KLC-Finch: Upload File";
-                    dialog.MainInstruction = "Upload dropped file to c:\\temp?";
-                    dialog.MainIcon = TaskDialogIcon.Information;
-                    dialog.CenterParent = true;
-                    dialog.Content = files[0];
-
-                    TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
-                    TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
-                    dialog.Buttons.Add(tdbYes);
-                    dialog.Buttons.Add(tdbCancel);
-
-                    TaskDialogButton button = dialog.ShowDialog(this);
-                    doUpload = (button == tdbYes);
-                }
-
-                if (doUpload) {
-                    progressValue = 0;
-                    progress = new Progress<int>(newValue => {
-                        progressValue = newValue;
-                    });
-                    progressDialog = new ProgressDialog {
-                        //ProgressBarStyle = ProgressBarStyle.MarqueeProgressBar,
-                        WindowTitle = "KLC-Finch: Upload File",
-                        Text = "Uploading to c:\\temp",
-                        Description = "Source file: " + files[0],
-                        ShowCancelButton = false,
-                        ShowTimeRemaining = true
-                    };
-                    progressDialog.DoWork += ProgressDialog_DoWork;
-                    progressDialog.Show();
-
-                    rc.UploadDrop(files[0], progress);
-                }
-            }
-        }
-
-        private void ProgressDialog_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e) {
-            while (progressValue < 100) {
-                progressDialog.ReportProgress(progressValue);
-                System.Threading.Thread.Sleep(100);
-            }
-        }
-
-        private void Window_Loaded(object sender, RoutedEventArgs e) {
-            winScreens.Owner = this;
-            KeyHookSet(true);
-
-            rcv.ControlLoaded(rc, state);
-        }
-
-        #region Host Desktop Configuration (Screens of current session)
-
-        public override void UpdateScreenLayout(dynamic json, string jsonstr = "") {
+        public void UpdateScreenLayout(dynamic json, string jsonstr = "") {
             screenStatus = ScreenStatus.Preparing;
 
             state.ListScreen.Clear();
@@ -1010,10 +633,10 @@ namespace KLC_Finch {
                 }
             });
 
-            int lowestX = state.ListScreen.Min(x => x.rectFixed.X);
-            int lowestY = state.ListScreen.Min(x => x.rectFixed.Y);
-            int highestX = state.ListScreen.Max(x => x.rectFixed.Right);
-            int highestY = state.ListScreen.Max(x => x.rectFixed.Bottom);
+            int lowestX = state.ListScreen.Min(x => x.rect.X);
+            int lowestY = state.ListScreen.Min(x => x.rect.Y);
+            int highestX = state.ListScreen.Max(x => x.rect.Right);
+            int highestY = state.ListScreen.Max(x => x.rect.Bottom);
             rcv.SetCanvas(lowestX, lowestY, highestX, highestY);
 
             rcv.UpdateScreenLayout(lowestX, lowestY, highestX, highestY);
@@ -1025,21 +648,324 @@ namespace KLC_Finch {
             screenStatus = ScreenStatus.LayoutReady;
         }
 
-        public void FromGlChangeScreen(RCScreen screen, bool moveCamera = true) {
-            state.previousScreen = state.CurrentScreen;
-            state.CurrentScreen = screen;
-            rc.ChangeScreen(state.CurrentScreen.screen_id);
+        public void UpdateScreenLayoutHack() {
+            if (currentTSSession == null)
+                rc.ChangeTSSession("0");
+            else
+                rc.ChangeTSSession(currentTSSession.session_id);
+        }
 
-            rcv.CameraFromClickedScreen(screen, moveCamera);
+        private void CheckHealth(object sender, ElapsedEventArgs e) {
+            if (state.powerSaving)
+                return;
 
             Dispatcher.Invoke((Action)delegate {
-                toolScreen.Content = screen.screen_name;
-                toolScreen.ToolTip = screen.StringResPos();
+                //if (keyHook.IsActive && !IsActive) { MessageBox.Show("[RC:CheckHealth] Keyhook active but not RC window."); } //For testing
+                rcv.CheckHealth();
 
-                foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
-                    item.IsChecked = (item.Header.ToString() == screen.ToString());
+                //txtDebugLeft.Visibility = (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
+                //txtDebugRight.Visibility = (Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
+
+                switch (state.connectionStatus) {
+                    case ConnectionStatus.FirstConnectionAttempt:
+                        //txtRcFrozen.Visibility = Visibility.Collapsed;
+                        //txtRcConnecting.Visibility = Visibility.Visible;
+                        break;
+
+                    case ConnectionStatus.Connected:
+                        //txtRcConnecting.Visibility = Visibility.Collapsed;
+
+                        if (fpsCounter.SeemsAlive(5000)) {
+                            toolLatency.FontWeight = FontWeights.Normal;
+                            //txtRcFrozen.Visibility = Visibility.Collapsed;
+                        } else {
+                            fpsLast = 0;
+                            toolLatency.Content = string.Format("Frozen? | {0} ms", state.lastLatency);
+                            toolLatency.FontWeight = FontWeights.Bold;
+                            //txtRcFrozen.Visibility = Visibility.Visible;
+                        }
+                        toolLatency.Content = string.Format("FPS: {0} | {1} ms", fpsLast, state.lastLatency);
+                        break;
+
+                    case ConnectionStatus.Disconnected:
+                        toolLatency.Content = "N/C";
+                        if (App.alternative == null || !App.alternative.socketActive)
+                            toolReconnect.Header = "Hard Reconnect Required";
+
+                        if (keyHook.IsActive)
+                            keyHook.Uninstall();
+
+                        timerHealth.Stop();
+                        break;
                 }
             });
+        }
+
+        private void KeyHook_KeyDown(KeyboardHook.VKeys key) {
+            Window_PreviewKeyDown2(new System.Windows.Forms.KeyEventArgs((System.Windows.Forms.Keys)key));
+        }
+
+        private void KeyHook_KeyUp(KeyboardHook.VKeys key) {
+            Window_KeyUp2(new System.Windows.Forms.KeyEventArgs((System.Windows.Forms.Keys)key));
+        }
+
+        private void KeyHookSet(bool canCheckKeyboard = false) {
+            if (canCheckKeyboard) {
+                ssKeyHookAllow = Keyboard.IsKeyToggled(Key.Scroll) || Settings.KeyboardHook;
+                if (!IsActive)
+                    ssKeyHookAllow = false;
+            }
+
+            if (!state.controlEnabled || !ssKeyHookAllow) {
+                if (keyHook.IsActive)
+                    keyHook.Uninstall();
+            } else {
+                if (!keyHook.IsActive)
+                    keyHook.Install();
+            }
+
+            if (canCheckKeyboard) //More like canUpdateUI
+                rcv.DisplayKeyHook(keyHook.IsActive && Settings.DisplayOverlayKeyboardHook);
+        }
+
+        private void KeyWinSet(bool set) {
+            if (!state.controlEnabled || endpointOS == Agent.OSProfile.Mac || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            keyDownWin = set;
+
+            if (keyDownWin) {
+                if (!listHeldKeysMod.Contains(keywin)) {
+                    listHeldKeysMod.Add(keywin);
+                    rc.SendKeyDown(keywin.JavascriptKeyCode, keywin.USBKeyCode);
+                }
+            } else {
+                if (listHeldKeysMod.Contains(keywin)) {
+                    listHeldKeysMod.Remove(keywin);
+                    rc.SendKeyUp(keywin.JavascriptKeyCode, keywin.USBKeyCode);
+                }
+            }
+
+            toolKeyWin.FontWeight = (keyDownWin ? FontWeights.Bold : FontWeights.Normal);
+        }
+
+        private void LoadSettings(bool isStart = false) {
+            if (isStart) {
+                if (rcv.SupportsLegacy) {
+                    state.useMultiScreen = Settings.StartMultiScreen;
+                } else {
+                    state.useMultiScreen = true;
+                }
+
+                if (state.useMultiScreen) {
+                    toolScreenMode.Content = "Multi";
+                    toolScreenOverview.Visibility = Visibility.Visible;
+                } else {
+                    toolScreenMode.Content = "Legacy";
+                    toolScreenOverview.Visibility = Visibility.Collapsed;
+                }
+
+                //SetControlEnabled(Settings.StartControlEnabled, true);
+
+                toolScreenMode.Visibility = rcv.SupportsLegacy ? Visibility.Visible : Visibility.Collapsed;
+                //toolZoomIn.Visibility = toolZoomOut.Visibility = rcv.SupportsBaseZoom ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            autotypeAlwaysConfirmed = Settings.AutotypeSkipLengthCheck;
+            ssKeyHookAllow = Settings.KeyboardHook;
+            KeyHookSet(false);
+
+            if (Settings.ClipboardSync == 2 && (endpointOS == Agent.OSProfile.Server || arrAdmins.Contains(endpointLastUser.ToLower()))) {
+                //Server/Admin only
+                ssClipboardSync = true;
+            } else {
+                ssClipboardSync = (Settings.ClipboardSync == 1);
+            }
+
+            // This repetition needs to be fixed
+            toolClipboardSync.Visibility = (ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
+            toolClipboardReceiveOnly.Visibility = !ssClipboardSync ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void ProgressDialog_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e) {
+            while (progressValue < 100) {
+                progressDialog.ReportProgress(progressValue);
+                System.Threading.Thread.Sleep(100);
+            }
+        }
+
+        private bool SwitchToLegacyRendering() {
+            if (rcv.SwitchToLegacy()) {
+                Dispatcher.Invoke((Action)delegate {
+                    toolScreenMode.Content = "Legacy";
+                    toolScreenOverview.Visibility = Visibility.Collapsed;
+                    toolZoomIn.Visibility = Visibility.Collapsed;
+                    toolZoomOut.Visibility = Visibility.Collapsed;
+                });
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool SwitchToMultiScreenRendering() {
+            if (rcv.SwitchToMultiScreen()) {
+                state.useMultiScreenOverview = false;
+                rcv.CameraToCurrentScreen();
+
+                Dispatcher.Invoke((Action)delegate {
+                    toolScreenMode.Content = "Multi";
+                    toolScreenOverview.Visibility = Visibility.Visible;
+                    toolZoomIn.Visibility = Visibility.Visible;
+                    toolZoomOut.Visibility = Visibility.Visible;
+                });
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private void SyncClipboard(object sender, EventArgs e) {
+            try {
+                if (ssClipboardSync && state.controlEnabled) {
+                    string temp = clipboard;
+                    this.ToolClipboardSend_Click(sender, e);
+                    if (clipboard != temp) {
+                        toolClipboardSend.Background = System.Windows.Media.Brushes.Orange;
+                        timerClipboard.Start();
+                    }
+                    //Console.WriteLine("[Clipboard sync] Success?");
+                }
+            } catch (Exception) {
+                //Console.WriteLine("[Clipboard sync] Fail");
+            }
+        }
+
+        private void TimerClipboard_Elapsed(object sender, ElapsedEventArgs e) {
+            Dispatcher.Invoke((Action)delegate {
+                toolClipboardSend.Background = System.Windows.Media.Brushes.Transparent;
+                toolClipboardGet.Background = System.Windows.Media.Brushes.Transparent;
+            });
+            timerClipboard.Stop();
+        }
+
+        private void ToolBlockMouseKB_Click(object sender, RoutedEventArgs e) {
+            toolBlockMouseKB.IsChecked = !toolBlockMouseKB.IsChecked;
+            rc.SendBlackScreenBlockInput(toolBlockScreen.IsChecked, toolBlockMouseKB.IsChecked);
+        }
+
+        private void ToolBlockScreen_Click(object sender, RoutedEventArgs e) {
+            toolBlockScreen.IsChecked = !toolBlockScreen.IsChecked;
+            rc.SendBlackScreenBlockInput(toolBlockScreen.IsChecked, toolBlockMouseKB.IsChecked);
+        }
+
+        private void ToolClipboardAutotype_Click(object sender, RoutedEventArgs e) {
+            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            PerformAutotype(true);
+        }
+
+        private void ToolClipboardGet_Click(object sender, RoutedEventArgs e) {
+            if (clipboard.Length > 0)
+                Clipboard.SetDataObject(clipboard);
+        }
+
+        private void ToolClipboardPaste_Click(object sender, RoutedEventArgs e) {
+            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            string text = Clipboard.GetText().Trim();
+            rc.SendPasteClipboard(text);
+        }
+
+        private void ToolClipboardSend_Click(object sender, EventArgs e) {
+            if (state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            clipboard = Clipboard.GetText();
+            rc.SendClipboard(clipboard);
+
+            //if (Settings.ClipboardSync > 0) toolClipboardGetText.Text = clipboard.Truncate(50);
+        }
+
+        private void ToolClipboardSend_MouseEnter(object sender, MouseEventArgs e) {
+            clipboard = Clipboard.GetText();
+            toolClipboardSendText.Text = clipboard.Truncate(50);
+        }
+
+        private void ToolClipboardSync_Click(object sender, RoutedEventArgs e) {
+            ssClipboardSync = !ssClipboardSync;
+
+            toolClipboardSync.Visibility = (ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
+            toolClipboardReceiveOnly.Visibility = (!ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
+        }
+
+        private void ToolDisconnect_Click(object sender, RoutedEventArgs e) {
+            //if (sessionId == null)
+            //NotifySocketClosed(null);
+            //else
+            rc.Disconnect(state.sessionId);
+        }
+
+        private void ToolKeyWin_Click(object sender, RoutedEventArgs e) {
+            KeyWinSet(!keyDownWin);
+        }
+
+        private void ToolMachineNoteLink_Click(object sender, RoutedEventArgs e) {
+            string link = toolMachineNoteLink.Header.ToString();
+            if (link.Contains("http"))
+                Process.Start(new ProcessStartInfo(link) { UseShellExecute = true });
+        }
+
+        private void toolOpenGLInfo_Click(object sender, RoutedEventArgs e) {
+            OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
+            MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
+
+            if (!(rcv is RCvCanvas))
+                ToolReconnect_Click(sender, e); //Issue with spawning an OpenGL when using GLControl
+        }
+
+        private void ToolOptions_Click(object sender, RoutedEventArgs e) {
+            WindowOptions winOptions = new WindowOptions(ref Settings, true) {
+                Owner = this
+            };
+            winOptions.ShowDialog();
+            LoadSettings();
+            if (!state.useMultiScreenOverview) //Not in Overview?
+                rcv.CameraToCurrentScreen(); //Multi-Screen Alt Fit
+        }
+
+        private void ToolPanicRelease_Click(object sender, RoutedEventArgs e) {
+            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            rc.SendPanicKeyRelease();
+            listHeldKeysMod.Clear();
+            KeyWinSet(false);
+
+            DebugKeyboard();
+        }
+
+        private void ToolReconnect_Click(object sender, RoutedEventArgs e) {
+            //if (App.alternative != null && (socketAlive || App.alternative.socketActive))
+            if (state.socketAlive && !requiredApproval)
+                rc.Reconnect();
+            else
+                ToolShowAlternative_Click(sender, e);
+        }
+
+        private void ToolScreen_Click(object sender, RoutedEventArgs e) {
+            TimeSpan span = DateTime.Now - winScreens.TimeDeactivated;
+            if (Settings.ScreenSelectNew) {
+                if (span.TotalMilliseconds < 500)
+                    winScreens.Hide(); //Doesn't really do anything, will act same as Legacy
+                else
+                    winScreens.Show();
+            }
+            //Otherwise the old menu is shown
         }
 
         private void ToolScreen_ItemClicked(object sender, RoutedEventArgs e) {
@@ -1060,55 +986,81 @@ namespace KLC_Finch {
             }
         }
 
-        public void SetScreen(string id) {
-            state.previousScreen = state.CurrentScreen;
-            state.CurrentScreen = state.ListScreen.First(x => x.screen_id == id);
-            rc.ChangeScreen(state.CurrentScreen.screen_id);
+        private void ToolScreenMode_Click(object sender, RoutedEventArgs e) {
+            if (state.useMultiScreen) {
+                SwitchToLegacyRendering();
+            } else {
+                SwitchToMultiScreenRendering();
+            }
 
-            if (state.useMultiScreen)
+            /*
+            state.useMultiScreen = !state.useMultiScreen;
+            if (state.useMultiScreen) {
+                state.useMultiScreenOverview = false;
                 rcv.CameraToCurrentScreen();
 
-            Dispatcher.Invoke((Action)delegate {
-                toolScreen.Content = state.CurrentScreen.screen_name;
-                toolScreen.ToolTip = state.CurrentScreen.StringResPos();
-
-                foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
-                    item.IsChecked = (item.Header.ToString() == state.CurrentScreen.ToString());
-                }
-            });
+                toolScreenMode.Content = "Multi";
+                toolScreenOverview.Visibility = Visibility.Visible;
+                toolZoomIn.Visibility = Visibility.Visible;
+                toolZoomOut.Visibility = Visibility.Visible;
+            } else {
+                toolScreenMode.Content = "Legacy";
+                toolScreenOverview.Visibility = Visibility.Collapsed;
+                toolZoomIn.Visibility = Visibility.Collapsed;
+                toolZoomOut.Visibility = Visibility.Collapsed;
+            }
+            */
         }
 
-        #endregion Host Desktop Configuration (Screens of current session)
-
-        #region Host Terminal Sessions List
-
-        public override void AddTSSession(string session_id, string session_name) {
-            TSSession newTSSession = new TSSession(session_id, session_name);
-            listTSSession.Add(newTSSession);
-
-            Dispatcher.Invoke((Action)delegate {
-                MenuItem item = new MenuItem {
-                    Header = session_name
-                };
-                item.Click += new RoutedEventHandler(ToolTSSession_ItemClicked);
-
-                toolTSSession.DropdownMenu.Items.Add(item);
-                toolTSSession.Visibility = Visibility.Visible;
-
-                if (currentTSSession == null) {
-                    currentTSSession = newTSSession;
-                    toolTSSession.Content = currentTSSession.session_name;
-                }
-            });
+        private void ToolScreenOverview_Click(object sender, RoutedEventArgs e) {
+            state.useMultiScreenOverview = !state.useMultiScreenOverview;
+            if (state.useMultiScreenOverview) {
+                SetControlEnabled(false);
+                rcv.CameraToOverview();
+            } else {
+                rcv.CameraToCurrentScreen();
+            }
         }
 
-        public override void ClearTSSessions() {
-            listTSSession.Clear();
-            currentTSSession = null;
+        private void ToolScreenshotToClipboard_Click(object sender, RoutedEventArgs e) {
+            if (state.connectionStatus != ConnectionStatus.Connected)
+                return;
 
-            Dispatcher.Invoke((Action)delegate {
-                toolTSSession.DropdownMenu.Items.Clear();
-            });
+            rc.CaptureNextScreen();
+        }
+
+        private void ToolSendCtrlAltDel_Click(object sender, RoutedEventArgs e) {
+            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            rc.SendSecureAttentionSequence();
+        }
+
+        private void ToolShowAlternative_Click(object sender, RoutedEventArgs e) {
+            if (App.alternative == null)
+                return;
+
+            if (App.alternative.WindowState == System.Windows.WindowState.Minimized)
+                App.alternative.WindowState = System.Windows.WindowState.Normal;
+            App.alternative.Visibility = Visibility.Visible;
+            App.alternative.Focus();
+
+            foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens) {
+                if (screen.Bounds.IntersectsWith(new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height))) {
+                    App.alternative.Left = screen.Bounds.X + ((screen.Bounds.Width - App.alternative.Width) / 2);
+                    App.alternative.Top = screen.Bounds.Y + ((screen.Bounds.Height - App.alternative.Height) / 2);
+                    break;
+                }
+            }
+        }
+
+        private void ToolShowMouse_Click(object sender, RoutedEventArgs e) {
+            toolShowMouse.IsChecked = !toolShowMouse.IsChecked;
+            rc.ShowCursor(toolShowMouse.IsChecked);
+        }
+
+        private void ToolToggleControl_Click(object sender, RoutedEventArgs e) {
+            SetControlEnabled(!state.controlEnabled);
         }
 
         private void ToolTSSession_ItemClicked(object sender, RoutedEventArgs e) {
@@ -1144,165 +1096,122 @@ namespace KLC_Finch {
             }
         }
 
-        #endregion Host Terminal Sessions List
-
-        #region Mouse and Keyboard
-
-        private readonly KeycodeV2 keyctrl = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.ControlKey);
-
-        private readonly KeycodeV2 keyshift = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.ShiftKey);
-
-        private readonly KeycodeV2 keywin = KeycodeV2.List.Find(x => x.Key == System.Windows.Forms.Keys.LWin);
-
-        private readonly List<KeycodeV2> listHeldKeysMod = new List<KeycodeV2>();
-
-        private readonly List<KeycodeV2> listHeldKeysOther = new List<KeycodeV2>();
-
-        public void DebugKeyboard() {
-            string strKeyboard = "";
-
-            if (Settings.DisplayOverlayKeyboardMod) {
-                string[] keysMod = new string[listHeldKeysMod.Count];
-                for (int i = 0; i < keysMod.Length; i++) {
-                    keysMod[i] = listHeldKeysMod[i].Display;
-                }
-
-                strKeyboard += String.Join(", ", keysMod);
-            }
-
-            if (Settings.DisplayOverlayKeyboardOther) {
-                string[] keysOther = new string[listHeldKeysOther.Count];
-                for (int i = 0; i < keysOther.Length; i++) {
-                    keysOther[i] = listHeldKeysOther[i].Display;
-                }
-
-                if (strKeyboard.Length > 0 && keysOther.Length > 0)
-                    strKeyboard += " | ";
-                strKeyboard += String.Join(", ", keysOther);
-
-                if (state.mouseHeldRight)
-                    strKeyboard = "MouseRight" + (strKeyboard == "" ? "" : " | " + strKeyboard);
-                if (state.mouseHeldLeft)
-                    strKeyboard = "MouseLeft" + (strKeyboard == "" ? "" : " | " + strKeyboard);
-            }
-
-            if (Settings.DisplayOverlayKeyboardMod || Settings.DisplayOverlayKeyboardOther) {
-                rcv.DisplayDebugKeyboard(strKeyboard);
-            }
-        }
-
-        public void DebugMouseEvent(int X, int Y) {
-            if (Settings.DisplayOverlayMouse)
-                rcv.DisplayDebugMouseEvent(X, Y);
-        }
-
-        private void ToolScreenMode_Click(object sender, RoutedEventArgs e) {
-            if(state.useMultiScreen) {
-                SwitchToLegacyRendering();
-            } else {
-                SwitchToMultiScreenRendering();
-            }
-
-            /*
-            state.useMultiScreen = !state.useMultiScreen;
-            if (state.useMultiScreen) {
-                state.useMultiScreenOverview = false;
-                rcv.CameraToCurrentScreen();
-
-                toolScreenMode.Content = "Multi";
-                toolScreenOverview.Visibility = Visibility.Visible;
-                toolZoomIn.Visibility = Visibility.Visible;
-                toolZoomOut.Visibility = Visibility.Visible;
-            } else {
-                toolScreenMode.Content = "Legacy";
-                toolScreenOverview.Visibility = Visibility.Collapsed;
-                toolZoomIn.Visibility = Visibility.Collapsed;
-                toolZoomOut.Visibility = Visibility.Collapsed;
-            }
-            */
-        }
-
-        private void ToolScreen_Click(object sender, RoutedEventArgs e) {
-            TimeSpan span = DateTime.Now - winScreens.TimeDeactivated;
-            if (Settings.ScreenSelectNew) {
-                if (span.TotalMilliseconds < 500)
-                    winScreens.Hide(); //Doesn't really do anything, will act same as Legacy
-                else
-                    winScreens.Show();
-            }
-            //Otherwise the old menu is shown
-        }
-
-        private void ToolClipboardPaste_Click(object sender, RoutedEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
-                return;
-
-            string text = Clipboard.GetText().Trim();
-            rc.SendPasteClipboard(text);
-        }
-
-        private void ToolShowMouse_Click(object sender, RoutedEventArgs e) {
-            toolShowMouse.IsChecked = !toolShowMouse.IsChecked;
-            rc.ShowCursor(toolShowMouse.IsChecked);
-        }
-
-        private void ToolBlockScreen_Click(object sender, RoutedEventArgs e) {
-            toolBlockScreen.IsChecked = !toolBlockScreen.IsChecked;
-            rc.SendBlackScreenBlockInput(toolBlockScreen.IsChecked, toolBlockMouseKB.IsChecked);
-        }
-
-        private void ToolBlockMouseKB_Click(object sender, RoutedEventArgs e) {
-            toolBlockMouseKB.IsChecked = !toolBlockMouseKB.IsChecked;
-            rc.SendBlackScreenBlockInput(toolBlockScreen.IsChecked, toolBlockMouseKB.IsChecked);
-        }
-
-        public void UpdateScreenLayoutHack() {
-            if (currentTSSession == null)
-                rc.ChangeTSSession("0");
-            else
-                rc.ChangeTSSession(currentTSSession.session_id);
-        }
-
         private void ToolUpdateScreenLayout_Click(object sender, RoutedEventArgs e) {
             UpdateScreenLayoutHack();
         }
 
-        private void Window_StateChanged(object sender, EventArgs e) {
-            if (WindowState == System.Windows.WindowState.Minimized) {
-                if (Settings.PowerSaveOnMinimize)
-                    rcv.ParentStateChange(false);
-            } else {
-                rcv.ParentStateChange(true);
-            }
+        private void toolViewRCLogs_Click(object sender, RoutedEventArgs e) {
+            string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
+            MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
         }
 
-        private void toolOpenGLInfo_Click(object sender, RoutedEventArgs e) {
-            OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
-            MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
-
-            if(!(rcv is RCvCanvas))
-                ToolReconnect_Click(sender, e); //Issue with spawning an OpenGL when using GLControl
+        private void ToolZoomIn_Click(object sender, RoutedEventArgs e) {
+            rcv.ZoomIn();
+            //DebugKeyboard();
+            rcv.Refresh();
         }
 
-        private void KeyWinSet(bool set) {
-            if (!state.controlEnabled || endpointOS == Agent.OSProfile.Mac || state.connectionStatus != ConnectionStatus.Connected)
+        private void ToolZoomOut_Click(object sender, RoutedEventArgs e) {
+            rcv.ZoomOut();
+            //DebugKeyboard();
+            rcv.Refresh();
+        }
+
+        private void Window_Activated(object sender, EventArgs e) {
+            if (!state.controlEnabled || state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
-            keyDownWin = set;
+            KeyHookSet(true);
+            state.windowActivatedMouseMove = true;
+        }
 
-            if (keyDownWin) {
-                if (!listHeldKeysMod.Contains(keywin)) {
-                    listHeldKeysMod.Add(keywin);
-                    rc.SendKeyDown(keywin.JavascriptKeyCode, keywin.USBKeyCode);
+        private void Window_Closed(object sender, EventArgs e) {
+            rcv.ControlUnload();
+
+            if (App.alternative != null && App.alternative.Visibility != Visibility.Visible)
+                Environment.Exit(0);
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+            if (keyHook.IsActive)
+                keyHook.Uninstall();
+
+            //NotifySocketClosed(sessionId);
+            rc.Disconnect(state.sessionId);
+
+            clipboardMon.OnUpdate -= SyncClipboard;
+        }
+
+        private void Window_Deactivated(object sender, EventArgs e) {
+            KeyHookSet(true);
+            if (!state.controlEnabled || state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            //Release modifier keys because the remote control window lost focus
+            if (listHeldKeysMod.Count > 0) {
+                foreach (KeycodeV3 k in listHeldKeysMod)
+                    rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
+                listHeldKeysMod.Clear();
+
+                KeyWinSet(false);
+
+                DebugKeyboard();
+            }
+        }
+
+        private void Window_Drop(object sender, DragEventArgs e) {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
+                if (progressDialog != null && progressDialog.IsBusy)
+                    return;
+
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                bool doUpload = false;
+                bool showExplorer = false;
+                using (TaskDialog dialog = new TaskDialog()) {
+                    dialog.WindowTitle = "KLC-Finch: Upload File";
+                    dialog.MainInstruction = "Upload dropped file to c:\\temp?";
+                    dialog.MainIcon = TaskDialogIcon.Information;
+                    dialog.CenterParent = true;
+                    dialog.Content = files[0];
+                    dialog.VerificationText = "Open file explorer when complete";
+                    dialog.IsVerificationChecked = true;
+
+                    TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
+                    TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                    dialog.Buttons.Add(tdbYes);
+                    dialog.Buttons.Add(tdbCancel);
+
+                    TaskDialogButton button = dialog.ShowDialog(this);
+                    doUpload = (button == tdbYes);
+                    showExplorer = dialog.IsVerificationChecked;
                 }
-            } else {
-                if (listHeldKeysMod.Contains(keywin)) {
-                    listHeldKeysMod.Remove(keywin);
-                    rc.SendKeyUp(keywin.JavascriptKeyCode, keywin.USBKeyCode);
+
+                if (doUpload) {
+                    progressValue = 0;
+                    progress = new Progress<int>(newValue => {
+                        progressValue = newValue;
+                    });
+                    progressDialog = new ProgressDialog {
+                        //ProgressBarStyle = ProgressBarStyle.MarqueeProgressBar,
+                        WindowTitle = "KLC-Finch: Upload File",
+                        Text = "Uploading to C:\\kworking\\System\\KRCTransferFiles",
+                        Description = "Source file: " + files[0],
+                        ShowCancelButton = false,
+                        ShowTimeRemaining = true
+                    };
+                    progressDialog.DoWork += ProgressDialog_DoWork;
+                    progressDialog.Show();
+
+                    rc.UploadDrop(files[0], progress, showExplorer);
                 }
             }
+        }
 
-            toolKeyWin.FontWeight = (keyDownWin ? FontWeights.Bold : FontWeights.Normal);
+        private void Window_KeyUp(object sender, KeyEventArgs e) {
+            System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
+            Window_KeyUp2(e2);
+            e.Handled = true;
         }
 
         private void Window_KeyUp2(System.Windows.Forms.KeyEventArgs e2) {
@@ -1324,15 +1233,14 @@ namespace KLC_Finch {
                 listHeldKeysMod.Clear();
                 KeyWinSet(false);
             } else {
-                KeycodeV2 keykaseyaUN = KeycodeV2.ListUnhandled.Find(x => x.Key == e2.KeyCode);
-                if (keykaseyaUN != null)
+                if (KeycodeV3.Unhandled.ContainsKey(e2.KeyCode))
                     return;
 
                 try {
-                    KeycodeV2 keykaseya = KeycodeV2.List.Find(x => x.Key == e2.KeyCode);
+                    KeycodeV3 keykaseya = KeycodeV3.Dictionary[e2.KeyCode];
 
                     if (endpointOS == Agent.OSProfile.Mac && Settings.MacSwapCtrlWin) {
-                        if (KeycodeV2.ModifiersControl.Contains(e2.KeyCode))
+                        if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
                             keykaseya = keywin;
                         else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
                             keykaseya = keyctrl;
@@ -1346,14 +1254,14 @@ namespace KLC_Finch {
                     rc.SendKeyUp(keykaseya.JavascriptKeyCode, keykaseya.USBKeyCode);
 
                     if (keyHook.IsActive) {
-                        if (keykaseya.Key == System.Windows.Forms.Keys.LWin || keykaseya.Key == System.Windows.Forms.Keys.RWin)
+                        if (e2.KeyCode == System.Windows.Forms.Keys.LWin || e2.KeyCode == System.Windows.Forms.Keys.RWin)
                             KeyWinSet(false);
                     } else {
                         if (keyDownWin && endpointOS != Agent.OSProfile.Mac) {
-                            foreach (KeycodeV2 k in listHeldKeysOther)
+                            foreach (KeycodeV3 k in listHeldKeysOther)
                                 rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
                             listHeldKeysOther.Clear();
-                            foreach (KeycodeV2 k in listHeldKeysMod)
+                            foreach (KeycodeV3 k in listHeldKeysMod)
                                 rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
                             listHeldKeysMod.Clear();
 
@@ -1361,18 +1269,25 @@ namespace KLC_Finch {
                         }
                     }
                 } catch {
-#if DEBUG
-                    Console.WriteLine("Up scan: " + e2.KeyCode + " / " + e2.KeyData + " / " + e2.KeyValue);
-#endif
+                    //Console.WriteLine("Up scan: " + e2.KeyCode + " / " + e2.KeyData + " / " + e2.KeyValue);
                 }
             }
 
             DebugKeyboard();
         }
 
-        private void Window_KeyUp(object sender, KeyEventArgs e) {
+        private void Window_Loaded(object sender, RoutedEventArgs e) {
+            winScreens.Owner = this;
+            KeyHookSet(true);
+
+            rcv.ControlLoaded(rc, state);
+        }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e) {
+            //Apparently preview is used because arrow keys?
+
             System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
-            Window_KeyUp2(e2);
+            Window_PreviewKeyDown2(e2);
             e.Handled = true;
         }
 
@@ -1389,28 +1304,27 @@ namespace KLC_Finch {
                 //Done on release
                 return true;
             } else if (e2.KeyCode == System.Windows.Forms.Keys.Oemtilde && e2.Control) {
-                PerformAutotype();
+                PerformAutotype(false);
             } else if (e2.KeyCode == System.Windows.Forms.Keys.V && e2.Control && e2.Shift) {
-                PerformAutotype();
+                PerformAutotype(false);
             } else {
-                KeycodeV2 keykaseyaUN = KeycodeV2.ListUnhandled.Find(x => x.Key == e2.KeyCode);
-                if (keykaseyaUN != null)
+                if (KeycodeV3.Unhandled.ContainsKey(e2.KeyCode))
                     return false;
 
                 try {
-                    KeycodeV2 keykaseya = KeycodeV2.List.Find(x => x.Key == e2.KeyCode);
+                    KeycodeV3 keykaseya = KeycodeV3.Dictionary[e2.KeyCode];
 
                     if (keykaseya == null)
                         throw new KeyNotFoundException(e2.KeyCode.ToString());
 
                     if (endpointOS == Agent.OSProfile.Mac && Settings.MacSwapCtrlWin) {
-                        if (KeycodeV2.ModifiersControl.Contains(e2.KeyCode))
+                        if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
                             keykaseya = keywin;
                         else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
                             keykaseya = keyctrl;
                     }
 
-                    if (keykaseya.Key == System.Windows.Forms.Keys.LWin || keykaseya.Key == System.Windows.Forms.Keys.RWin)
+                    if (e2.KeyCode == System.Windows.Forms.Keys.LWin || e2.KeyCode == System.Windows.Forms.Keys.RWin)
                         KeyWinSet(true);
 
                     if (keykaseya.IsMod) {
@@ -1424,9 +1338,7 @@ namespace KLC_Finch {
                     //Still allow holding it down
                     rc.SendKeyDown(keykaseya.JavascriptKeyCode, keykaseya.USBKeyCode);
                 } catch {
-#if DEBUG
-                    Console.WriteLine("DOWN scan: " + e2.KeyCode + " / " + e2.KeyData + " / " + e2.KeyValue);
-#endif
+                    //Console.WriteLine("DOWN scan: " + e2.KeyCode + " / " + e2.KeyData + " / " + e2.KeyValue);
                 }
 
                 DebugKeyboard();
@@ -1435,19 +1347,13 @@ namespace KLC_Finch {
             return true;
         }
 
-        private void Window_PreviewKeyDown(object sender, KeyEventArgs e) {
-            //Apparently preview is used because arrow keys?
-
-            System.Windows.Forms.KeyEventArgs e2 = e.ToWinforms();
-            Window_PreviewKeyDown2(e2);
-            e.Handled = true;
-        }
-
-        #endregion Mouse and Keyboard
-
-        private void toolViewRCLogs_Click(object sender, RoutedEventArgs e) {
-            string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
-            MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
+        private void Window_StateChanged(object sender, EventArgs e) {
+            if (WindowState == System.Windows.WindowState.Minimized) {
+                if (Settings.PowerSaveOnMinimize)
+                    rcv.ParentStateChange(false);
+            } else {
+                rcv.ParentStateChange(true);
+            }
         }
     }
 }

@@ -71,7 +71,13 @@ namespace KLC_Finch {
 
             //--
 
-            HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : null);
+            if (App.Settings.AltModulesStartAuto) {
+                for (int i = 1; i < tabControl.Items.Count; i++) {
+                    ((TabItem)tabControl.Items[i]).IsEnabled = false;
+                }
+            }
+
+            HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
             session = new KLC.LiveConnectSession(shortToken, agentID, callback);
             if(session.Eirc == null) {
                 session = null;
@@ -109,10 +115,23 @@ namespace KLC_Finch {
         public void ConnectDirect() {
             session.ModuleRemoteControl = new RemoteControl(session, directToPrivate);
             Application.Current.Dispatcher.Invoke((Action)delegate {
+                ConnectUpdateUI();
                 session.ModuleRemoteControl.Connect();
 
                 this.Visibility = Visibility.Collapsed;
             });
+        }
+        public void ConnectNotDirect() {
+            Application.Current.Dispatcher.Invoke((Action)delegate {
+                ConnectUpdateUI();
+            });
+        }
+        private void ConnectUpdateUI() {
+            if (App.Settings.AltModulesStartAuto) {
+                for (int i = 1; i < tabControl.Items.Count; i++) {
+                    ((TabItem)tabControl.Items[i]).IsEnabled = true;
+                }
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
@@ -123,9 +142,11 @@ namespace KLC_Finch {
 
             if (session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac) {
                 tabCommand.Header = "Terminal";
+                ctrlCommand.chkAllowColour.IsChecked = true;
+
                 tabPowershell.Visibility = Visibility.Collapsed;
                 tabRegistry.Visibility = Visibility.Collapsed;
-                ctrlCommand.chkAllowColour.IsChecked = true;
+                tabEvents.Visibility = Visibility.Collapsed;
             } else {
                 ctrlCommand.btnCommandMacKillKRCH.Visibility = Visibility.Collapsed;
             }
@@ -236,6 +257,13 @@ namespace KLC_Finch {
                 else if (tabProcesses.IsSelected)
                     ctrlProcesses.btnProcessesRefresh_Click(sender, null);
             }
+        }
+
+        private void btnAltSettings_Click(object sender, RoutedEventArgs e) {
+            WindowOptions winOptions = new WindowOptions(ref App.Settings, false) {
+                Owner = this
+            };
+            winOptions.ShowDialog();
         }
     }
 }

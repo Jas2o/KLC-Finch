@@ -15,7 +15,8 @@ namespace NTR {
         //public int screen_y;
 
         public Rectangle rect;
-        public Rectangle rectFixed;
+        public Rectangle rectOrg { get; private set; }
+        //public Rectangle rectFixed;
 
         public TextureScreen Texture;
         //public System.Windows.Shapes.Rectangle Shape;
@@ -31,7 +32,9 @@ namespace NTR {
             //this.screen_y = screen_y;
 
             rect = new Rectangle(screen_x, screen_y, screen_width, screen_height);
+            rectOrg = new Rectangle(screen_x, screen_y, screen_width, screen_height);
 
+            /*
             //--
 
             int multiple = 4;
@@ -49,6 +52,7 @@ namespace NTR {
                 fixedHeight = result + multiple;
 
             rectFixed = new Rectangle(screen_x, screen_y, fixedWidth, fixedHeight);
+            */
         }
 
         public string StringResPos() {

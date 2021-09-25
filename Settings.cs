@@ -13,6 +13,8 @@ namespace KLC_Finch {
 
         //--
 
+        public bool AltModulesStartAuto { get; set; } = true;
+
         public bool AutotypeSkipLengthCheck { get; set; } = false;
         public bool StartControlEnabled { get; set; } = true;
         //[JsonIgnore] private bool ClipboardSyncEnabled { get; set; } = false; //No longer used

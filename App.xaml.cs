@@ -18,7 +18,7 @@ namespace KLC_Finch {
 
         public static string Version;
         public static WindowAlternative alternative;
-        public static WindowViewer viewer;
+        public static WindowViewerV3 viewer;
         public static Settings Settings;
 
         public App() : base() {

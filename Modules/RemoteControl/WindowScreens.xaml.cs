@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using LibKaseya;
+using Newtonsoft.Json;
 using NTR;
 using System;
 using System.Collections.Generic;
@@ -30,9 +31,12 @@ namespace KLC_Finch {
 
         public DateTime TimeDeactivated;
 
-        public WindowScreens() {
+        public WindowScreens(Agent.OSProfile endpointOS = Agent.OSProfile.Other) {
             InitializeComponent();
             rcBorderExample.Visibility = Visibility.Hidden;
+            
+            if (endpointOS == Agent.OSProfile.Mac)
+                toolUpdate.Visibility = Visibility.Collapsed;
         }
 
         private void Window_Activated(object sender, EventArgs e) {
@@ -145,26 +149,62 @@ namespace KLC_Finch {
             rcViewbox.Stretch = Stretch.None;
         }
 
-        private void ToolUpdateInfo_Click(object sender, RoutedEventArgs e) {
+        private void ToolUpdate_Click(object sender, RoutedEventArgs e) {
             viewer.UpdateScreenLayoutHack();
         }
 
-        private void ToolDumpInfo_Click(object sender, RoutedEventArgs e) {
+        private void ToolReflow_Click(object sender, RoutedEventArgs e) {
+            List<RCScreen> listScreen = viewer.GetListScreen();
+            if (listScreen == null)
+                return;
+
+            RCScreen center = listScreen.Find(x => x.rectOrg.X == 0);
+            if (center == null)
+                return;
+
+            foreach(RCScreen screen in listScreen) {
+                if (screen != center) {
+                    if (screen.rectOrg.X > 0) {
+                        screen.rect.X = center.rect.Right;
+                    } else if (screen.rectOrg.X < 0) {
+                        screen.rect.X = -screen.rect.Width;
+                    }
+                }
+            }
+
+            viewer.UpdateScreenLayoutReflow();
+        }
+
+        private void toolReset_Click(object sender, RoutedEventArgs e) {
+            List<RCScreen> listScreen = viewer.GetListScreen();
+            if (listScreen == null)
+                return;
+
+            foreach (RCScreen screen in listScreen) {
+                screen.rect = screen.rectOrg;
+            }
+
+            viewer.UpdateScreenLayoutReflow();
+        }
+
+        private void ToolDump_Click(object sender, RoutedEventArgs e) {
             List<RCScreen> listScreen = viewer.GetListScreen();
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("Start info:");
             sb.AppendLine(infoStart);
             sb.AppendLine("");
-            sb.AppendLine("Current info (Normal)");
-            foreach(RCScreen screen in listScreen) {
-                sb.AppendLine('{' + string.Format("\"screen_height\":{0},\"screen_id\":{1},\"screen_name\":\"{2}\",\"screen_width\":{3},\"screen_x\":{4},\"screen_y\":{5}", screen.rect.Height, screen.screen_id, screen.screen_name, screen.rect.Width, screen.rect.X, screen.rect.Y) + '}');
+            sb.AppendLine("Current info");
+            foreach (RCScreen screen in listScreen) {
+                sb.AppendLine('{' + string.Format("\"screen_height\":{0},\"screen_id\":{1},\"screen_name\":\"{2}\",\"screen_width\":{3},\"screen_x\":{4},\"screen_y\":{5}", screen.rect.Height, screen.screen_id, screen.screen_name.Replace("\\", "\\\\"), screen.rect.Width, screen.rect.X, screen.rect.Y) + '}');
             }
+            /*
             sb.AppendLine("");
             sb.AppendLine("Current info (Fixed)");
             foreach (RCScreen screen in listScreen) {
-                sb.AppendLine('{' + string.Format("\"screen_height\":{0},\"screen_id\":{1},\"screen_name\":\"{2}\",\"screen_width\":{3},\"screen_x\":{4},\"screen_y\":{5}", screen.rectFixed.Height, screen.screen_id, screen.screen_name, screen.rectFixed.Width, screen.rectFixed.X, screen.rectFixed.Y) + '}');
+                sb.AppendLine('{' + string.Format("\"screen_height\":{0},\"screen_id\":{1},\"screen_name\":\"{2}\",\"screen_width\":{3},\"screen_x\":{4},\"screen_y\":{5}", screen.rect.Height, screen.screen_id, screen.screen_name, screen.rect.Width, screen.rect.X, screen.rect.Y) + '}');
             }
+            */
 
             Clipboard.SetDataObject(sb.ToString());
         }

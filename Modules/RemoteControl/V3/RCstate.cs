@@ -7,52 +7,64 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace KLC_Finch {
+    public enum ConnectionStatus {
+        FirstConnectionAttempt,
+        Connected,
+        Disconnected
+    }
+
+    public enum ScreenStatus {
+        Preparing,
+        LayoutReady,
+        Stable
+    }
+
     public class RCstate {
 
-        public WindowViewerV3 Window;
-
-        public string sessionId;
-        public string BaseTitle;
-        public bool socketAlive = false;
-        public ConnectionStatus connectionStatus = ConnectionStatus.FirstConnectionAttempt;
-        public long lastLatency;
-        public bool powerSaving;
-        public bool requiredApproval = false;
         public bool autotypeAlwaysConfirmed = false;
-        public ScreenStatus screenStatus = ScreenStatus.Preparing;
-        public int virtualWidth, virtualHeight;
+        public string BaseTitle;
+        public ConnectionStatus connectionStatus = ConnectionStatus.FirstConnectionAttempt;
+        public bool controlEnabled = false;
+        public RCScreen CurrentScreen;
+        public long lastLatency;
+        public RCScreen legacyScreen;
         public int legacyVirtualWidth, legacyVirtualHeight;
         public List<RCScreen> ListScreen;
-        public RCScreen CurrentScreen;
-        public RCScreen previousScreen;
-        public RCScreen legacyScreen;
-        public TextureCursor textureCursor = null;
-        public TextureScreen textureLegacy;
-        public bool windowActivatedMouseMove;
-        public bool controlEnabled = false;
-        public bool useMultiScreen;
-        public bool useMultiScreenOverview;
-        public Rectangle virtualCanvas, virtualViewWant, virtualViewNeed;
-        public bool virtualRequireViewportUpdate = false;
-
         public bool mouseHeldLeft = false;
         public bool mouseHeldRight = false;
+        public bool powerSaving;
+        public RCScreen previousScreen;
+        public bool requiredApproval = false;
+        public ScreenStatus screenStatus = ScreenStatus.Preparing;
+        public string sessionId;
+        public bool socketAlive = false;
+        public TextureCursor textureCursor = null;
+        public TextureScreen textureLegacy;
+        public bool useMultiScreen;
+        public bool useMultiScreenOverview;
+        public bool useMultiScreenPanZoom;
+        public Rectangle virtualCanvas, virtualViewWant, virtualViewNeed;
+        public bool virtualRequireViewportUpdate = false;
+        public int virtualWidth, virtualHeight;
+        public WindowViewerV3 Window;
+        public bool windowActivatedMouseMove;
 
         public RCstate(WindowViewerV3 window) {
             Window = window;
             ListScreen = new List<RCScreen>();
         }
 
-        public bool WindowIsActive() {
-            return Window.IsActive;
-        }
-
         public RCScreen GetScreenUsingMouse(int x, int y) {
+            if (CurrentScreen.rect.Contains(x, y))
+                return CurrentScreen;
+
             //This doesn't yet work in Canvas
             foreach (RCScreen screen in ListScreen) {
-                if (screen.rect.Contains(x, y)) {
+                if (screen == CurrentScreen)
+                    continue;
+
+                if (screen.rect.Contains(x, y))
                     return screen;
-                }
             }
             return null;
         }
@@ -69,20 +81,28 @@ namespace KLC_Finch {
             virtualRequireViewportUpdate = true;
         }
 
-    }
+        public bool WindowIsActive() {
+            return Window.IsActive;
+        }
 
-    public enum ScreenStatus {
-        Preparing,
-        LayoutReady,
-        Stable
-    }
+        public void ZoomIn() {
+            if (!useMultiScreen)
+                return;
+            if (virtualViewWant.Width - 200 < 0 || virtualViewWant.Height - 200 < 0)
+                return;
 
-    public enum ConnectionStatus {
-        FirstConnectionAttempt,
-        Connected,
-        Disconnected
-    }
+            virtualViewWant = new Rectangle(virtualViewWant.X + 100, virtualViewWant.Y + 100, virtualViewWant.Width - 200, virtualViewWant.Height - 200);
+            virtualRequireViewportUpdate = true;
+        }
 
+        public void ZoomOut() {
+            if (!useMultiScreen)
+                return;
+
+            virtualViewWant = new Rectangle(virtualViewWant.X - 100, virtualViewWant.Y - 100, virtualViewWant.Width + 200, virtualViewWant.Height + 200);
+            virtualRequireViewportUpdate = true;
+        }
+    }
     /*
     public enum GraphicsMode {
         OpenGL_YUV = 0,
