@@ -52,7 +52,6 @@ namespace KLC_Finch {
         private RCv rcv;
         private bool requiredApproval;
         private ScreenStatus screenStatus;
-        private bool ssClipboardSync;
         private bool ssKeyHookAllow;
         private RCstate state;
 
@@ -61,6 +60,7 @@ namespace KLC_Finch {
 
             this.rc = rc;
             state = new RCstate(this);
+            this.DataContext = state;
 
             winScreens = new WindowScreens(endpointOS);
             keyHook = new KeyboardHook();
@@ -237,7 +237,7 @@ namespace KLC_Finch {
             if (screenStatus == ScreenStatus.Preparing)
                 return;
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 if (state.CurrentScreen == null) {
                     //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
                     //listScreen might be empty
@@ -321,9 +321,9 @@ namespace KLC_Finch {
                 state.CurrentScreen.rect.Width = width;
                 state.CurrentScreen.rect.Height = height;
 
-                if (state.useMultiScreen) {
+                if (state.UseMultiScreen) {
                     //Retina hack
-                    if (state.useMultiScreenOverview)
+                    if (state.UseMultiScreenOverview)
                         rcv.CameraToOverview();
                     else
                         rcv.CameraToCurrentScreen();
@@ -341,7 +341,7 @@ namespace KLC_Finch {
             if (screenStatus == ScreenStatus.Preparing || width * height <= 0)
                 return;
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 if (state.CurrentScreen == null) {
                     //Console.WriteLine("[LoadTexture] No matching RCScreen for screen ID: " + screenID);
                     //listScreen might be empty
@@ -392,9 +392,9 @@ namespace KLC_Finch {
                 state.CurrentScreen.rect.Width = width;
                 state.CurrentScreen.rect.Height = height;
 
-                if (state.useMultiScreen) {
+                if (state.UseMultiScreen) {
                     //Retina hack
-                    if (state.useMultiScreenOverview)
+                    if (state.UseMultiScreenOverview)
                         rcv.CameraToOverview();
                     else
                         rcv.CameraToCurrentScreen();
@@ -507,23 +507,15 @@ namespace KLC_Finch {
 
         public void SetControlEnabled(bool value, bool isStart = false) {
             if (isStart) {
-                state.controlEnabled = Settings.StartControlEnabled;
-                if (Settings.StartMultiScreen && state.controlEnabled)
+                state.ControlEnabled = Settings.StartControlEnabled;
+                if (Settings.StartMultiScreen && state.ControlEnabled)
                     rcv.CameraToCurrentScreen();
                 else
-                    state.useMultiScreenOverview = true;
+                    state.UseMultiScreenOverview = true;
             } else
-                state.controlEnabled = value;
+                state.ControlEnabled = value;
 
             Dispatcher.Invoke((Action)delegate {
-                if (state.controlEnabled)
-                    toolToggleControl.Content = "Control Enabled";
-                else
-                    toolToggleControl.Content = "Control Disabled";
-                toolToggleControl.FontWeight = (state.controlEnabled ? FontWeights.Normal : FontWeights.Bold);
-
-                toolSendCtrlAltDel.IsEnabled = state.controlEnabled;
-
                 if (state.connectionStatus != ConnectionStatus.Disconnected) {
                     rcv.DisplayControl(value);
                 }
@@ -537,7 +529,7 @@ namespace KLC_Finch {
             state.CurrentScreen = state.ListScreen.First(x => x.screen_id == id);
             rc.ChangeScreen(state.CurrentScreen.screen_id);
 
-            if (state.useMultiScreen)
+            if (state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
 
             Dispatcher.Invoke((Action)delegate {
@@ -566,7 +558,7 @@ namespace KLC_Finch {
         }
 
         public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight) {
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 state.virtualViewWant = new Rectangle(virtualX, virtualY, virtualWidth, virtualHeight);
             } else {
                 state.legacyVirtualWidth = virtualWidth;
@@ -716,7 +708,7 @@ namespace KLC_Finch {
                     ssKeyHookAllow = false;
             }
 
-            if (!state.controlEnabled || !ssKeyHookAllow) {
+            if (!state.ControlEnabled || !ssKeyHookAllow) {
                 if (keyHook.IsActive)
                     keyHook.Uninstall();
             } else {
@@ -729,7 +721,7 @@ namespace KLC_Finch {
         }
 
         private void KeyWinSet(bool set) {
-            if (!state.controlEnabled || endpointOS == Agent.OSProfile.Mac || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || endpointOS == Agent.OSProfile.Mac || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             keyDownWin = set;
@@ -752,23 +744,12 @@ namespace KLC_Finch {
         private void LoadSettings(bool isStart = false) {
             if (isStart) {
                 if (rcv.SupportsLegacy) {
-                    state.useMultiScreen = Settings.StartMultiScreen;
+                    state.UseMultiScreen = Settings.StartMultiScreen;
                 } else {
-                    state.useMultiScreen = true;
-                }
-
-                if (state.useMultiScreen) {
-                    toolScreenMode.Content = "Multi";
-                    toolScreenOverview.Visibility = Visibility.Visible;
-                } else {
-                    toolScreenMode.Content = "Legacy";
-                    toolScreenOverview.Visibility = Visibility.Collapsed;
+                    state.UseMultiScreen = true;
                 }
 
                 //SetControlEnabled(Settings.StartControlEnabled, true);
-
-                toolScreenMode.Visibility = rcv.SupportsLegacy ? Visibility.Visible : Visibility.Collapsed;
-                //toolZoomIn.Visibility = toolZoomOut.Visibility = rcv.SupportsBaseZoom ? Visibility.Visible : Visibility.Collapsed;
             }
 
             autotypeAlwaysConfirmed = Settings.AutotypeSkipLengthCheck;
@@ -777,14 +758,10 @@ namespace KLC_Finch {
 
             if (Settings.ClipboardSync == 2 && (endpointOS == Agent.OSProfile.Server || arrAdmins.Contains(endpointLastUser.ToLower()))) {
                 //Server/Admin only
-                ssClipboardSync = true;
+                state.SsClipboardSync = true;
             } else {
-                ssClipboardSync = (Settings.ClipboardSync == 1);
+                state.SsClipboardSync = (Settings.ClipboardSync == 1);
             }
-
-            // This repetition needs to be fixed
-            toolClipboardSync.Visibility = (ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
-            toolClipboardReceiveOnly.Visibility = !ssClipboardSync ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void ProgressDialog_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e) {
@@ -796,13 +773,6 @@ namespace KLC_Finch {
 
         private bool SwitchToLegacyRendering() {
             if (rcv.SwitchToLegacy()) {
-                Dispatcher.Invoke((Action)delegate {
-                    toolScreenMode.Content = "Legacy";
-                    toolScreenOverview.Visibility = Visibility.Collapsed;
-                    toolZoomIn.Visibility = Visibility.Collapsed;
-                    toolZoomOut.Visibility = Visibility.Collapsed;
-                });
-
                 return true;
             }
 
@@ -811,15 +781,8 @@ namespace KLC_Finch {
 
         private bool SwitchToMultiScreenRendering() {
             if (rcv.SwitchToMultiScreen()) {
-                state.useMultiScreenOverview = false;
+                state.UseMultiScreenOverview = false;
                 rcv.CameraToCurrentScreen();
-
-                Dispatcher.Invoke((Action)delegate {
-                    toolScreenMode.Content = "Multi";
-                    toolScreenOverview.Visibility = Visibility.Visible;
-                    toolZoomIn.Visibility = Visibility.Visible;
-                    toolZoomOut.Visibility = Visibility.Visible;
-                });
 
                 return true;
             }
@@ -829,7 +792,7 @@ namespace KLC_Finch {
 
         private void SyncClipboard(object sender, EventArgs e) {
             try {
-                if (ssClipboardSync && state.controlEnabled) {
+                if (state.SsClipboardSync && state.ControlEnabled) {
                     string temp = clipboard;
                     this.ToolClipboardSend_Click(sender, e);
                     if (clipboard != temp) {
@@ -862,7 +825,7 @@ namespace KLC_Finch {
         }
 
         private void ToolClipboardAutotype_Click(object sender, RoutedEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             PerformAutotype(true);
@@ -874,7 +837,7 @@ namespace KLC_Finch {
         }
 
         private void ToolClipboardPaste_Click(object sender, RoutedEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             string text = Clipboard.GetText().Trim();
@@ -897,10 +860,7 @@ namespace KLC_Finch {
         }
 
         private void ToolClipboardSync_Click(object sender, RoutedEventArgs e) {
-            ssClipboardSync = !ssClipboardSync;
-
-            toolClipboardSync.Visibility = (ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
-            toolClipboardReceiveOnly.Visibility = (!ssClipboardSync ? Visibility.Visible : Visibility.Collapsed);
+            state.SsClipboardSync = !state.SsClipboardSync;
         }
 
         private void ToolDisconnect_Click(object sender, RoutedEventArgs e) {
@@ -934,12 +894,12 @@ namespace KLC_Finch {
             };
             winOptions.ShowDialog();
             LoadSettings();
-            if (!state.useMultiScreenOverview) //Not in Overview?
+            if (!state.UseMultiScreenOverview) //Not in Overview?
                 rcv.CameraToCurrentScreen(); //Multi-Screen Alt Fit
         }
 
         private void ToolPanicRelease_Click(object sender, RoutedEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.SendPanicKeyRelease();
@@ -976,7 +936,7 @@ namespace KLC_Finch {
             state.CurrentScreen = state.ListScreen.First(x => x.screen_name == screen_selected[0]);
             rc.ChangeScreen(state.CurrentScreen.screen_id);
 
-            if (state.useMultiScreen)
+            if (state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
 
             toolScreen.Content = state.CurrentScreen.screen_name;
@@ -987,34 +947,16 @@ namespace KLC_Finch {
         }
 
         private void ToolScreenMode_Click(object sender, RoutedEventArgs e) {
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 SwitchToLegacyRendering();
             } else {
                 SwitchToMultiScreenRendering();
             }
-
-            /*
-            state.useMultiScreen = !state.useMultiScreen;
-            if (state.useMultiScreen) {
-                state.useMultiScreenOverview = false;
-                rcv.CameraToCurrentScreen();
-
-                toolScreenMode.Content = "Multi";
-                toolScreenOverview.Visibility = Visibility.Visible;
-                toolZoomIn.Visibility = Visibility.Visible;
-                toolZoomOut.Visibility = Visibility.Visible;
-            } else {
-                toolScreenMode.Content = "Legacy";
-                toolScreenOverview.Visibility = Visibility.Collapsed;
-                toolZoomIn.Visibility = Visibility.Collapsed;
-                toolZoomOut.Visibility = Visibility.Collapsed;
-            }
-            */
         }
 
         private void ToolScreenOverview_Click(object sender, RoutedEventArgs e) {
-            state.useMultiScreenOverview = !state.useMultiScreenOverview;
-            if (state.useMultiScreenOverview) {
+            state.UseMultiScreenOverview = !state.UseMultiScreenOverview;
+            if (state.UseMultiScreenOverview) {
                 SetControlEnabled(false);
                 rcv.CameraToOverview();
             } else {
@@ -1030,7 +972,7 @@ namespace KLC_Finch {
         }
 
         private void ToolSendCtrlAltDel_Click(object sender, RoutedEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             rc.SendSecureAttentionSequence();
@@ -1060,7 +1002,7 @@ namespace KLC_Finch {
         }
 
         private void ToolToggleControl_Click(object sender, RoutedEventArgs e) {
-            SetControlEnabled(!state.controlEnabled);
+            SetControlEnabled(!state.ControlEnabled);
         }
 
         private void ToolTSSession_ItemClicked(object sender, RoutedEventArgs e) {
@@ -1075,21 +1017,9 @@ namespace KLC_Finch {
             currentTSSession = selectedTSSession;
             rc.ChangeTSSession(currentTSSession.session_id);
 
-            state.useMultiScreen = Settings.StartMultiScreen;
+            state.UseMultiScreen = Settings.StartMultiScreen;
 
             toolTSSession.Content = currentTSSession.session_name;
-
-            if (state.useMultiScreen) {
-                toolScreenMode.Content = "Multi";
-                toolScreenOverview.Visibility = Visibility.Visible;
-                toolZoomIn.Visibility = Visibility.Visible;
-                toolZoomOut.Visibility = Visibility.Visible;
-            } else {
-                toolScreenMode.Content = "Legacy";
-                toolScreenOverview.Visibility = Visibility.Collapsed;
-                toolZoomIn.Visibility = Visibility.Collapsed;
-                toolZoomOut.Visibility = Visibility.Collapsed;
-            }
 
             foreach (MenuItem item in toolTSSession.DropdownMenu.Items) {
                 item.IsChecked = (item == source);
@@ -1105,6 +1035,11 @@ namespace KLC_Finch {
             MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
         }
 
+        private void toolPanZoom_Click(object sender, RoutedEventArgs e) {
+            rcv.TogglePanZoom();
+        }
+
+        /*
         private void ToolZoomIn_Click(object sender, RoutedEventArgs e) {
             rcv.ZoomIn();
             //DebugKeyboard();
@@ -1116,9 +1051,10 @@ namespace KLC_Finch {
             //DebugKeyboard();
             rcv.Refresh();
         }
+        */
 
         private void Window_Activated(object sender, EventArgs e) {
-            if (!state.controlEnabled || state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             KeyHookSet(true);
@@ -1144,7 +1080,7 @@ namespace KLC_Finch {
 
         private void Window_Deactivated(object sender, EventArgs e) {
             KeyHookSet(true);
-            if (!state.controlEnabled || state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             //Release modifier keys because the remote control window lost focus
@@ -1220,7 +1156,7 @@ namespace KLC_Finch {
                 return;
             } else if (e2.KeyCode == System.Windows.Forms.Keys.PrintScreen) {
                 rc.CaptureNextScreen();
-            } else if (!state.controlEnabled) {
+            } else if (!state.ControlEnabled) {
                 if (e2.KeyCode == System.Windows.Forms.Keys.F2)
                     SetControlEnabled(true);
                 return;
@@ -1294,22 +1230,22 @@ namespace KLC_Finch {
         private bool Window_PreviewKeyDown2(System.Windows.Forms.KeyEventArgs e2) {
             if (e2.KeyCode == System.Windows.Forms.Keys.F1) {
                 SetControlEnabled(false);
-                rcv.CameraToOverview();
+                if(!state.UseMultiScreenPanZoom)
+                    rcv.CameraToOverview();
             }
 
             if (state.connectionStatus != ConnectionStatus.Connected)
                 return false;
-            if(!state.controlEnabled) {
-                if (state.useMultiScreenPanZoom) {
-                    if (e2.KeyCode == System.Windows.Forms.Keys.W) {
+            if(!state.ControlEnabled) {
+                if (state.UseMultiScreenPanZoom) {
+                    if (Keyboard.IsKeyDown(Key.W))
                         rcv.MoveUp();
-                    } else if (e2.KeyCode == System.Windows.Forms.Keys.S) {
+                    else if (Keyboard.IsKeyDown(Key.S))
                         rcv.MoveDown();
-                    } else if (e2.KeyCode == System.Windows.Forms.Keys.A) {
+                    if (Keyboard.IsKeyDown(Key.A))
                         rcv.MoveLeft();
-                    } else if (e2.KeyCode == System.Windows.Forms.Keys.D) {
+                    else if (Keyboard.IsKeyDown(Key.D))
                         rcv.MoveRight();
-                    }
                 }
                 return false;
             }
@@ -1369,5 +1305,6 @@ namespace KLC_Finch {
                 rcv.ParentStateChange(true);
             }
         }
+
     }
 }

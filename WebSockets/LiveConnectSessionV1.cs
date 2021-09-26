@@ -36,6 +36,7 @@ namespace KLC {
         public KLC_Finch.Modules.Events ModuleEvents;
         public KLC_Finch.Modules.Services ModuleServices;
         public KLC_Finch.Modules.Processes ModuleProcesses;
+        public Toolbox ModuleToolbox;
 
         public WindowAlternative.HasConnected Callback;
 

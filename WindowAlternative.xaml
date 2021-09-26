@@ -148,6 +148,9 @@
             <TabItem x:Name="tabProcesses" Header="Processes">
                 <command:controlProcesses x:Name="ctrlProcesses" />
             </TabItem>
+            <TabItem x:Name="tabToolbox" Header="Toolbox">
+                <command:controlToolbox x:Name="ctrlToolbox" />
+            </TabItem>
         </TabControl>
 
     </Grid>

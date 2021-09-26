@@ -81,7 +81,7 @@ namespace KLC_Finch.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 2021-06-24 
+        ///   Looks up a localized string similar to 2021-09-26 
         ///.
         /// </summary>
         internal static string BuildDate {
@@ -96,6 +96,36 @@ namespace KLC_Finch.Properties {
         internal static System.Drawing.Bitmap clipboard_arrow_down_outline {
             get {
                 object obj = ResourceManager.GetObject("clipboard_arrow_down_outline", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap fit_to_page_outline {
+            get {
+                object obj = ResourceManager.GetObject("fit_to_page_outline", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap fit_to_screen_outline {
+            get {
+                object obj = ResourceManager.GetObject("fit_to_screen_outline", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap magnify_expand {
+            get {
+                object obj = ResourceManager.GetObject("magnify_expand", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

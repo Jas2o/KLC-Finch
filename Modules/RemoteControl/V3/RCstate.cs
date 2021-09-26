@@ -1,12 +1,12 @@
 ﻿using NTR;
-using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
+using System.Windows;
 
 namespace KLC_Finch {
+
     public enum ConnectionStatus {
         FirstConnectionAttempt,
         Connected,
@@ -19,12 +19,10 @@ namespace KLC_Finch {
         Stable
     }
 
-    public class RCstate {
-
+    public class RCstate : INotifyPropertyChanged {
         public bool autotypeAlwaysConfirmed = false;
         public string BaseTitle;
         public ConnectionStatus connectionStatus = ConnectionStatus.FirstConnectionAttempt;
-        public bool controlEnabled = false;
         public RCScreen CurrentScreen;
         public long lastLatency;
         public RCScreen legacyScreen;
@@ -40,9 +38,6 @@ namespace KLC_Finch {
         public bool socketAlive = false;
         public TextureCursor textureCursor = null;
         public TextureScreen textureLegacy;
-        public bool useMultiScreen;
-        public bool useMultiScreenOverview;
-        public bool useMultiScreenPanZoom;
         public Rectangle virtualCanvas, virtualViewWant, virtualViewNeed;
         public bool virtualRequireViewportUpdate = false;
         public int virtualWidth, virtualHeight;
@@ -52,6 +47,85 @@ namespace KLC_Finch {
         public RCstate(WindowViewerV3 window) {
             Window = window;
             ListScreen = new List<RCScreen>();
+
+            DependencyObject dep = new DependencyObject();
+            if (DesignerProperties.GetIsInDesignMode(dep)) {
+                useMultiScreen = true;
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private bool controlEnabled;
+        private bool useMultiScreen;
+        private bool useMultiScreenOverview;
+        private bool useMultiScreenPanZoom;
+        private bool ssClipboardSync;
+        public bool ControlEnabled {
+            get { return controlEnabled; }
+            set {
+                controlEnabled = value;
+                NotifyPropertyChanged("ControlEnabled");
+                NotifyPropertyChanged("ControlEnabledText");
+                NotifyPropertyChanged("ControlEnabledTextWeight");
+            }
+        }
+        public string ControlEnabledText {
+            get {
+                if (controlEnabled)
+                    return "Control Enabled";
+                else
+                    return "Control Disabled";
+            }
+        }
+        public FontWeight ControlEnabledTextWeight {
+            get {
+                if (controlEnabled)
+                    return FontWeights.Normal;
+                else
+                    return FontWeights.Bold;
+            }
+        }
+        public bool UseMultiScreen {
+            get { return useMultiScreen; }
+            set {
+                useMultiScreen = value;
+                NotifyPropertyChanged("UseMultiScreen");
+                NotifyPropertyChanged("ScreenModeText");
+            }
+        }
+        public string ScreenModeText {
+            get {
+                if (useMultiScreen)
+                    return "Multi";
+                else
+                    return "Legacy";
+            }
+        }
+        public bool UseMultiScreenOverview {
+            get { return useMultiScreenOverview; }
+            set {
+                useMultiScreenOverview = value;
+                NotifyPropertyChanged("UseMultiScreenOverview");
+            }
+        }
+        public bool UseMultiScreenPanZoom {
+            get { return useMultiScreenPanZoom; }
+            set {
+                useMultiScreenPanZoom = value;
+                NotifyPropertyChanged("UseMultiScreenPanZoom");
+            }
+        }
+        public bool SsClipboardSync {
+            get { return ssClipboardSync; }
+            set {
+                ssClipboardSync = value;
+                NotifyPropertyChanged("SsClipboardSync");
+                NotifyPropertyChanged("SsClipboardSyncReceiveOnly");
+            }
+        }
+        public bool SsClipboardSyncReceiveOnly {
+            get { return !ssClipboardSync; }
         }
 
         public RCScreen GetScreenUsingMouse(int x, int y) {
@@ -70,7 +144,7 @@ namespace KLC_Finch {
         }
 
         public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight) {
-            if (useMultiScreen) {
+            if (UseMultiScreen) {
                 virtualViewWant = new Rectangle(virtualX, virtualY, virtualWidth, virtualHeight);
             } else {
                 this.legacyVirtualWidth = virtualWidth;
@@ -86,7 +160,7 @@ namespace KLC_Finch {
         }
 
         public void ZoomIn() {
-            if (!useMultiScreen)
+            if (!UseMultiScreen)
                 return;
             if (virtualViewWant.Width - 200 < 0 || virtualViewWant.Height - 200 < 0)
                 return;
@@ -96,13 +170,18 @@ namespace KLC_Finch {
         }
 
         public void ZoomOut() {
-            if (!useMultiScreen)
+            if (!UseMultiScreen)
                 return;
 
             virtualViewWant = new Rectangle(virtualViewWant.X - 100, virtualViewWant.Y - 100, virtualViewWant.Width + 200, virtualViewWant.Height + 200);
             virtualRequireViewportUpdate = true;
         }
+
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "") {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
+
     /*
     public enum GraphicsMode {
         OpenGL_YUV = 0,

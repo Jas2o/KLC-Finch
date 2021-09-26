@@ -61,16 +61,16 @@ namespace KLC_Finch {
         public bool powerSaving { get; protected set; }
         public override bool SupportsLegacy { get { return true; } }
         public override void CameraFromClickedScreen(RCScreen screen, bool moveCamera = true) {
-            if (state.useMultiScreen && moveCamera)
+            if (state.UseMultiScreen && moveCamera)
                 CameraToCurrentScreen();
         }
 
         public override void CameraToCurrentScreen() {
-            if (!state.useMultiScreen)
+            if (!state.UseMultiScreen)
                 return;
 
-            state.useMultiScreenOverview = false;
-            state.useMultiScreenPanZoom = false;
+            state.UseMultiScreenOverview = false;
+            state.UseMultiScreenPanZoom = false;
 
             //MainCamera.Rotation = 0f;
             MainCamera.Position = Vector2.Zero;
@@ -106,11 +106,11 @@ namespace KLC_Finch {
         }
 
         public override void CameraToOverview() {
-            if (!state.useMultiScreen)
+            if (!state.UseMultiScreen)
                 return;
 
-            state.useMultiScreenOverview = true;
-            state.useMultiScreenPanZoom = false;
+            state.UseMultiScreenOverview = true;
+            state.UseMultiScreenPanZoom = false;
 
             int lowestX = 0;
             int lowestY = 0;
@@ -192,22 +192,23 @@ namespace KLC_Finch {
         }
 
         public override void MoveDown() {
-            MainCamera.Move(new Vector2(0f, 10f));
+            MainCamera.Move(new Vector2(0f, state.virtualViewWant.Height / 100));
             glControl.Invalidate();
         }
 
         public override void MoveLeft() {
-            MainCamera.Move(new Vector2(-10f, 0f));
+            
+            MainCamera.Move(new Vector2(-(state.virtualViewWant.Width / 100), 0f));
             glControl.Invalidate();
         }
 
         public override void MoveRight() {
-            MainCamera.Move(new Vector2(10f, 0f));
+            MainCamera.Move(new Vector2(state.virtualViewWant.Width / 100, 0f));
             glControl.Invalidate();
         }
 
         public override void MoveUp() {
-            MainCamera.Move(new Vector2(0f, -10f));
+            MainCamera.Move(new Vector2(0f, -(state.virtualViewWant.Height / 100)));
             glControl.Invalidate();
         }
 
@@ -225,7 +226,7 @@ namespace KLC_Finch {
             glControl.Invalidate();
         }
         public override void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight) { //More like lowX, lowY, highX, highY
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 state.virtualCanvas = new Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
                 state.SetVirtual(virtualX, virtualY, state.virtualCanvas.Width, state.virtualCanvas.Height);
             } else {
@@ -237,14 +238,14 @@ namespace KLC_Finch {
         }
 
         public override bool SwitchToLegacy() {
-            state.useMultiScreen = false;
+            state.UseMultiScreen = false;
             state.virtualRequireViewportUpdate = true;
 
             return true;
         }
 
         public override bool SwitchToMultiScreen() {
-            state.useMultiScreen = true;
+            state.UseMultiScreen = true;
             state.virtualRequireViewportUpdate = true;
 
             return true;
@@ -254,19 +255,25 @@ namespace KLC_Finch {
             //Empty
         }
 
+        public override void TogglePanZoom() {
+            state.UseMultiScreenPanZoom = !state.UseMultiScreenPanZoom;
+        }
+
+        /*
         public override void ZoomIn() {
-            state.useMultiScreenPanZoom = true;
+            state.UseMultiScreenPanZoom = true;
 
             state.ZoomIn();
             glControl.Invalidate();
         }
 
         public override void ZoomOut() {
-            state.useMultiScreenPanZoom = true;
+            state.UseMultiScreenPanZoom = true;
 
             state.ZoomOut();
             glControl.Invalidate();
         }
+        */
 
         private void CreateShaders(string vs, string fs, out int vertexObject, out int fragmentObject, out int program) {
             vertexObject = GL.CreateShader(ShaderType.VertexShader);
@@ -335,14 +342,14 @@ namespace KLC_Finch {
             if (rc == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
                 RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
                 if (screenPointingTo == null)
                     return;
 
-                if (state.controlEnabled) {
-                    if (!state.useMultiScreenPanZoom && screenPointingTo != state.CurrentScreen) {
+                if (state.ControlEnabled) {
+                    if (!state.UseMultiScreenPanZoom && screenPointingTo != state.CurrentScreen) {
                         state.Window.FromGlChangeScreen(screenPointingTo, true);
                         return;
                     }
@@ -350,7 +357,7 @@ namespace KLC_Finch {
                     if (e.Clicks == 2) {
                         state.Window.SetControlEnabled(true);
                     } else if (e.Button == System.Windows.Forms.MouseButtons.Left) {
-                        if (!state.useMultiScreenPanZoom) {
+                        if (!state.UseMultiScreenPanZoom) {
                             if (state.CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
                                 state.Window.FromGlChangeScreen(screenPointingTo, false);
                             //Else
@@ -364,7 +371,7 @@ namespace KLC_Finch {
             } else {
                 //Use legacy behavior
 
-                if (!state.controlEnabled) {
+                if (!state.ControlEnabled) {
                     if (e.Clicks == 2)
                         state.Window.SetControlEnabled(true);
 
@@ -396,7 +403,7 @@ namespace KLC_Finch {
 
             state.windowActivatedMouseMove = false;
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
                 state.Window.DebugMouseEvent((int)point.X, (int)point.Y);
 
@@ -404,18 +411,18 @@ namespace KLC_Finch {
                 if (screenPointingTo == null)
                     return;
 
-                if ((state.useMultiScreenOverview || state.useMultiScreenPanZoom) && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
+                if ((state.UseMultiScreenOverview || state.UseMultiScreenPanZoom) && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
                     //We are in overview, change which screen gets texture updates
                     state.Window.FromGlChangeScreen(screenPointingTo, false);
                 }
 
-                if (!state.controlEnabled || !state.WindowIsActive())
+                if (!state.ControlEnabled || !state.WindowIsActive())
                     return;
 
                 rc.SendMousePosition((int)point.X, (int)point.Y);
             } else {
                 //Legacy behavior
-                if (!state.controlEnabled || !state.WindowIsActive())
+                if (!state.ControlEnabled || !state.WindowIsActive())
                     return;
 
                 System.Drawing.Point legacyPoint = new System.Drawing.Point(e.X - vpX, e.Y - vpY);
@@ -444,7 +451,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!state.controlEnabled || rc == null || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || rc == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             if (glControl.ClientRectangle.Contains(e.Location)) {
@@ -463,14 +470,23 @@ namespace KLC_Finch {
             if (rc == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
-            if(state.controlEnabled)
+            if(state.ControlEnabled)
                 rc.SendMouseWheel(e.Delta);
-            else if(state.useMultiScreenPanZoom) {
+            else if(state.UseMultiScreenPanZoom) {
                 //Console.WriteLine(e.Delta + " " + MainCamera.Scale);
+
+                //Console.WriteLine(vpX + " x:y " + vpY + " // " + scaleX + " // " + MainCamera.Scale);
+
                 if (e.Delta > 0) {
+                    //MainCamera.Move(new Vector2(500f, 0f));
                     MainCamera.Scale = Vector2.Add(MainCamera.Scale, new Vector2(0.1f, 0.1f));
+                    if (MainCamera.Scale.X > 4.0 || MainCamera.Scale.Y > 4.0)
+                        MainCamera.Scale = new Vector2(4.0f, 4.0f);
                 } else {
+                    //MainCamera.Move(new Vector2(-(500f), 0f));
                     MainCamera.Scale = Vector2.Subtract(MainCamera.Scale, new Vector2(0.1f, 0.1f));
+                    if (MainCamera.Scale.X < 0.1 || MainCamera.Scale.Y < 0.1)
+                        MainCamera.Scale = new Vector2(0.1f, 0.1f);
                 }
                 glControl.Invalidate();
             }
@@ -651,7 +667,7 @@ namespace KLC_Finch {
         private void Render() {
             glControl.MakeCurrent();
 
-            if (state.useMultiScreen)
+            if (state.UseMultiScreen)
                 RenderStartMulti();
             else
                 RenderStartLegacy();
@@ -668,13 +684,13 @@ namespace KLC_Finch {
                 else
                     screen.Texture.RenderNew(m_shader_sampler);
             }
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 if (state.textureCursor == null) {
                     state.textureCursor = new TextureCursor();
                 } else
                     state.textureCursor.RenderNew();
             }
-            if (!state.useMultiScreen) {
+            if (!state.UseMultiScreen) {
                 if (state.textureLegacy != null)
                     state.textureLegacy.RenderNew(m_shader_sampler);
             }
@@ -686,7 +702,7 @@ namespace KLC_Finch {
                     break;
 
                 case ConnectionStatus.Connected:
-                    if (state.controlEnabled)
+                    if (state.ControlEnabled)
                         GL.ClearColor(Color.FromArgb(255, 20, 20, 20));
                     else
                         GL.ClearColor(System.Drawing.Color.MidnightBlue);
@@ -699,13 +715,13 @@ namespace KLC_Finch {
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 foreach (RCScreen screen in state.ListScreen) {
                     if (screen.Texture != null) {
                         Color multiplyColor;
                         if (screen == state.CurrentScreen)
                             multiplyColor = Color.White;
-                        else if (state.controlEnabled || state.useMultiScreenOverview)
+                        else if (state.ControlEnabled || state.UseMultiScreenOverview)
                             multiplyColor = Color.Gray;
                         else
                             multiplyColor = Color.Cyan;
@@ -788,7 +804,7 @@ namespace KLC_Finch {
 
             #region Overlay
 
-            if (!state.useMultiScreen)
+            if (!state.UseMultiScreen)
                 GL.Viewport(0, 0, glControl.Width, glControl.Height);
 
             GL.MatrixMode(MatrixMode.Projection);
@@ -860,7 +876,7 @@ namespace KLC_Finch {
                 GL.VertexPointer(2, VertexPointerType.Float, Vector2.SizeInBytes * 2, 0);
                 GL.TexCoordPointer(2, TexCoordPointerType.Float, Vector2.SizeInBytes * 2, Vector2.SizeInBytes);
                 GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferCenter.Length / 2);
-            } else if (state.connectionStatus == ConnectionStatus.Connected && !state.controlEnabled) {
+            } else if (state.connectionStatus == ConnectionStatus.Connected && !state.ControlEnabled) {
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dControlOff);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOtop);

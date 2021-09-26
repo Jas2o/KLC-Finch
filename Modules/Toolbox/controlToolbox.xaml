@@ -1,5 +1,5 @@
 ﻿<UserControl
-    x:Class="KLC_Finch.controlProcesses"
+    x:Class="KLC_Finch.controlToolbox"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -11,9 +11,9 @@
     Loaded="UserControl_Loaded"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <CollectionViewSource x:Key="GridItems" Source="{Binding ListProcess}">
+        <CollectionViewSource x:Key="GridItems" Source="{Binding ListToolbox}">
             <CollectionViewSource.SortDescriptions>
-                <scm:SortDescription Direction="Descending" PropertyName="CPU" />
+                <scm:SortDescription Direction="Ascending" PropertyName="NameDisplay" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
     </UserControl.Resources>
@@ -24,45 +24,30 @@
         </Grid.RowDefinitions>
         <StackPanel Margin="0,0,0,5" Orientation="Horizontal">
             <Button
-                x:Name="btnProcessesStart"
+                x:Name="btnToolboxStart"
                 Margin="0,0,5,0"
-                Click="btnProcessesStart_Click"
-                Content="Start Processess" />
+                Click="btnToolboxStart_Click"
+                Content="Start Toolbox" />
             <Button
-                x:Name="btnProcessesRefresh"
+                x:Name="btnToolboxExecute"
                 Margin="0,0,5,0"
-                Click="btnProcessesRefresh_Click"
-                Content="Refresh" />
+                Click="btnToolboxExecute_Click"
+                Content="Execute" />
             <Button
-                x:Name="btnProcesseSafety"
+                x:Name="btnToolboxDownload"
                 Margin="0,0,5,0"
-                Click="btnProcesseSafety_Click"
-                Content="(Safety)" />
-            <Button
-                x:Name="btnProcesseEnd"
-                Margin="0,0,5,0"
-                Click="btnProcesseEnd_Click"
-                Content="End Task" />
-            <Label
-                Margin="0,0,5,0"
-                VerticalAlignment="Center"
-                Content="Filter by Name:" />
-            <TextBox
-                x:Name="txtFilterName"
-                Width="100"
-                VerticalAlignment="Center"
-                TextChanged="txtFilterName_TextChanged" />
+                Click="btnToolboxDownload_Click"
+                Content="Download" />
+            <Label x:Name="lblStatus" Content="{Binding Status, Mode=OneWay, FallbackValue=Status}" />
         </StackPanel>
         <DataGrid
-            x:Name="dgvProcesses"
+            x:Name="dgvToolbox"
             Grid.Row="1"
             AlternatingRowBackground="#FFE6E6E6"
             AutoGenerateColumns="False"
             IsReadOnly="True"
             ItemsSource="{Binding Source={StaticResource GridItems}}"
-            PreviewKeyDown="dgvProcesses_PreviewKeyDown"
-            PreviewMouseDown="dgvProcesses_PreviewMouseDown"
-            SelectionChanged="dgvProcesses_SelectionChanged"
+            SelectionChanged="dgvToolbox_SelectionChanged"
             SelectionMode="Single">
             <DataGrid.Resources>
                 <local:FormatKbSizeConverter x:Key="FormatKbSizeConverter" />
@@ -70,14 +55,13 @@
                 <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White" />
             </DataGrid.Resources>
             <DataGrid.Columns>
-                <DataGridTextColumn Binding="{Binding DisplayName}" Header="Process Name" />
-                <DataGridTextColumn Binding="{Binding PID}" Header="PID" />
-                <DataGridTextColumn Binding="{Binding UserName}" Header="UserName" />
-                <DataGridTextColumn Binding="{Binding Memory, Converter={StaticResource FormatKbSizeConverter}}" Header="Memory" />
                 <DataGridTextColumn
-                    Binding="{Binding CPU, StringFormat={}{0}%}"
-                    Header="CPU"
-                    SortDirection="Descending" />
+                    Binding="{Binding NameDisplay}"
+                    Header="Name"
+                    SortDirection="Ascending" />
+                <DataGridTextColumn Binding="{Binding ParentPath}" Header="Path" />
+                <DataGridTextColumn Binding="{Binding LastUploadTime}" Header="Date" />
+                <DataGridTextColumn Binding="{Binding Size, Converter={StaticResource FormatKbSizeConverter}}" Header="Size" />
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

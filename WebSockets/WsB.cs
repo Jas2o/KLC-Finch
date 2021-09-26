@@ -108,6 +108,10 @@ namespace KLC {
                     Session.ModuleProcesses.Receive(message);
                     break;
 
+                case "/app/toolbox":
+                    Session.ModuleToolbox.Receive(message);
+                    break;
+
                 default:
                     Console.WriteLine("ServerB Message Unhandled: " + socket.ConnectionInfo.Path);
                     break;
@@ -231,6 +235,10 @@ namespace KLC {
 
                 case "/app/processes":
                     Session.ModuleProcesses.SetSocket(socket);
+                    break;
+
+                case "/app/toolbox":
+                    Session.ModuleToolbox.SetSocket(socket);
                     break;
 
                 default:

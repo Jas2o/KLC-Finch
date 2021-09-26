@@ -22,23 +22,27 @@ namespace KLC_Finch {
             txtRcFrozen.Visibility = Visibility.Collapsed;
             txtRcDisconnected.Visibility = Visibility.Collapsed;
             txtZoom.Visibility = Visibility.Collapsed;
+
+            ZoomSlider.Visibility = Visibility.Collapsed;
+            rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
+            rcScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
         }
 
         public override bool SupportsLegacy { get { return false; } }
         public override void CameraFromClickedScreen(RCScreen screen, bool moveCamera = true) {
-            if (state.useMultiScreen && moveCamera)
+            if (state.UseMultiScreen && moveCamera)
                 CameraToCurrentScreen();
         }
 
         public override void CameraToCurrentScreen() {
-            if (!state.useMultiScreen || state.CurrentScreen == null)
+            if (!state.UseMultiScreen || state.CurrentScreen == null)
                 return;
 
-            state.useMultiScreenOverview = false;
-            state.useMultiScreenPanZoom = false;
-            ZoomSlider.Visibility = Visibility.Collapsed;
-            rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
-            rcScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
+            state.UseMultiScreenOverview = false;
+            state.UseMultiScreenPanZoom = false;
+            //ZoomSlider.Visibility = Visibility.Collapsed;
+            //rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
+            //rcScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
 
             if (App.Settings.MultiAltFit) {
                 bool adjustLeft = false;
@@ -77,16 +81,18 @@ namespace KLC_Finch {
         }
 
         public override void CameraToOverview() {
-            if (!state.useMultiScreen)
+            if (!state.UseMultiScreen)
                 return;
 
-            state.useMultiScreenOverview = true;
-            state.useMultiScreenPanZoom = false;
+            state.UseMultiScreenOverview = true;
+            state.UseMultiScreenPanZoom = false;
+            /*
             Dispatcher.Invoke((Action)delegate {
                 ZoomSlider.Visibility = Visibility.Collapsed;
                 rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
                 rcScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
             });
+            */
 
             int lowestX = 0;
             int lowestY = 0;
@@ -102,20 +108,39 @@ namespace KLC_Finch {
             SetCanvas(lowestX, lowestY, Math.Abs(lowestX) + highestX, Math.Abs(lowestY) + highestY);
         }
 
+        public override void TogglePanZoom() {
+            state.UseMultiScreenPanZoom = !state.UseMultiScreenPanZoom;
+
+            if(state.UseMultiScreenPanZoom && App.Settings.DisplayOverlayPanZoom) {
+                ZoomSlider.Visibility = Visibility.Visible;
+                rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
+                rcScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Visible;
+            } else {
+                ZoomSlider.Visibility = Visibility.Collapsed;
+                rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
+                rcScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
+            }
+        }
+
         public override void MoveDown() {
+            rcScrollViewer.ScrollToVerticalOffset(rcScrollViewer.VerticalOffset + (rcScrollViewer.ActualHeight / 100));
         }
 
         public override void MoveLeft() {
+            rcScrollViewer.ScrollToHorizontalOffset(rcScrollViewer.HorizontalOffset - (rcScrollViewer.ActualWidth / 100));
         }
 
         public override void MoveRight() {
+            rcScrollViewer.ScrollToHorizontalOffset(rcScrollViewer.HorizontalOffset + (rcScrollViewer.ActualWidth / 100));
         }
 
         public override void MoveUp() {
+            rcScrollViewer.ScrollToVerticalOffset(rcScrollViewer.VerticalOffset - (rcScrollViewer.ActualHeight / 100));
         }
 
+        /*
         public override void ZoomIn() {
-            state.useMultiScreenPanZoom = true;
+            state.UseMultiScreenPanZoom = true;
 
             ZoomSlider.Visibility = Visibility.Visible;
             rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
@@ -125,7 +150,7 @@ namespace KLC_Finch {
         }
 
         public override void ZoomOut() {
-            state.useMultiScreenPanZoom = true;
+            state.UseMultiScreenPanZoom = true;
 
             ZoomSlider.Visibility = Visibility.Visible;
             rcScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
@@ -133,6 +158,7 @@ namespace KLC_Finch {
 
             ZoomSlider.Value -= 0.05;
         }
+        */
 
         public override void CheckHealth() {
             txtDebugLeft.Visibility = (App.Settings.DisplayOverlayKeyboardMod || App.Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
@@ -176,7 +202,7 @@ namespace KLC_Finch {
             this.rc = rc;
             this.state = state;
 
-            if (!state.useMultiScreen)
+            if (!state.UseMultiScreen)
                 state.SetVirtual(0, 0, state.virtualWidth, state.virtualHeight);
 
             //rcCanvas.Children.Clear();
@@ -208,12 +234,12 @@ namespace KLC_Finch {
         }
 
         public override void DisplayControl(bool controlEnabled) {
-            if (state.controlEnabled)
+            if (state.ControlEnabled)
                 rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 20, 20, 20));
             else
                 rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.MidnightBlue);
 
-            txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = (state.controlEnabled ? Visibility.Hidden : Visibility.Visible);
+            txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = (state.ControlEnabled ? Visibility.Hidden : Visibility.Visible);
         }
 
         public override void DisplayDebugKeyboard(string strKeyboard) {
@@ -237,7 +263,7 @@ namespace KLC_Finch {
         }
 
         public override void Refresh() {
-            if (state.useMultiScreen) return;
+            if (state.UseMultiScreen) return;
 
             /*
             Dispatcher.Invoke((Action)delegate {
@@ -280,13 +306,13 @@ namespace KLC_Finch {
             });
         }
         public override bool SwitchToLegacy() {
-            state.useMultiScreen = true;
+            state.UseMultiScreen = true;
 
             return false;
         }
 
         public override bool SwitchToMultiScreen() {
-            state.useMultiScreen = true;
+            state.UseMultiScreen = true;
 
             //dockCanvas.Visibility = Visibility.Visible;
             //legacyBorderBG.Visibility = Visibility.Hidden;
@@ -328,7 +354,7 @@ namespace KLC_Finch {
                 //legacyCanvas.Children.Add(state.legacyScreen.CanvasImage);
             });
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 if (!App.Settings.StartControlEnabled)
                     CameraToOverview();
                 else
@@ -340,14 +366,14 @@ namespace KLC_Finch {
             if (state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 System.Windows.Point point = e.GetPosition(rcCanvas);
                 RCScreen screenPointingTo = state.GetScreenUsingMouse(canvasOffsetX + (int)point.X, canvasOffsetY + (int)point.Y);
                 if (screenPointingTo == null)
                     return;
 
-                if (state.controlEnabled) {
-                    if (!state.useMultiScreenPanZoom && screenPointingTo != state.CurrentScreen) {
+                if (state.ControlEnabled) {
+                    if (!state.UseMultiScreenPanZoom && screenPointingTo != state.CurrentScreen) {
                         state.Window.FromGlChangeScreen(screenPointingTo, true);
                         return;
                     }
@@ -355,7 +381,7 @@ namespace KLC_Finch {
                     if (e.ClickCount == 2) {
                         state.Window.SetControlEnabled(true);
                     } else if (e.ChangedButton == MouseButton.Left) {
-                        if (!state.useMultiScreenPanZoom) {
+                        if (!state.UseMultiScreenPanZoom) {
                             if (state.CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
                                 state.Window.FromGlChangeScreen(screenPointingTo, false);
                             //Else
@@ -368,7 +394,7 @@ namespace KLC_Finch {
             } else {
                 //Use legacy behavior
 
-                if (!state.controlEnabled) {
+                if (!state.ControlEnabled) {
                     if (e.ClickCount == 2)
                         state.Window.SetControlEnabled(true);
 
@@ -400,7 +426,7 @@ namespace KLC_Finch {
 
             state.windowActivatedMouseMove = false;
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 System.Windows.Point point = e.GetPosition(rcCanvas);
                 point.X += canvasOffsetX;
                 point.Y += canvasOffsetY;
@@ -413,18 +439,18 @@ namespace KLC_Finch {
                 //Console.WriteLine(string.Format("{0},{1} of {2},{3}", point.X, point.Y, screenPointingTo.rectFixed.X, screenPointingTo.rectFixed.Y));
                 //Console.WriteLine(state.CurrentScreen.screen_id + " != " + screenPointingTo.screen_id);
 
-                if ((state.useMultiScreenOverview || state.useMultiScreenPanZoom) && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
+                if ((state.UseMultiScreenOverview || state.UseMultiScreenPanZoom) && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
                     //We are in overview, change which screen gets texture updates
                     state.Window.FromGlChangeScreen(screenPointingTo, false);
                 }
 
-                if (!state.controlEnabled || !state.WindowIsActive())
+                if (!state.ControlEnabled || !state.WindowIsActive())
                     return;
 
                 rc.SendMousePosition((int)point.X, (int)point.Y);
             } else {
                 //Legacy behavior
-                if (!state.controlEnabled || !state.WindowIsActive())
+                if (!state.ControlEnabled || !state.WindowIsActive())
                     return;
 
                 //throw new NotImplementedException();
@@ -466,7 +492,7 @@ namespace KLC_Finch {
         }
 
         private void HandleCanvasMouseUp(object sender, MouseButtonEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             //if (rcCanvas.Contains(e.GetPosition((Canvas)sender))) {
@@ -482,10 +508,18 @@ namespace KLC_Finch {
         }
 
         private void HandleCanvasMouseWheel(object sender, MouseWheelEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (rc == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
-            rc.SendMouseWheel(e.Delta);
+            if (state.ControlEnabled)
+                rc.SendMouseWheel(e.Delta);
+            else if (state.UseMultiScreenPanZoom) {
+                if (e.Delta > 0) {
+                    ZoomSlider.Value += 0.01;
+                } else {
+                    ZoomSlider.Value -= 0.01;
+                }
+            }
         }
         private void rcScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e) {
             e.Handled = true;
@@ -494,8 +528,8 @@ namespace KLC_Finch {
         }
 
         private void rcScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e) {
-            if(state.useMultiScreen && !state.useMultiScreenPanZoom) {
-                if(state.useMultiScreenOverview)
+            if(state.UseMultiScreen && !state.UseMultiScreenPanZoom) {
+                if(state.UseMultiScreenOverview)
                     CameraToOverview();
                 else
                     CameraToCurrentScreen();

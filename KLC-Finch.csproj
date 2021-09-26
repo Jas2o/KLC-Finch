@@ -220,6 +220,12 @@
     <Compile Include="Modules\RemoteControl\V3\WindowViewerV3.xaml.cs">
       <DependentUpon>WindowViewerV3.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Modules\Toolbox\controlToolbox.xaml.cs">
+      <DependentUpon>controlToolbox.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Modules\Toolbox\Toolbox.cs" />
+    <Compile Include="Modules\Toolbox\ToolboxData.cs" />
+    <Compile Include="Modules\Toolbox\ToolboxValue.cs" />
     <Compile Include="WindowOptions.xaml.cs">
       <DependentUpon>WindowOptions.xaml</DependentUpon>
     </Compile>
@@ -326,6 +332,10 @@
     <Page Include="Modules\RemoteControl\V3\WindowViewerV3.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Modules\Toolbox\controlToolbox.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="WindowOptions.xaml">
       <SubType>Designer</SubType>
@@ -465,6 +475,15 @@
       <Project>{4078f257-6bf1-42fa-bf0a-ad9f8f6116a4}</Project>
       <Name>GLWpfControl</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\fit-to-page-outline.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\fit-to-screen-outline.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\magnify-expand.png" />
   </ItemGroup>
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaLiveConnect\LibKaseyaLiveConnect.projitems" Label="Shared" />

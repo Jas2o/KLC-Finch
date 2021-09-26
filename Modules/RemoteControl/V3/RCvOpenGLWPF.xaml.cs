@@ -64,15 +64,15 @@ namespace KLC_Finch {
         public bool powerSaving { get; protected set; }
         public override bool SupportsLegacy { get { return true; } }
         public override void CameraFromClickedScreen(RCScreen screen, bool moveCamera = true) {
-            if (state.useMultiScreen && moveCamera)
+            if (state.UseMultiScreen && moveCamera)
                 CameraToCurrentScreen();
         }
 
         public override void CameraToCurrentScreen() {
-            if (!state.useMultiScreen)
+            if (!state.UseMultiScreen)
                 return;
 
-            state.useMultiScreenOverview = false;
+            state.UseMultiScreenOverview = false;
 
             //MainCamera.Rotation = 0f;
             MainCamera.Position = Vector2.Zero;
@@ -108,10 +108,10 @@ namespace KLC_Finch {
         }
 
         public override void CameraToOverview() {
-            if (!state.useMultiScreen)
+            if (!state.UseMultiScreen)
                 return;
 
-            state.useMultiScreenOverview = true;
+            state.UseMultiScreenOverview = true;
 
             int lowestX = 0;
             int lowestY = 0;
@@ -138,21 +138,26 @@ namespace KLC_Finch {
         }
 
         public override void MoveDown() {
-            MainCamera.Move(new Vector2(0f, 10f));
+            MainCamera.Move(new Vector2(0f, state.virtualViewWant.Height / 100));
         }
 
         public override void MoveLeft() {
-            MainCamera.Move(new Vector2(-10f, 0f));
+            MainCamera.Move(new Vector2(-(state.virtualViewWant.Width / 100), 0f));
         }
 
         public override void MoveRight() {
-            MainCamera.Move(new Vector2(10f, 0f));
+            MainCamera.Move(new Vector2(state.virtualViewWant.Width / 100, 0f));
         }
 
         public override void MoveUp() {
-            MainCamera.Move(new Vector2(0f, -10f));
+            MainCamera.Move(new Vector2(0f, -(state.virtualViewWant.Height / 100)));
         }
 
+        public override void TogglePanZoom() {
+            state.UseMultiScreenPanZoom = !state.UseMultiScreenPanZoom;
+        }
+
+        /*
         public override void ZoomIn() {
             state.ZoomIn();
         }
@@ -160,6 +165,7 @@ namespace KLC_Finch {
         public override void ZoomOut() {
             state.ZoomOut();
         }
+        */
 
         public override void CheckHealth() {
             txtDebugLeft.Visibility = (App.Settings.DisplayOverlayKeyboardMod || App.Settings.DisplayOverlayKeyboardOther ? Visibility.Visible : Visibility.Collapsed);
@@ -203,7 +209,7 @@ namespace KLC_Finch {
             this.state = state;
 
             //Legacy
-            if (!state.useMultiScreen)
+            if (!state.UseMultiScreen)
                 state.SetVirtual(0, 0, state.virtualWidth, state.virtualHeight);
 
             //--
@@ -255,7 +261,7 @@ namespace KLC_Finch {
         }
 
         public override void DisplayControl(bool enabled) {
-            txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = (state.controlEnabled ? Visibility.Hidden : Visibility.Visible);
+            txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = (state.ControlEnabled ? Visibility.Hidden : Visibility.Visible);
         }
 
         public override void DisplayDebugKeyboard(string strKeyboard) {
@@ -289,7 +295,7 @@ namespace KLC_Finch {
         }
         
         public override void SetCanvas(int virtualX, int virtualY, int virtualWidth, int virtualHeight) { //More like lowX, lowY, highX, highY
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 state.virtualCanvas = new Rectangle(virtualX, virtualY, Math.Abs(virtualX) + virtualWidth, Math.Abs(virtualY) + virtualHeight);
                 state.SetVirtual(virtualX, virtualY, state.virtualCanvas.Width, state.virtualCanvas.Height);
             } else {
@@ -301,7 +307,7 @@ namespace KLC_Finch {
         }
 
         public override bool SwitchToLegacy() {
-            state.useMultiScreen = false;
+            state.UseMultiScreen = false;
             state.virtualRequireViewportUpdate = true;
 
             return true;
@@ -346,7 +352,7 @@ namespace KLC_Finch {
         }
 
         private void GlControl_Render(TimeSpan obj) {
-            if (state.useMultiScreen)
+            if (state.UseMultiScreen)
                 RenderStartMulti();
             else
                 RenderStartLegacy();
@@ -363,13 +369,13 @@ namespace KLC_Finch {
                 else
                     screen.Texture.RenderNew(m_shader_sampler);
             }
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 if (state.textureCursor == null) {
                     state.textureCursor = new TextureCursor();
                 } else
                     state.textureCursor.RenderNew();
             }
-            if (!state.useMultiScreen) {
+            if (!state.UseMultiScreen) {
                 if (state.textureLegacy != null)
                     state.textureLegacy.RenderNew(m_shader_sampler);
             }
@@ -381,7 +387,7 @@ namespace KLC_Finch {
                     break;
 
                 case ConnectionStatus.Connected:
-                    if (state.controlEnabled)
+                    if (state.ControlEnabled)
                         GL.ClearColor(System.Drawing.Color.FromArgb(255, 20, 20, 20));
                     else
                         GL.ClearColor(System.Drawing.Color.MidnightBlue);
@@ -395,13 +401,13 @@ namespace KLC_Finch {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.Finish();
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 for (int i = 0; i < state.ListScreen.Count; i++) {
                     if (state.ListScreen[i].Texture != null) {
                         System.Drawing.Color multiplyColor;
                         if (state.ListScreen[i] == state.CurrentScreen)
                             multiplyColor = System.Drawing.Color.White;
-                        else if (state.controlEnabled || state.useMultiScreenOverview) //In overview, or it's on the edge of focused screen
+                        else if (state.ControlEnabled || state.UseMultiScreenOverview) //In overview, or it's on the edge of focused screen
                             multiplyColor = System.Drawing.Color.Gray;
                         else
                             multiplyColor = System.Drawing.Color.Cyan;
@@ -492,14 +498,14 @@ namespace KLC_Finch {
                 return;
 
             System.Windows.Point pointWPF = e.GetPosition(glControl);
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(pointWPF.X / scaleX), (float)(pointWPF.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
                 RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
                 if (screenPointingTo == null)
                     return;
 
-                if (state.controlEnabled) {
-                    if (!state.useMultiScreenOverview && screenPointingTo != state.CurrentScreen) {
+                if (state.ControlEnabled) {
+                    if (!state.UseMultiScreenPanZoom && screenPointingTo != state.CurrentScreen) {
                         state.Window.FromGlChangeScreen(screenPointingTo, true);
                         return;
                     }
@@ -507,11 +513,13 @@ namespace KLC_Finch {
                     if (e.ClickCount == 2) {
                         state.Window.SetControlEnabled(true);
                     } else if (e.ChangedButton == MouseButton.Left) {
-                        if (state.CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
-                            state.Window.FromGlChangeScreen(screenPointingTo, false);
-                        //Else
-                        //We already changed the active screen by moving the mouse
-                        CameraToCurrentScreen();
+                        if (!state.UseMultiScreenPanZoom) {
+                            if (state.CurrentScreen != screenPointingTo) //Multi-Screen (Focused), Control Disabled, Change Screen
+                                state.Window.FromGlChangeScreen(screenPointingTo, false);
+                            //Else
+                            //We already changed the active screen by moving the mouse
+                            CameraToCurrentScreen();
+                        }
                     }
 
                     return;
@@ -519,7 +527,7 @@ namespace KLC_Finch {
             } else {
                 //Use legacy behavior
 
-                if (!state.controlEnabled) {
+                if (!state.ControlEnabled) {
                     if (e.ClickCount == 2)
                         state.Window.SetControlEnabled(true);
 
@@ -552,14 +560,14 @@ namespace KLC_Finch {
             state.windowActivatedMouseMove = false;
             System.Windows.Point pointWPF = e.GetPosition(glControl);
 
-            if (state.useMultiScreen) {
+            if (state.UseMultiScreen) {
                 Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(pointWPF.X / scaleX), (float)(pointWPF.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
 
                 RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
                 if (screenPointingTo == null)
                     return;
 
-                if (state.useMultiScreenOverview && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
+                if ((state.UseMultiScreenOverview || state.UseMultiScreenPanZoom) && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
                     //We are in overview, change which screen gets texture updates
                     state.Window.FromGlChangeScreen(screenPointingTo, false);
 
@@ -568,14 +576,14 @@ namespace KLC_Finch {
                     //rc.ChangeScreen(currentScreen.screen_id);
                 }
 
-                if (!state.controlEnabled || !state.WindowIsActive())
+                if (!state.ControlEnabled || !state.WindowIsActive())
                     return;
 
                 state.Window.DebugMouseEvent((int)point.X, (int)point.Y);
                 rc.SendMousePosition((int)point.X, (int)point.Y);
             } else {
                 //Legacy behavior
-                if (!state.controlEnabled || !state.WindowIsActive())
+                if (!state.ControlEnabled || !state.WindowIsActive())
                     return;
 
                 System.Drawing.Point legacyPoint = new System.Drawing.Point((int)pointWPF.X - vpX, (int)pointWPF.Y - vpY);
@@ -603,7 +611,7 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseUp(object sender, MouseButtonEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (!state.ControlEnabled || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             if (glControl.IsMouseOver) {
@@ -619,10 +627,23 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseWheel(object sender, MouseWheelEventArgs e) {
-            if (!state.controlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (rc == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
-            rc.SendMouseWheel(e.Delta);
+            if (state.ControlEnabled)
+                rc.SendMouseWheel(e.Delta);
+            else if (state.UseMultiScreenPanZoom) {
+                //Console.WriteLine(e.Delta + " " + MainCamera.Scale);
+                if (e.Delta > 0) {
+                    MainCamera.Scale = Vector2.Add(MainCamera.Scale, new Vector2(0.1f, 0.1f));
+                    if (MainCamera.Scale.X > 4.0 || MainCamera.Scale.Y > 4.0)
+                        MainCamera.Scale = new Vector2(4.0f, 4.0f);
+                } else {
+                    MainCamera.Scale = Vector2.Subtract(MainCamera.Scale, new Vector2(0.1f, 0.1f));
+                    if (MainCamera.Scale.X < 0.1 || MainCamera.Scale.Y < 0.1)
+                        MainCamera.Scale = new Vector2(0.1f, 0.1f);
+                }
+            }
         }
 
         private void InitTextures() {

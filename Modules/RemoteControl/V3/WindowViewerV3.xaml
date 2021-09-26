@@ -23,6 +23,9 @@
     StateChanged="Window_StateChanged"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -47,11 +50,13 @@
             <Button
                 x:Name="toolSendCtrlAltDel"
                 Click="ToolSendCtrlAltDel_Click"
-                Content="Ctrl+Alt+Del" />
+                Content="Ctrl+Alt+Del"
+                IsEnabled="{Binding Path=ControlEnabled}" />
             <Button
                 x:Name="toolToggleControl"
                 Click="ToolToggleControl_Click"
-                Content="Control Enabled" />
+                Content="{Binding ControlEnabledText, Mode=OneWay, FallbackValue='Control Enabled'}"
+                FontWeight="{Binding ControlEnabledTextWeight, Mode=OneWay, FallbackValue=Normal}" />
             <Button
                 x:Name="toolKeyWin"
                 Click="ToolKeyWin_Click"
@@ -77,12 +82,30 @@
                 x:Name="toolScreenMode"
                 VerticalAlignment="Stretch"
                 Click="ToolScreenMode_Click"
-                Content="Multi" />
+                Content="{Binding ScreenModeText, Mode=OneWay, FallbackValue='Multi'}" />
             <Button
                 x:Name="toolScreenOverview"
                 VerticalAlignment="Stretch"
                 Click="ToolScreenOverview_Click"
-                Content="Overview" />
+                Content="Overview"
+                Visibility="{Binding Path=UseMultiScreen, Converter={StaticResource BoolToVis}, FallbackValue=Visible}" />
+            <Button
+                x:Name="toolPanZoom"
+                Click="toolPanZoom_Click"
+                ToolTip="Pan/Zoom Mode"
+                Visibility="{Binding Path=UseMultiScreen, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="/KLC-Finch;component/Resources/magnify-expand.png" StretchDirection="DownOnly" />
+                    <Label
+                        x:Name="ToolPanZoomLabel"
+                        Padding="0"
+                        VerticalAlignment="Center"
+                        Content="Pan/Zoom"
+                        IsEnabled="false"
+                        Visibility="{Binding Path=UseMultiScreenPanZoom, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+            </Button>
+            <!--
             <Button
                 x:Name="toolZoomIn"
                 Click="ToolZoomIn_Click"
@@ -95,17 +118,20 @@
                 ToolTip="Zoom Out">
                 <Image Source="/KLC-Finch;component/Resources/magnify-minus-outline.png" StretchDirection="DownOnly" />
             </Button>
+            -->
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
                 x:Name="toolClipboardSync"
                 Click="ToolClipboardSync_Click"
-                ToolTip="Clipboard Synced">
+                ToolTip="Clipboard Synced"
+                Visibility="{Binding Path=SsClipboardSync, Converter={StaticResource BoolToVis}}">
                 <Image Source="/KLC-Finch;component/Resources/sync.png" StretchDirection="DownOnly" />
             </Button>
             <Button
                 x:Name="toolClipboardReceiveOnly"
                 Click="ToolClipboardSync_Click"
-                ToolTip="Clipboard Receive Only">
+                ToolTip="Clipboard Receive Only"
+                Visibility="{Binding Path=SsClipboardSyncReceiveOnly, Converter={StaticResource BoolToVis}}">
                 <Image
                     Width="24"
                     Height="24"
