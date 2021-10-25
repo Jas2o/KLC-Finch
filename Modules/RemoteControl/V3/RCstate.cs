@@ -60,6 +60,7 @@ namespace KLC_Finch {
         private bool useMultiScreen;
         private bool useMultiScreenOverview;
         private bool useMultiScreenPanZoom;
+        private bool useMultiScreenFixAvailable;
         private bool ssClipboardSync;
         public bool ControlEnabled {
             get { return controlEnabled; }
@@ -106,7 +107,17 @@ namespace KLC_Finch {
             get { return useMultiScreenOverview; }
             set {
                 useMultiScreenOverview = value;
+                UseMultiScreenFixAvailable = false;
                 NotifyPropertyChanged("UseMultiScreenOverview");
+                NotifyPropertyChanged("UseMultiScreenOverviewTextWeight");
+            }
+        }
+        public FontWeight UseMultiScreenOverviewTextWeight {
+            get {
+                if (useMultiScreenOverview)
+                    return FontWeights.Bold;
+                else
+                    return FontWeights.Normal;
             }
         }
         public bool UseMultiScreenPanZoom {
@@ -114,6 +125,13 @@ namespace KLC_Finch {
             set {
                 useMultiScreenPanZoom = value;
                 NotifyPropertyChanged("UseMultiScreenPanZoom");
+            }
+        }
+        public bool UseMultiScreenFixAvailable {
+            get { return useMultiScreenFixAvailable; }
+            set {
+                useMultiScreenFixAvailable = useMultiScreen ? value : false;
+                NotifyPropertyChanged("UseMultiScreenFixAvailable");
             }
         }
         public bool SsClipboardSync {

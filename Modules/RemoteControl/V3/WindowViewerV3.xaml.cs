@@ -4,6 +4,7 @@ using NTR;
 using Ookii.Dialogs.Wpf;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
@@ -55,7 +56,7 @@ namespace KLC_Finch {
         private bool ssKeyHookAllow;
         private RCstate state;
 
-        public WindowViewerV3(int renderer, IRemoteControl rc, int virtualWidth = 1920, int virtualHeight = 1080, Agent.OSProfile endpointOS = Agent.OSProfile.Other, string endpointLastUser = "") {
+        public WindowViewerV3(int renderer, IRemoteControl rc, Agent.OSProfile endpointOS = Agent.OSProfile.Other, string endpointLastUser = "") {
             InitializeComponent();
 
             this.rc = rc;
@@ -230,7 +231,7 @@ namespace KLC_Finch {
 
         public void LoadCursor(int cursorX, int cursorY, int cursorWidth, int cursorHeight, int cursorHotspotX, int cursorHotspotY, byte[] remaining) {
             if (state.textureCursor != null)
-                state.textureCursor.Load(new Rectangle(cursorX, cursorY, cursorWidth, cursorHeight), remaining);
+                state.textureCursor.Load(new Rectangle(cursorX - cursorHotspotX, cursorY - cursorHotspotY, cursorWidth, cursorHeight), remaining);
         }
 
         public void LoadTexture(int width, int height, Bitmap decomp) {
@@ -317,17 +318,13 @@ namespace KLC_Finch {
                 */
             }
 
-            if (state.CurrentScreen.rect.Width != width) {
-                state.CurrentScreen.rect.Width = width;
-                state.CurrentScreen.rect.Height = height;
+            state.UseMultiScreenFixAvailable = (state.CurrentScreen.rect.Width != width);
+            if (state.UseMultiScreenFixAvailable) {
+                state.legacyVirtualWidth = width;
+                state.legacyVirtualHeight = height;
 
-                if (state.UseMultiScreen) {
-                    //Retina hack
-                    if (state.UseMultiScreenOverview)
-                        rcv.CameraToOverview();
-                    else
-                        rcv.CameraToCurrentScreen();
-                }
+                if (state.previousScreen == null)
+                    ToolScreenFix_Click(null, null);
             }
             state.socketAlive = true;
 
@@ -388,17 +385,13 @@ namespace KLC_Finch {
                 state.textureLegacy.LoadRaw(new Rectangle(0, 0, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height), width, height, stride, buffer);
             }
 
-            if (state.CurrentScreen.rect.Width != width) {
-                state.CurrentScreen.rect.Width = width;
-                state.CurrentScreen.rect.Height = height;
+            state.UseMultiScreenFixAvailable = (state.CurrentScreen.rect.Width != width);
+            if (state.UseMultiScreenFixAvailable) {
+                state.legacyVirtualWidth = width;
+                state.legacyVirtualHeight = height;
 
-                if (state.UseMultiScreen) {
-                    //Retina hack
-                    if (state.UseMultiScreenOverview)
-                        rcv.CameraToOverview();
-                    else
-                        rcv.CameraToCurrentScreen();
-                }
+                if (state.previousScreen == null)
+                    ToolScreenFix_Click(null, null);
             }
             state.socketAlive = true;
 
@@ -442,10 +435,10 @@ namespace KLC_Finch {
                         rc.SendKeyUp(k.JavascriptKeyCode, k.USBKeyCode);
                     listHeldKeysMod.Clear();
 
-                    if(fromToolbar)
+                    //if(fromToolbar)
                         rc.SendAutotype(text);
-                    else
-                        rc.SendPasteClipboard(text);
+                    //else
+                        //rc.SendPasteClipboard(text);
                 }
             } else {
                 //Console.WriteLine("Autotype blocked: too long or had a new line character");
@@ -744,7 +737,10 @@ namespace KLC_Finch {
         private void LoadSettings(bool isStart = false) {
             if (isStart) {
                 if (rcv.SupportsLegacy) {
-                    state.UseMultiScreen = Settings.StartMultiScreen;
+                    if (endpointOS == Agent.OSProfile.Mac && Settings.StartMultiScreenExceptMac)
+                        state.UseMultiScreen = false;
+                    else
+                        state.UseMultiScreen = Settings.StartMultiScreen;
                 } else {
                     state.UseMultiScreen = true;
                 }
@@ -1106,7 +1102,7 @@ namespace KLC_Finch {
                 bool showExplorer = false;
                 using (TaskDialog dialog = new TaskDialog()) {
                     dialog.WindowTitle = "KLC-Finch: Upload File";
-                    dialog.MainInstruction = "Upload dropped file to c:\\temp?";
+                    dialog.MainInstruction = "Upload dropped file to KRCTransferFiles?";
                     dialog.MainIcon = TaskDialogIcon.Information;
                     dialog.CenterParent = true;
                     dialog.Content = files[0];
@@ -1131,12 +1127,12 @@ namespace KLC_Finch {
                     progressDialog = new ProgressDialog {
                         //ProgressBarStyle = ProgressBarStyle.MarqueeProgressBar,
                         WindowTitle = "KLC-Finch: Upload File",
-                        Text = "Uploading to C:\\kworking\\System\\KRCTransferFiles",
+                        Text = "Uploading to KRCTransferFiles...",
                         Description = "Source file: " + files[0],
                         ShowCancelButton = false,
                         ShowTimeRemaining = true
                     };
-                    progressDialog.DoWork += ProgressDialog_DoWork;
+                    progressDialog.DoWork += new DoWorkEventHandler(ProgressDialog_DoWork);
                     progressDialog.Show();
 
                     rc.UploadDrop(files[0], progress, showExplorer);
@@ -1306,5 +1302,22 @@ namespace KLC_Finch {
             }
         }
 
+        private void ToolScreenFix_Click(object sender, RoutedEventArgs e) {
+            if (state.CurrentScreen.rect.Width != state.legacyVirtualWidth) {
+                state.CurrentScreen.rect.Width = state.legacyVirtualWidth;
+                state.CurrentScreen.rect.Height = state.legacyVirtualHeight;
+
+                if (state.UseMultiScreen) {
+                    //Retina hack
+                    if (state.UseMultiScreenOverview)
+                        rcv.CameraToOverview();
+                    else
+                        rcv.CameraToCurrentScreen();
+                }
+            }
+
+            UpdateScreenLayoutReflow();
+            state.UseMultiScreenFixAvailable = false;
+        }
     }
 }

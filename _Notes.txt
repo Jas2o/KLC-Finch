@@ -1,0 +1,10 @@
+﻿[NuGet Packets]
+
+Ookii.Dialogs.Wpf
+- Safe: 3.10
+- Not safe: 4.0.0 (breaks ProgressDialog)
+
+OpenTK
+- Safe: 3.3.1
+- Not safe: 4.x (no longer .NET Framework)
+- Untested: 3.3.2

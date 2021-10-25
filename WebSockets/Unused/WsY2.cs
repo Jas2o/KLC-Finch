@@ -170,8 +170,8 @@ namespace KLC {
                                                     continue;
 
                                                 string sendjson = "{\"keyboard_layout_handle\":\"0\",\"keyboard_layout_local\":false,\"lock_states\":2,\"pressed\":false,\"usb_keycode\":" + held.USBKeyCode + ",\"virtual_key\":" + held.JavascriptKeyCode + "}";
-                                                int jsonLen = sendjson.Length;
                                                 byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
+                                                int jsonLen = jsonBuffer.Length;
 
                                                 byte[] tosend = new byte[jsonLen + 5];
                                                 tosend[0] = (byte)KaseyaMessageTypes.Keyboard;

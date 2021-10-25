@@ -84,15 +84,24 @@
                 Click="ToolScreenMode_Click"
                 Content="{Binding ScreenModeText, Mode=OneWay, FallbackValue='Multi'}" />
             <Button
+                x:Name="toolScreenFix"
+                VerticalAlignment="Stretch"
+                Background="Gold"
+                Click="ToolScreenFix_Click"
+                Content="Fix"
+                FontWeight="Bold"
+                Visibility="{Binding Path=UseMultiScreenFixAvailable, Converter={StaticResource BoolToVis}, FallbackValue=Visible}" />
+            <Button
                 x:Name="toolScreenOverview"
                 VerticalAlignment="Stretch"
                 Click="ToolScreenOverview_Click"
                 Content="Overview"
+                FontWeight="{Binding UseMultiScreenOverviewTextWeight, Mode=OneWay, FallbackValue=Normal}"
                 Visibility="{Binding Path=UseMultiScreen, Converter={StaticResource BoolToVis}, FallbackValue=Visible}" />
             <Button
                 x:Name="toolPanZoom"
                 Click="toolPanZoom_Click"
-                ToolTip="Pan/Zoom Mode"
+                ToolTip="Pan/Zoom Mode, allows movement (Scroll/WASD) when control is disabled."
                 Visibility="{Binding Path=UseMultiScreen, Converter={StaticResource BoolToVis}}">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="/KLC-Finch;component/Resources/magnify-expand.png" StretchDirection="DownOnly" />
@@ -101,6 +110,7 @@
                         Padding="0"
                         VerticalAlignment="Center"
                         Content="Pan/Zoom"
+                        FontWeight="{Binding ControlEnabledTextWeight, Mode=OneWay, FallbackValue=Normal}"
                         IsEnabled="false"
                         Visibility="{Binding Path=UseMultiScreenPanZoom, Converter={StaticResource BoolToVis}}" />
                 </StackPanel>

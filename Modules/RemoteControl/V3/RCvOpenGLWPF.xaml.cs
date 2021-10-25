@@ -69,7 +69,7 @@ namespace KLC_Finch {
         }
 
         public override void CameraToCurrentScreen() {
-            if (!state.UseMultiScreen)
+            if (!state.UseMultiScreen || state.CurrentScreen == null)
                 return;
 
             state.UseMultiScreenOverview = false;
@@ -314,7 +314,10 @@ namespace KLC_Finch {
         }
 
         public override bool SwitchToMultiScreen() {
-            return false;
+            state.UseMultiScreen = true;
+            state.virtualRequireViewportUpdate = true;
+
+            return true;
         }
 
         public override void UpdateScreenLayout(int lowestX, int lowestY, int highestX, int highestY) {

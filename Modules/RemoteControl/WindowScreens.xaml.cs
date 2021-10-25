@@ -194,9 +194,15 @@ namespace KLC_Finch {
             sb.AppendLine("Start info:");
             sb.AppendLine(infoStart);
             sb.AppendLine("");
-            sb.AppendLine("Current info");
+            sb.AppendLine("Current info:");
+            bool more = false;
             foreach (RCScreen screen in listScreen) {
+                if (more)
+                    sb.Append(",");
+
                 sb.AppendLine('{' + string.Format("\"screen_height\":{0},\"screen_id\":{1},\"screen_name\":\"{2}\",\"screen_width\":{3},\"screen_x\":{4},\"screen_y\":{5}", screen.rect.Height, screen.screen_id, screen.screen_name.Replace("\\", "\\\\"), screen.rect.Width, screen.rect.X, screen.rect.Y) + '}');
+
+                more = true;
             }
             /*
             sb.AppendLine("");

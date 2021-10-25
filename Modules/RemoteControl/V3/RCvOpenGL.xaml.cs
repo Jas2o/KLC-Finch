@@ -66,7 +66,7 @@ namespace KLC_Finch {
         }
 
         public override void CameraToCurrentScreen() {
-            if (!state.UseMultiScreen)
+            if (!state.UseMultiScreen || state.CurrentScreen == null)
                 return;
 
             state.UseMultiScreenOverview = false;

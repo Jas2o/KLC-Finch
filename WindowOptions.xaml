@@ -181,6 +181,11 @@
                                     </CheckBox.ToolTip>
                                 </CheckBox>
                                 <CheckBox
+                                    Margin="0,5,0,0"
+                                    Content="... except for Mac OS"
+                                    IsChecked="{Binding StartMultiScreenExceptMac}"
+                                    IsEnabled="{Binding StartMultiScreen}" />
+                                <CheckBox
                                     x:Name="chkSettingMultiAltFit"
                                     Margin="0,5,0,0"
                                     Content="Fit Screen Edges"

@@ -107,7 +107,7 @@ namespace KLC_Finch {
             if (moduleFileExplorer == null)
                 return;
 
-            WindowRegistryKey wrk = new WindowRegistryKey();
+            WindowInputStringConfirm wrk = new WindowInputStringConfirm("Create Folder", "", "");
             wrk.Owner = window;
             bool accept = (bool)wrk.ShowDialog();
             if (accept) {
@@ -124,10 +124,7 @@ namespace KLC_Finch {
                 if (lookup == null)
                     return;
 
-
-
-
-                WindowRegistryKey wrk = new WindowRegistryKey(selectedkey);
+                WindowInputStringConfirm wrk = new WindowInputStringConfirm("Rename Folder", selectedkey, selectedkey);
                 wrk.Owner = window;
                 bool accepted = (bool)wrk.ShowDialog();
                 if (accepted) {
@@ -176,7 +173,7 @@ namespace KLC_Finch {
             string valueNameOld = ((KLCFile)dgvFilesFiles.SelectedItem).Name;
 
             if (valueNameOld != null && valueNameOld.Length > 0) {
-                WindowRegistryKey wrk = new WindowRegistryKey(valueNameOld);
+                WindowInputStringConfirm wrk = new WindowInputStringConfirm("Rename File", valueNameOld, valueNameOld);
                 wrk.Owner = window;
                 bool accepted = (bool)wrk.ShowDialog();
                 if (accepted)

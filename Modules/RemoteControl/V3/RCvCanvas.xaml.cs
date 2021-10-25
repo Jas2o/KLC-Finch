@@ -299,10 +299,12 @@ namespace KLC_Finch {
             double scaleY = (double)rcScrollViewer.ViewportHeight / (double)height;
 
             Dispatcher.Invoke((Action)delegate {
-                ZoomSlider.Value = scaleY;
+                if (!Double.IsInfinity(scaleY)) {
+                    ZoomSlider.Value = scaleY;
 
-                rcScrollViewer.ScrollToHorizontalOffset((virtualX - canvasOffsetX) * ZoomSlider.Value);
-                rcScrollViewer.ScrollToVerticalOffset((virtualY - canvasOffsetY) * ZoomSlider.Value);
+                    rcScrollViewer.ScrollToHorizontalOffset((virtualX - canvasOffsetX) * ZoomSlider.Value);
+                    rcScrollViewer.ScrollToVerticalOffset((virtualY - canvasOffsetY) * ZoomSlider.Value);
+                }
             });
         }
         public override bool SwitchToLegacy() {

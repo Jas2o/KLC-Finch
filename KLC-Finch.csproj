@@ -71,8 +71,8 @@
     <Reference Include="nucs.JsonSettings, Version=1.0.7.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\nucs.JsonSettings.1.0.7\lib\net47\nucs.JsonSettings.dll</HintPath>
     </Reference>
-    <Reference Include="Ookii.Dialogs.Wpf, Version=4.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
-      <HintPath>..\packages\Ookii.Dialogs.Wpf.4.0.0\lib\net45\Ookii.Dialogs.Wpf.dll</HintPath>
+    <Reference Include="Ookii.Dialogs.Wpf, Version=3.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
+      <HintPath>..\packages\Ookii.Dialogs.Wpf.3.1.0\lib\net45\Ookii.Dialogs.Wpf.dll</HintPath>
     </Reference>
     <Reference Include="OpenTK, Version=3.3.1.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
       <HintPath>..\packages\OpenTK.3.3.1\lib\net20\OpenTK.dll</HintPath>
@@ -165,6 +165,9 @@
     <Compile Include="Modules\FileExplorer\FilesData.cs" />
     <Compile Include="Modules\FileExplorer\KLCFile.cs" />
     <Compile Include="Modules\FileExplorer\Upload.cs" />
+    <Compile Include="Modules\FileExplorer\WindowInputStringConfirm.xaml.cs">
+      <DependentUpon>WindowInputStringConfirm.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Modules\Processes\controlProcesses.xaml.cs">
       <DependentUpon>controlProcesses.xaml</DependentUpon>
     </Compile>
@@ -288,6 +291,10 @@
     <Page Include="Modules\FileExplorer\controlFiles.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Modules\FileExplorer\WindowInputStringConfirm.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="Modules\Processes\controlProcesses.xaml">
       <SubType>Designer</SubType>
@@ -484,6 +491,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\magnify-expand.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="_Notes.txt" />
   </ItemGroup>
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaLiveConnect\LibKaseyaLiveConnect.projitems" Label="Shared" />

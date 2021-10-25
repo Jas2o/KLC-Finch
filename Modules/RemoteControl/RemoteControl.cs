@@ -75,7 +75,7 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
 
-            Viewer = App.viewer = new WindowViewerV3(App.Settings.Renderer, this, 1920, 1080, session.agent.OSTypeProfile, session.agent.UserLast);
+            Viewer = App.viewer = new WindowViewerV3(App.Settings.Renderer, this, session.agent.OSTypeProfile, session.agent.UserLast);
             Viewer.SetTitle(session.agent.Name, modePrivate);
             Viewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             Viewer.Show();
@@ -315,7 +315,7 @@ namespace KLC_Finch {
                     };
                     string sendjson = jInfo.ToString();
                     if (chunkStr.Length == 0) {
-                        fileUpload.Open();
+                        //fileUpload.Open();
                         SendJson(Enums.KaseyaMessageTypes.DropUploadFileInfo, sendjson);
                     }
 
@@ -331,9 +331,9 @@ namespace KLC_Finch {
                         fileUpload.Close();
                         fileUpload = null;
                     } else {
-                        int jsonLen = sendjson.Length;
-                        int totalLen = jsonLen + contentBuffer.Length;
                         byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
+                        int jsonLen = jsonBuffer.Length;
+                        int totalLen = jsonLen + contentBuffer.Length;
 
                         byte[] tosend = new byte[totalLen + 5];
                         tosend[0] = (byte)Enums.KaseyaMessageTypes.DropUploadFileChunk;
@@ -403,17 +403,18 @@ namespace KLC_Finch {
 
         public void SendClipboard(string content) {
             string sendjson = "{\"mime_type\":\"UTF-8\"}";
-            int jsonLen = sendjson.Length;
-            int totalLen = jsonLen + content.Length;
             byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
             byte[] contentBuffer = System.Text.Encoding.UTF8.GetBytes(content);
+
+            int jsonLen = jsonBuffer.Length;
+            int totalLen = jsonLen + contentBuffer.Length;
 
             byte[] tosend = new byte[totalLen + 5];
             tosend[0] = (byte)Enums.KaseyaMessageTypes.Clipboard;
             byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
             Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
             Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
-            Array.Copy(contentBuffer, 0, tosend, 5 + jsonLen, content.Length);
+            Array.Copy(contentBuffer, 0, tosend, 5 + jsonLen, contentBuffer.Length);
 
             if (serverB != null && serverB.IsAvailable)
                 serverB.Send(tosend);
@@ -566,7 +567,14 @@ namespace KLC_Finch {
         public void UploadDrop(string file, Progress<int> progress, bool showExplorer) {
             if (fileUpload == null) {
                 fileUpload = new UploadRC(file, showExplorer, progress);
-                SendJson(Enums.KaseyaMessageTypes.DropUploadStart, "{}");
+                bool ableToOpen = fileUpload.Open();
+                if (ableToOpen)
+                    SendJson(Enums.KaseyaMessageTypes.DropUploadStart, "{}");
+                else {
+                    if (progress != null)
+                        ((IProgress<int>)progress).Report(100);
+                    fileUpload = null;
+                }
             }
 
             /* Before KLC added their own file uploading
@@ -633,8 +641,8 @@ namespace KLC_Finch {
         }
 
         private void SendJson(Enums.KaseyaMessageTypes messageType, string sendjson) {
-            int jsonLen = sendjson.Length;
             byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
+            int jsonLen = jsonBuffer.Length;
 
             byte[] tosend = new byte[jsonLen + 5];
             tosend[0] = (byte)messageType;
@@ -647,5 +655,26 @@ namespace KLC_Finch {
             else
                 Disconnect(rcSessionId);
         }
+
+        /*
+        private void SendJsonASCII(Enums.KaseyaMessageTypes messageType, string sendjson) {
+            byte[] jsonBuffer = System.Text.Encoding.ASCII.GetBytes(sendjson);
+            int jsonLen = jsonBuffer.Length;
+
+            byte[] tosend = new byte[jsonLen + 5];
+            tosend[0] = (byte)messageType;
+            byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
+            Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
+            Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
+
+            //if (messageType == Enums.KaseyaMessageTypes.PasteClipboard)
+                //Console.WriteLine(BitConverter.ToString(tosend).Replace("-", ""));
+
+            if (serverB != null && serverB.IsAvailable)
+                serverB.Send(tosend);
+            else
+                Disconnect(rcSessionId);
+        }
+        */
     }
 }

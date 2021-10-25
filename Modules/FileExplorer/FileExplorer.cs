@@ -405,16 +405,16 @@ namespace KLC_Finch {
                     };
 
                     string sendjson = jDown.ToString();
-                    int jsonLen = sendjson.Length;
-                    int totalLen = jsonLen;// + content.Length;
                     byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
+                    int jsonLen = jsonBuffer.Length;
+                    int totalLen = jsonLen;// + content.Length;
                     //byte[] contentBuffer = System.Text.Encoding.UTF8.GetBytes(content);
 
                     byte[] tosend = new byte[totalLen + 4];
                     byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
                     Array.Copy(tosendPrefix, 0, tosend, 0, tosendPrefix.Length);
                     Array.Copy(jsonBuffer, 0, tosend, 4, jsonLen);
-                    //Array.Copy(contentBuffer, 0, tosend, 4 + jsonLen, content.Length);
+                    //Array.Copy(contentBuffer, 0, tosend, 4 + jsonLen, contentBuffer.Length);
 
                     activeDownload.Open();
                     if (serverBdownload != null)
@@ -443,9 +443,9 @@ namespace KLC_Finch {
                                 ["filename"] = activeDownload.fileName
                             };
                             string sendjsonAck = jAck.ToString();
-                            int jsonLenAck = sendjsonAck.Length;
-                            int totalLenAck = jsonLenAck;// + content.Length;
                             byte[] jsonBufferAck = System.Text.Encoding.UTF8.GetBytes(sendjsonAck);
+                            int jsonLenAck = jsonBufferAck.Length;
+                            int totalLenAck = jsonLenAck;// + content.Length;
 
                             byte[] tosendAck = new byte[totalLenAck + 4];
                             byte[] tosendPrefixAck = BitConverter.GetBytes(jsonLenAck).Reverse().ToArray();
@@ -574,9 +574,9 @@ namespace KLC_Finch {
             byte[] content = activeUpload.ReadBlock();
 
             string sendjson = jUpload.ToString();
-            int jsonLen = sendjson.Length;
-            int totalLen = jsonLen + content.Length;
             byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
+            int jsonLen = jsonBuffer.Length;
+            int totalLen = jsonLen + content.Length;
 
             byte[] tosend = new byte[totalLen + 4];
             byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();

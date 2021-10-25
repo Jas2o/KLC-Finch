@@ -22,12 +22,17 @@ namespace KLC_Finch {
             this.progress = progress;
             Chunk = 0;
 
-            //filestream = new FileStream(readLocation, FileMode.Open);
+            //filestream = new FileStream(readLocation, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             Console.WriteLine("File upload RC start: " + fileName);
         }
 
-        public void Open() {
-            filestream = new FileStream(readLocation, FileMode.Open);
+        public bool Open() {
+            try {
+                filestream = new FileStream(readLocation, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            } catch(Exception) {
+                return false;
+            }
+            return true;
         }
 
         public long GetFileSize() {
