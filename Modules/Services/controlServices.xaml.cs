@@ -167,5 +167,17 @@ namespace KLC_Finch {
         private void dgvServices_PreviewMouseDown(object sender, MouseButtonEventArgs e) {
             typedChars = string.Empty;
         }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e) {
+            if (!this.IsVisible)
+                return;
+
+            if (App.Settings.AltModulesStartAuto) {
+                if (btnServicesStart.IsEnabled) {
+                    btnServicesStart_Click(sender, e);
+                    btnServicesStart.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
     }
 }

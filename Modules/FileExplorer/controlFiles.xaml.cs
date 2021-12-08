@@ -107,7 +107,7 @@ namespace KLC_Finch {
             if (moduleFileExplorer == null)
                 return;
 
-            WindowRegistryKey wrk = new WindowRegistryKey();
+            WindowInputStringConfirm wrk = new WindowInputStringConfirm("Create Folder", "", "");
             wrk.Owner = window;
             bool accept = (bool)wrk.ShowDialog();
             if (accept) {
@@ -124,10 +124,7 @@ namespace KLC_Finch {
                 if (lookup == null)
                     return;
 
-
-
-
-                WindowRegistryKey wrk = new WindowRegistryKey(selectedkey);
+                WindowInputStringConfirm wrk = new WindowInputStringConfirm("Rename Folder", selectedkey, selectedkey);
                 wrk.Owner = window;
                 bool accepted = (bool)wrk.ShowDialog();
                 if (accepted) {
@@ -140,32 +137,36 @@ namespace KLC_Finch {
             if (moduleFileExplorer == null)
                 return;
 
-            string selectedkey = listFilesFolders.SelectedItem.ToString();
-            KLCFile lookup = moduleFileExplorer.GetKLCFolder(selectedkey);
-            if (lookup == null)
-                return;
+            if (listFilesFolders.SelectedIndex > -1)
+            {
+                string selectedkey = listFilesFolders.SelectedItem.ToString();
+                KLCFile lookup = moduleFileExplorer.GetKLCFolder(selectedkey);
+                if (lookup == null)
+                    return;
 
-            using (TaskDialog dialog = new TaskDialog()) {
-                dialog.WindowTitle = "KLC-Finch: Folder";
-                dialog.MainInstruction = "Delete folder?";
-                //dialog.MainIcon = TaskDialogIcon.Warning; //Overrides custom
-                dialog.CustomMainIcon = Properties.Resources.WarningRed;
-                dialog.CenterParent = true;
-                dialog.Content = selectedkey;
-                dialog.VerificationText = "Confirm";
-                dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
+                using (TaskDialog dialog = new TaskDialog())
+                {
+                    dialog.WindowTitle = "KLC-Finch: Folder";
+                    dialog.MainInstruction = "Delete folder?";
+                    //dialog.MainIcon = TaskDialogIcon.Warning; //Overrides custom
+                    dialog.CustomMainIcon = Properties.Resources.WarningRed;
+                    dialog.CenterParent = true;
+                    dialog.Content = selectedkey;
+                    dialog.VerificationText = "Confirm";
+                    dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
 
-                TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
-                tdbDelete.Enabled = false;
-                TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
-                tdbCancel.Default = true;
-                dialog.Buttons.Add(tdbDelete);
-                dialog.Buttons.Add(tdbCancel);
+                    TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
+                    tdbDelete.Enabled = false;
+                    TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                    tdbCancel.Default = true;
+                    dialog.Buttons.Add(tdbDelete);
+                    dialog.Buttons.Add(tdbCancel);
 
-                System.Media.SystemSounds.Beep.Play(); //Custom doesn't beep
-                TaskDialogButton button = dialog.ShowDialog(App.alternative);
-                if (button == tdbDelete)
-                    moduleFileExplorer.DeleteFolder(lookup);
+                    System.Media.SystemSounds.Beep.Play(); //Custom doesn't beep
+                    TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                    if (button == tdbDelete)
+                        moduleFileExplorer.DeleteFolder(lookup);
+                }
             }
         }
 
@@ -176,7 +177,7 @@ namespace KLC_Finch {
             string valueNameOld = ((KLCFile)dgvFilesFiles.SelectedItem).Name;
 
             if (valueNameOld != null && valueNameOld.Length > 0) {
-                WindowRegistryKey wrk = new WindowRegistryKey(valueNameOld);
+                WindowInputStringConfirm wrk = new WindowInputStringConfirm("Rename File", valueNameOld, valueNameOld);
                 wrk.Owner = window;
                 bool accepted = (bool)wrk.ShowDialog();
                 if (accepted)
@@ -255,6 +256,32 @@ namespace KLC_Finch {
             } else {
                 btnFilesFileRename.IsEnabled = false;
                 txtFilesSelected.Content = dgvFilesFiles.SelectedItems.Count + " files selected";
+            }
+        }
+
+        private void ContextShortcutsKRCTransferFiles_Click(object sender, RoutedEventArgs e) {
+            if (moduleFileExplorer != null) {
+                if(window.session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac)
+                    txtFilesPath.Text = "/Library/Kaseya/kworking/KRCTransferFiles/";
+                else
+                    txtFilesPath.Text = "C:\\kworking\\System\\KRCTransferFiles";
+                moduleFileExplorer.GoTo(txtFilesPath.Text);
+            }
+        }
+
+        private void BtnShortcuts_Click(object sender, RoutedEventArgs e) {
+            btnShortcuts.ContextMenu.IsOpen = true;
+        }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e) {
+            if (!this.IsVisible)
+                return;
+
+            if (App.Settings.AltModulesStartAuto) {
+                if (btnFilesStart.IsEnabled) {
+                    btnFilesStart_Click(sender, e);
+                    btnFilesStart.Visibility = Visibility.Collapsed;
+                }
             }
         }
     }

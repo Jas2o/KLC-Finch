@@ -12,7 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace KLC_Finch.Modules.RemoteControl {
+namespace KLC_Finch {
     /// <summary>
     /// Interaction logic for WindowOptions.xaml
     /// </summary>
@@ -25,12 +25,15 @@ namespace KLC_Finch.Modules.RemoteControl {
             btnSaveSettings.IsEnabled = false;
         }
 
-        public WindowOptions(ref Settings settings) {
+        public WindowOptions(ref Settings settings, bool startTabRC) {
             InitializeComponent();
             Title += " (" + App.Version + ")";
             DataContext = this.settings = settings;
             txtSizeWidth.Text = this.settings.RemoteControlWidth.ToString();
             txtSizeHeight.Text = this.settings.RemoteControlHeight.ToString();
+
+            if (startTabRC)
+                tabRC.IsSelected = true;
         }
 
         private void btnSaveSettings_Click(object sender, RoutedEventArgs e) {
@@ -57,10 +60,13 @@ namespace KLC_Finch.Modules.RemoteControl {
             settings.KeyboardHook = false;
             settings.MacSwapCtrlWin = true;
             settings.StartMultiScreen = true;
+            settings.StartMultiScreenExceptMac = false;
             settings.MultiAltFit = true;
             settings.MultiShowCursor = true;
             settings.ScreenSelectNew = true;
-            settings.GraphicsMode = 0;
+
+            settings.Renderer = 0;
+            settings.RendererAlt = false;
 
             txtSizeWidth.Text = "1370";
             txtSizeHeight.Text = "800";
@@ -76,13 +82,17 @@ namespace KLC_Finch.Modules.RemoteControl {
             settings.DisplayOverlayKeyboardMod = false;
             settings.DisplayOverlayKeyboardOther = false;
             settings.DisplayOverlayKeyboardHook = false;
+            settings.DisplayOverlayPanZoom = false;
             settings.KeyboardHook = true;
             settings.MacSwapCtrlWin = false;
             settings.StartMultiScreen = false;
+            settings.StartMultiScreenExceptMac = false;
             settings.MultiAltFit = false;
             settings.MultiShowCursor = false;
             settings.ScreenSelectNew = false;
-            settings.GraphicsMode = 0;
+            
+            settings.Renderer = 0;
+            settings.RendererAlt = false;
 
             txtSizeWidth.Text = "1370";
             txtSizeHeight.Text = "800";

@@ -39,16 +39,27 @@
             Background="#FF3C3C3C"
             ToolBarTray.IsLocked="True">
             <MenuItem
-                x:Name="toolDumpInfo"
-                Click="ToolDumpInfo_Click"
+                x:Name="toolDump"
+                Click="ToolDump_Click"
                 Foreground="White"
                 Header="Dump" />
             <Separator Width="10" />
             <MenuItem
-                x:Name="toolUpdateInfo"
-                Click="ToolUpdateInfo_Click"
+                x:Name="toolUpdate"
+                Click="ToolUpdate_Click"
                 Foreground="White"
-                Header="Update Screen Layout Info" />
+                Header="Update Screen Layout" />
+            <Separator Width="10" />
+            <MenuItem
+                x:Name="toolReflow"
+                Click="ToolReflow_Click"
+                Foreground="White"
+                Header="Reflow X" />
+            <MenuItem
+                x:Name="toolReset"
+                Click="toolReset_Click"
+                Foreground="White"
+                Header="Reset" />
         </Menu>
     </Grid>
 </Window>

@@ -1,11 +1,11 @@
 ﻿<Window
-    x:Class="KLC_Finch.Modules.RemoteControl.WindowOptions"
+    x:Class="KLC_Finch.WindowOptions"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:KLC_Finch.Modules.RemoteControl"
+    xmlns:local="clr-namespace:KLC_Finch"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="KLC-Finch: Remote Control Settings"
+    Title="KLC-Finch: Settings"
     Width="460"
     MinHeight="250"
     ResizeMode="NoResize"
@@ -13,8 +13,49 @@
     WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
     <Grid>
-        <TabControl>
-            <TabItem Header="Settings">
+        <TabControl x:Name="tabControl">
+            <TabItem x:Name="tabAlt" Header="Alternative">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="5" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <GroupBox Header="Modules">
+                            <StackPanel>
+                                <CheckBox
+                                    x:Name="chkAltModulesStartAuto"
+                                    Margin="0,5,0,0"
+                                    Content="Auto start modules"
+                                    IsChecked="{Binding AltModulesStartAuto}"
+                                    ToolTip="Overlay at top middle." />
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                    <!--<StackPanel Grid.Column="2">
+                        <GroupBox Header="Other">
+                            <StackPanel />
+                        </GroupBox>
+                    </StackPanel>-->
+
+                    <Button
+                        x:Name="btnSaveSettingsAlt"
+                        Grid.Row="1"
+                        Grid.Column="2"
+                        Width="100"
+                        Margin="1,0,0,0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Click="btnSaveSettings_Click"
+                        Content="Save Settings" />
+                </Grid>
+            </TabItem>
+            <TabItem x:Name="tabRC" Header="Remote Control">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition />
@@ -52,6 +93,12 @@
                                     Content="Show Mouse Move Events"
                                     IsChecked="{Binding DisplayOverlayMouse}"
                                     ToolTip="Overlay at top right." />
+                                <CheckBox
+                                    x:Name="chkDebugPanZoom"
+                                    Margin="0,5,0,0"
+                                    Content="Show Zoom/Pan Text (Canvas only)"
+                                    IsChecked="{Binding DisplayOverlayPanZoom}"
+                                    ToolTip="Overlay in the center." />
                             </StackPanel>
                         </GroupBox>
                         <GroupBox Header="Control">
@@ -134,6 +181,11 @@
                                     </CheckBox.ToolTip>
                                 </CheckBox>
                                 <CheckBox
+                                    Margin="0,5,0,0"
+                                    Content="... except for Mac OS"
+                                    IsChecked="{Binding StartMultiScreenExceptMac}"
+                                    IsEnabled="{Binding StartMultiScreen}" />
+                                <CheckBox
                                     x:Name="chkSettingMultiAltFit"
                                     Margin="0,5,0,0"
                                     Content="Fit Screen Edges"
@@ -181,35 +233,33 @@
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition />
                                     </Grid.ColumnDefinitions>
-                                    <Label
-                                        Padding="0,5,5,5"
-                                        Content="Mode:"
-                                        ToolTipService.ShowDuration="24000">
-                                        <Label.ToolTip>
-                                            <TextBlock>
-                                                Kaseya's video feed is VP8 format, which uses YUV to reduce bandwidth.<LineBreak />
-                                                However displaying YUV requires it to be converted to RGB at some point,<LineBreak />
-                                                which has a CPU usage cost.<LineBreak />
-                                                <LineBreak />
-                                                When OpenGL YUV/RGB is expected to fail, Finch with use Canvas RGB instead.<LineBreak />
-                                                <LineBreak />
-                                                OpenGL YUV: uses a shader to handle the conversion (faster).<LineBreak />
-                                                OpenGL RGB: CPU handles the conversion (slower).<LineBreak />
-                                                <LineBreak />
-                                                Canvas RGB: compatible with low-end graphics, but high CPU.<LineBreak />
-                                                OpenGL Y: compatible, but less CPU because it's greyscale.</TextBlock>
-                                        </Label.ToolTip>
-                                    </Label>
+                                    <Label Padding="0,5,5,5" Content="Renderer:" />
                                     <ComboBox
                                         Grid.Column="1"
                                         VerticalAlignment="Center"
-                                        SelectedIndex="{Binding GraphicsMode}">
-                                        <ComboBoxItem>OpenGL YUV (Best)</ComboBoxItem>
-                                        <ComboBoxItem>OpenGL RGB (Toaster)</ComboBoxItem>
-                                        <ComboBoxItem>Canvas RGB (Potato)</ComboBoxItem>
-                                        <ComboBoxItem>Canvas Y (Greyscale)</ComboBoxItem>
+                                        SelectedIndex="{Binding Renderer}">
+                                        <ComboBoxItem>GLControl</ComboBoxItem>
+                                        <ComboBoxItem>GLWpfControl (Unstable)</ComboBoxItem>
+                                        <ComboBoxItem>Canvas (Fallback)</ComboBoxItem>
                                     </ComboBox>
                                 </Grid>
+                                <CheckBox
+                                    Content="Alternate renderer mode"
+                                    IsChecked="{Binding RendererAlt}"
+                                    ToolTipService.ShowDuration="12000">
+                                    <CheckBox.ToolTip>
+                                        <TextBlock>
+                                            Enable a trade-off that might be needed for less capable systems.<LineBreak />
+                                            <LineBreak />
+                                            OpenGL (GLControl and GLWpfControl)<LineBreak />
+                                            - Primary: YUV (Shader)<LineBreak />
+                                            - Alternate: RGB<LineBreak />
+                                            <LineBreak />
+                                            Canvas<LineBreak />
+                                            - Primary: RGB<LineBreak />
+                                            - Alternate: Y (Greyscale)</TextBlock>
+                                    </CheckBox.ToolTip>
+                                </CheckBox>
                                 <!--
                                 <CheckBox
                                     x:Name="chkSettingUseYUVShader"
@@ -301,7 +351,7 @@
                         Content="Save Settings" />
                 </Grid>
             </TabItem>
-            <TabItem Header="Hotkeys">
+            <TabItem Header="RC Hotkeys">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />

@@ -103,5 +103,17 @@ namespace KLC_Finch {
             collectionView.Filter = new Predicate<object>(x => ((Modules.ProcessValue)x).DisplayName.IndexOf(txtFilterName.Text, StringComparison.OrdinalIgnoreCase) >= 0);
             //collectionView.Refresh();
         }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e) {
+            if (!this.IsVisible)
+                return;
+
+            if (App.Settings.AltModulesStartAuto) {
+                if (btnProcessesStart.IsEnabled) {
+                    btnProcessesStart_Click(sender, e);
+                    btnProcessesStart.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
     }
 }

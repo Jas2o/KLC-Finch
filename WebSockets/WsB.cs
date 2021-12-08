@@ -108,6 +108,10 @@ namespace KLC {
                     Session.ModuleProcesses.Receive(message);
                     break;
 
+                case "/app/toolbox":
+                    Session.ModuleToolbox.Receive(message);
+                    break;
+
                 default:
                     Console.WriteLine("ServerB Message Unhandled: " + socket.ConnectionInfo.Path);
                     break;
@@ -233,6 +237,10 @@ namespace KLC {
                     Session.ModuleProcesses.SetSocket(socket);
                     break;
 
+                case "/app/toolbox":
+                    Session.ModuleToolbox.SetSocket(socket);
+                    break;
+
                 default:
                     if(socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/")) {
                         ServerBsocketRemoteControl = socket;
@@ -264,7 +272,7 @@ namespace KLC {
             socket.Send(message);
         }
 
-        public string StartModuleRemoteControl(bool modePrivate) {
+        public string StartModuleRemoteControl(RC mode) {
             string guidGenSessionId = Guid.NewGuid().ToString();
             string guidGenSessionTokenId = Session.Eirc.session_token_id;// Guid.NewGuid().ToString();
             string guidGenId = Guid.NewGuid().ToString();
@@ -273,7 +281,17 @@ namespace KLC {
             //I don't think rcPolicy actually matters
             //The Type sure does
 
-            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.Auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + (modePrivate ? "Private" : "Shared") + "\"},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
+            string sessionType = "Shared";
+            switch (mode)
+            {
+                case RC.Private:
+                    sessionType = "Private";
+                    break;
+                case RC.OneClick:
+                    sessionType = "1-Click";
+                    break;
+            }
+            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.Auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + sessionType + "\"},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
 
             if (ServerBsocketControlAgent == null)
                 //throw new Exception("Agent offline?");

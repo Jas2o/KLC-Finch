@@ -22,12 +22,12 @@ namespace KLC_Finch {
             this.readLocation = readLocation;
             this.progress = progress;
 
-            //filestream = new FileStream(readLocation, FileMode.Open);
+            //filestream = new FileStream(readLocation, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             Console.WriteLine("File upload start: " + fileName);
         }
 
         public void Open() {
-            filestream = new FileStream(readLocation, FileMode.Open);
+            filestream = new FileStream(readLocation, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         }
 
         public long GetFileSize() {

@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:KLC_Finch"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="WindowRCTest"
-    Width="430"
+    Width="440"
     Height="250"
     mc:Ignorable="d">
     <Grid>
@@ -17,44 +17,64 @@
         <StackPanel Margin="5" Orientation="Horizontal">
             <Button
                 x:Name="btnTest"
-                Width="75"
-                Margin="0,0,5,3"
+                Width="55"
+                Margin="0"
                 HorizontalAlignment="Left"
-                VerticalAlignment="Bottom"
                 Click="BtnTest_Click"
                 Content="Test It!" />
             <Label Content="Template:" />
             <Button
                 x:Name="btnTemplateDefault"
+                Width="20"
                 Height="26"
-                Margin="0,0,5,0"
                 VerticalAlignment="Bottom"
                 Click="BtnTemplateDefault_Click"
-                Content="Default" />
+                Content="0" />
             <Button
                 x:Name="btnTemplate1"
                 Width="20"
                 Height="26"
-                Margin="0,0,5,0"
                 VerticalAlignment="Bottom"
                 Click="BtnTemplate1_Click"
                 Content="1" />
             <Button
                 x:Name="btnTemplate2"
                 Width="20"
-                Margin="0,0,5,0"
                 Click="BtnTemplate2_Click"
                 Content="2" />
             <Button
                 x:Name="btnTemplate3"
                 Width="20"
+                Margin="0,0,5,0"
                 Click="BtnTemplate3_Click"
                 Content="3" />
+            <CheckBox
+                x:Name="chkMac"
+                Margin="0,0,5,0"
+                VerticalAlignment="Center"
+                Content="Mac" />
+            <CheckBox
+                x:Name="chkRetina"
+                Margin="0,0,5,0"
+                VerticalAlignment="Center"
+                Checked="chkRetina_Changed"
+                Content="Retina"
+                Unchecked="chkRetina_Changed" />
+            <ComboBox
+                x:Name="cmbRenderer"
+                Grid.Column="1"
+                Width="105"
+                VerticalAlignment="Center">
+                <ComboBoxItem>GLControl</ComboBoxItem>
+                <ComboBoxItem>GLWpfControl</ComboBoxItem>
+                <ComboBoxItem>Canvas</ComboBoxItem>
+            </ComboBox>
         </StackPanel>
         <TextBox
             x:Name="txtInputJson"
             Grid.Row="1"
             Margin="5,0,5,5"
+            AcceptsReturn="True"
             TextWrapping="Wrap" />
 
     </Grid>

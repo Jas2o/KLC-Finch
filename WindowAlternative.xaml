@@ -31,7 +31,7 @@
                 Text="Disconnected" />
         </Border>
 
-        <TabControl Grid.Row="1">
+        <TabControl x:Name="tabControl" Grid.Row="1">
             <TabItem Header="Dashboard">
                 <Grid Background="#FFE5E5E5">
                     <Grid.RowDefinitions>
@@ -45,15 +45,22 @@
                     <StackPanel HorizontalAlignment="Left">
                         <Button
                             x:Name="btnRCShared"
-                            Margin="0,5"
+                            Margin="0,5,0,0"
                             VerticalAlignment="Top"
                             Click="btnRCShared_Click"
                             Content="RC Shared" />
                         <Button
                             x:Name="btnRCPrivate"
+                            Margin="0,5,0,0"
                             VerticalAlignment="Top"
                             Click="btnRCPrivate_Click"
                             Content="RC Private" />
+                        <Button
+                            x:Name="btnRCOneClick"
+                            Margin="0,5,0,0"
+                            VerticalAlignment="Top"
+                            Click="btnRCOneClick_Click"
+                            Content="1-Click" />
 
                         <Button
                             x:Name="btnWiresharkFilter"
@@ -82,14 +89,25 @@
                             Click="btnReconnect_Click"
                             Content="Reconnect" />
                     </StackPanel>
-                    <TextBlock
-                        x:Name="txtVersion"
-                        Grid.Row="1"
-                        Padding="0,0,0,6"
-                        Foreground="Gray"
-                        Text="Build date: DD/MM/YYYY"
-                        TextAlignment="Center"
-                        TextWrapping="Wrap" />
+                    <StackPanel Grid.Row="1">
+                        <Button
+                            x:Name="btnRCLogs"
+                            Click="btnRCLogs_Click"
+                            Content="RC Logs" />
+                        <Button
+                            x:Name="btnAltSettings"
+                            Margin="0,5"
+                            Click="btnAltSettings_Click"
+                            Content="Settings" />
+                        <TextBlock
+                            x:Name="txtVersion"
+                            Padding="0,0,0,6"
+                            Foreground="Gray"
+                            Text="Build date: DD/MM/YYYY"
+                            TextAlignment="Center"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
 
                     <command:controlDashboard
                         x:Name="ctrlDashboard"
@@ -140,6 +158,9 @@
             </TabItem>
             <TabItem x:Name="tabProcesses" Header="Processes">
                 <command:controlProcesses x:Name="ctrlProcesses" />
+            </TabItem>
+            <TabItem x:Name="tabToolbox" Header="Toolbox">
+                <command:controlToolbox x:Name="ctrlToolbox" />
             </TabItem>
         </TabControl>
 

@@ -1,21 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using OpenTK;
+﻿using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using System;
+using System.Drawing;
 
 namespace NTR {
+
     public class TextureCursor {
-
         public byte[] Data;
-        public bool IsNew;
         public int ID;
-
+        public bool IsNew;
         private Rectangle rect; //Kinda silly we have this twice
 
         private int VBOScreen;
@@ -47,33 +40,6 @@ namespace NTR {
             //decomp.UnlockBits(data);
 
             IsNew = true;
-        }
-
-        public void RenderNew() {
-            if (!IsNew || ID == -1 || rect == null)
-                return;
-
-            GL.ActiveTexture(TextureUnit.Texture0);
-            GL.BindTexture(TextureTarget.Texture2D, ID);
-
-            GL.TexImage2D(
-                TextureTarget.Texture2D,
-                0, //Level
-                PixelInternalFormat.Rgba,
-                rect.Width,
-                rect.Height,
-                0, //Border
-                OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
-                PixelType.UnsignedByte,
-                Data); //bmpData.Scan0
-
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Clamp);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Clamp);
-
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-
-            IsNew = false;
         }
 
         public bool Render() {
@@ -109,6 +75,33 @@ namespace NTR {
             GL.DrawArrays(PrimitiveType.Quads, 0, vertBufferScreen.Length / 2);
 
             return true;
+        }
+
+        public void RenderNew() {
+            if (!IsNew || ID == -1 || rect == null)
+                return;
+
+            GL.ActiveTexture(TextureUnit.Texture0);
+            GL.BindTexture(TextureTarget.Texture2D, ID);
+
+            GL.TexImage2D(
+                TextureTarget.Texture2D,
+                0, //Level
+                PixelInternalFormat.Rgba,
+                rect.Width,
+                rect.Height,
+                0, //Border
+                OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
+                PixelType.UnsignedByte,
+                Data); //bmpData.Scan0
+
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Clamp);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Clamp);
+
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+
+            IsNew = false;
         }
     }
 }

@@ -177,8 +177,8 @@ namespace KLC_Finch {
         }
 
         private void SendJson(Enums.KaseyaMessageTypes messageType, string sendjson) {
-            int jsonLen = sendjson.Length;
             byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
+            int jsonLen = jsonBuffer.Length;
 
             byte[] tosend = new byte[jsonLen + 5];
             tosend[0] = (byte)messageType;

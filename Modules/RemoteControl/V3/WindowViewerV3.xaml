@@ -1,5 +1,5 @@
 ﻿<Window
-    x:Class="KLC_Finch.WindowViewerV2"
+    x:Class="KLC_Finch.WindowViewerV3"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,7 +7,7 @@
     xmlns:glWpfControl="clr-namespace:OpenTK.Wpf;assembly=GLWpfControl"
     xmlns:local="clr-namespace:KLC_Finch"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="WindowViewer V2"
+    Title="WindowViewer V3"
     Width="1000"
     Height="600"
     Activated="Window_Activated"
@@ -23,13 +23,15 @@
     StateChanged="Window_StateChanged"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition />
         </Grid.RowDefinitions>
-        <ToolBar ToolBarTray.IsLocked="True">
+        <ToolBar x:Name="toolBar" ToolBarTray.IsLocked="True">
             <ext:DropdownButton
                 x:Name="toolMachineNote"
                 Content="Note"
@@ -48,11 +50,13 @@
             <Button
                 x:Name="toolSendCtrlAltDel"
                 Click="ToolSendCtrlAltDel_Click"
-                Content="Ctrl+Alt+Del" />
+                Content="Ctrl+Alt+Del"
+                IsEnabled="{Binding Path=ControlEnabled}" />
             <Button
                 x:Name="toolToggleControl"
                 Click="ToolToggleControl_Click"
-                Content="Control Enabled" />
+                Content="{Binding ControlEnabledText, Mode=OneWay, FallbackValue='Control Enabled'}"
+                FontWeight="{Binding ControlEnabledTextWeight, Mode=OneWay, FallbackValue=Normal}" />
             <Button
                 x:Name="toolKeyWin"
                 Click="ToolKeyWin_Click"
@@ -78,12 +82,40 @@
                 x:Name="toolScreenMode"
                 VerticalAlignment="Stretch"
                 Click="ToolScreenMode_Click"
-                Content="Multi" />
+                Content="{Binding ScreenModeText, Mode=OneWay, FallbackValue='Multi'}" />
+            <Button
+                x:Name="toolScreenFix"
+                VerticalAlignment="Stretch"
+                Background="Gold"
+                Click="ToolScreenFix_Click"
+                Content="Fix"
+                FontWeight="Bold"
+                Visibility="{Binding Path=UseMultiScreenFixAvailable, Converter={StaticResource BoolToVis}, FallbackValue=Visible}" />
             <Button
                 x:Name="toolScreenOverview"
                 VerticalAlignment="Stretch"
                 Click="ToolScreenOverview_Click"
-                Content="Overview" />
+                Content="Overview"
+                FontWeight="{Binding UseMultiScreenOverviewTextWeight, Mode=OneWay, FallbackValue=Normal}"
+                Visibility="{Binding Path=UseMultiScreen, Converter={StaticResource BoolToVis}, FallbackValue=Visible}" />
+            <Button
+                x:Name="toolPanZoom"
+                Click="toolPanZoom_Click"
+                ToolTip="Pan/Zoom Mode, allows movement (Scroll/WASD) when control is disabled."
+                Visibility="{Binding Path=UseMultiScreen, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="/KLC-Finch;component/Resources/magnify-expand.png" StretchDirection="DownOnly" />
+                    <Label
+                        x:Name="ToolPanZoomLabel"
+                        Padding="0"
+                        VerticalAlignment="Center"
+                        Content="Pan/Zoom"
+                        FontWeight="{Binding ControlEnabledTextWeight, Mode=OneWay, FallbackValue=Normal}"
+                        IsEnabled="false"
+                        Visibility="{Binding Path=UseMultiScreenPanZoom, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+            </Button>
+            <!--
             <Button
                 x:Name="toolZoomIn"
                 Click="ToolZoomIn_Click"
@@ -96,17 +128,20 @@
                 ToolTip="Zoom Out">
                 <Image Source="/KLC-Finch;component/Resources/magnify-minus-outline.png" StretchDirection="DownOnly" />
             </Button>
+            -->
             <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
             <Button
                 x:Name="toolClipboardSync"
                 Click="ToolClipboardSync_Click"
-                ToolTip="Clipboard Synced">
+                ToolTip="Clipboard Synced"
+                Visibility="{Binding Path=SsClipboardSync, Converter={StaticResource BoolToVis}}">
                 <Image Source="/KLC-Finch;component/Resources/sync.png" StretchDirection="DownOnly" />
             </Button>
             <Button
                 x:Name="toolClipboardReceiveOnly"
                 Click="ToolClipboardSync_Click"
-                ToolTip="Clipboard Receive Only">
+                ToolTip="Clipboard Receive Only"
+                Visibility="{Binding Path=SsClipboardSyncReceiveOnly, Converter={StaticResource BoolToVis}}">
                 <Image
                     Width="24"
                     Height="24"
@@ -168,6 +203,10 @@
                             Header="Build date: DD/MM/YYYY"
                             IsEnabled="False" />
                         <MenuItem
+                            x:Name="toolViewRCLogs"
+                            Click="toolViewRCLogs_Click"
+                            Header="Remote Control Logs" />
+                        <MenuItem
                             x:Name="toolOpenGLInfo"
                             Click="toolOpenGLInfo_Click"
                             Header="OpenGL Info" />
@@ -211,173 +250,11 @@
             </ext:DropdownButton>
         </ToolBar>
 
-        <!--<StackPanel Grid.Row="1" Background="Black" >
-            <TextBlock x:Name="txtRcNotify" Text="Awaiting approval..." HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Foreground="White"/>
-        </StackPanel>-->
-
-        <glWpfControl:GLWpfControl x:Name="glControl" Grid.Row="2" />
-
-
-        <!--<Viewbox
-                x:Name="rcViewbox"
-                ClipToBounds="True"
-                RenderTransformOrigin="0.5,0.5">-->
-        <DockPanel x:Name="dockCanvas" Grid.Row="2">
-            <Slider
-                x:Name="ZoomSlider"
-                DockPanel.Dock="Bottom"
-                Maximum="2"
-                Minimum="0.23"
-                Value="0.50" />
-            <Border x:Name="rcBorderBG" Background="SlateGray">
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                    <Viewbox
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Stretch="Uniform">
-                        <Canvas
-                            x:Name="rcCanvas"
-                            Width="1920"
-                            Height="1080">
-                            <Canvas.RenderTransform>
-                                <MatrixTransform x:Name="transformCanvas" />
-                            </Canvas.RenderTransform>
-                            <Image x:Name="imageTest" />
-                            <Rectangle
-                                x:Name="rcRectangleExample"
-                                Width="1920"
-                                Height="1080"
-                                Fill="#FF003C83" />
-                        </Canvas>
-                        <!--</Viewbox>-->
-                        <Viewbox.LayoutTransform>
-                            <ScaleTransform ScaleX="{Binding ElementName=ZoomSlider, Path=Value}" ScaleY="{Binding ElementName=ZoomSlider, Path=Value}" />
-                        </Viewbox.LayoutTransform>
-                    </Viewbox>
-                </ScrollViewer>
-            </Border>
-        </DockPanel>
-
-
-        <Grid
-            Grid.Row="2"
-            Panel.ZIndex="1000"
-            IsHitTestVisible="False">
-            <TextBlock
-                x:Name="txtDebugLeft"
-                Width="400"
-                Margin="5,0,0,0"
-                HorizontalAlignment="Left"
-                FontSize="32"
-                Foreground="#FF78FF00"
-                LineStackingStrategy="BlockLineHeight"
-                TextAlignment="Left"
-                TextWrapping="Wrap">
-                Line 1<LineBreak />
-                Line 2</TextBlock>
-            <TextBlock
-                x:Name="txtDebugRight"
-                Width="400"
-                Margin="0,0,5,0"
-                HorizontalAlignment="Right"
-                FontSize="32"
-                Foreground="#FF78FF00"
-                LineStackingStrategy="BlockLineHeight"
-                TextAlignment="Right"
-                TextWrapping="Wrap">
-                Line 1<LineBreak />
-                Line 2</TextBlock>
-
-            <TextBlock
-                x:Name="txtRcControlOff1"
-                Width="315"
-                Margin="0,10,0,0"
-                VerticalAlignment="Top"
-                FontSize="32"
-                Foreground="Black"
-                LineHeight="36"
-                LineStackingStrategy="BlockLineHeight"
-                Text="F2 or double-click to enable control"
-                TextAlignment="Center"
-                TextWrapping="Wrap">
-                <TextBlock.Effect>
-                    <BlurEffect KernelType="Box" Radius="2" />
-                </TextBlock.Effect>
-            </TextBlock>
-            <TextBlock
-                x:Name="txtRcControlOff2"
-                Width="315"
-                Margin="0,10,0,0"
-                VerticalAlignment="Top"
-                FontSize="32"
-                Foreground="#BFFFFFFF"
-                LineHeight="36"
-                LineStackingStrategy="BlockLineHeight"
-                Text="F2 or double-click to enable control"
-                TextAlignment="Center"
-                TextWrapping="Wrap" />
-            <TextBlock
-                x:Name="txtRcHookOn"
-                Width="315"
-                Margin="0,10,0,0"
-                VerticalAlignment="Top"
-                FontSize="16"
-                Foreground="#BFFF9700"
-                LineStackingStrategy="BlockLineHeight"
-                Text="Keyboard Hook"
-                TextAlignment="Center"
-                TextWrapping="Wrap" />
-
-            <StackPanel VerticalAlignment="Center">
-                <Label
-                    x:Name="txtRcNotify"
-                    Height="80"
-                    VerticalAlignment="Center"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
-                    Background="#7F000000"
-                    Content="Awaiting approval"
-                    FontFamily="Arial"
-                    FontSize="32"
-                    Foreground="White" />
-                <Label
-                    x:Name="txtRcConnecting"
-                    Width="250"
-                    Height="80"
-                    VerticalAlignment="Center"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
-                    Background="#7F000000"
-                    Content="Connecting"
-                    FontFamily="Arial"
-                    FontSize="32"
-                    Foreground="White" />
-                <Label
-                    x:Name="txtRcFrozen"
-                    Width="250"
-                    Height="80"
-                    VerticalAlignment="Center"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
-                    Background="#3F0096FF"
-                    Content="Frozen?"
-                    FontFamily="Arial"
-                    FontSize="32"
-                    Foreground="#7FFFFFFF" />
-                <Label
-                    x:Name="txtRcDisconnected"
-                    Width="250"
-                    Height="80"
-                    VerticalAlignment="Center"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
-                    Background="#7F000000"
-                    Content="Disconnected"
-                    FontFamily="Arial"
-                    FontSize="32"
-                    Foreground="#FF78FF00" />
-            </StackPanel>
-        </Grid>
-
+        <Border
+            x:Name="placeholder"
+            Grid.Row="1"
+            Background="#FF153449" />
+        <!--<local:RCvCanvas x:Name="rcv" Grid.Row="1" />-->
+        <!--<local:RCvOpenGL Grid.Row="1" />-->
     </Grid>
 </Window>

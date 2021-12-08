@@ -130,6 +130,15 @@
   <data name="clipboard_arrow_down_outline" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\clipboard-arrow-down-outline.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="fit_to_page_outline" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\fit-to-page-outline.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="fit_to_screen_outline" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\fit-to-screen-outline.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="magnify_expand" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\magnify-expand.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="magnify_minus_outline" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\magnify-minus-outline.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>

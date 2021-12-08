@@ -11,27 +11,38 @@ namespace KLC_Finch {
         public Settings(string fileName) : base(fileName) {
         }
 
-        //--
+        //Alternative
+        public bool AltModulesStartAuto { get; set; } = true;
 
-        public bool AutotypeSkipLengthCheck { get; set; } = false;
-        public bool StartControlEnabled { get; set; } = true;
-        //[JsonIgnore] private bool ClipboardSyncEnabled { get; set; } = false; //No longer used
-        public int ClipboardSync { get; set; } = 2; //Server/Admin only
+        //RC: Debug Text
         public bool DisplayOverlayMouse { get; set; } = false;
         public bool DisplayOverlayKeyboardMod { get; set; } = false;
         public bool DisplayOverlayKeyboardOther { get; set; } = false;
         public bool DisplayOverlayKeyboardHook { get; set; } = false;
-        public uint RemoteControlWidth { get; set; } = 1370;  //The same as Kaseya
-        public uint RemoteControlHeight { get; set; } = 800;
+        public bool DisplayOverlayPanZoom { get; set; } = false;
+
+        //RC: Control
+        public bool AutotypeSkipLengthCheck { get; set; } = false;
+        public bool StartControlEnabled { get; set; } = true;
+        //[JsonIgnore] private bool ClipboardSyncEnabled { get; set; } = false; //No longer used
+        public int ClipboardSync { get; set; } = 2; //Server/Admin only
         public bool KeyboardHook { get; set; } = false;
         public bool MacSwapCtrlWin { get; set; } = false;
+
+        //RC: Multi-Screen
         public bool StartMultiScreen { get; set; } = true;
-        public bool MultiAltFit { get; set; } = false;
+        public bool StartMultiScreenExceptMac { get; set; } = false;
+        public bool MultiAltFit { get; set; } = true;
         public bool MultiShowCursor { get; set; } = false;
         public bool ScreenSelectNew { get; set; } = true;
-        public int GraphicsMode { get; set; } = 0; //OpenGL YUV, OpenGL RGB, Canvas RGB, Canvas Y
-        //[JsonIgnore] private bool UseYUVShader { get; set; } = true;
-        //[JsonIgnore] private bool ForceCanvas { get; set; } = false;
-        public bool PowerSaveOnMinimize { get; set; } = false;
+
+        //RC: Graphics
+        public int Renderer { get; set; } = 0; //GLControl, GLWpfControl, Canvas
+        public bool RendererAlt { get; set; } = false;
+        public bool PowerSaveOnMinimize { get; set; } = true;
+
+        //RC: Initial Window Size
+        public uint RemoteControlWidth { get; set; } = 1370;  //The same as Kaseya
+        public uint RemoteControlHeight { get; set; } = 800;
     }
 }

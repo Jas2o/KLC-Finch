@@ -1,19 +1,22 @@
-﻿using System;
-using System.Drawing;
-using OpenTK;
+﻿using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using System;
+using System.Drawing;
 
 //Source: OpenEngine
 
-namespace NTR
-{
-    public class Camera
-    {
-        public Vector2 Position { get; set; } = Vector2.Zero;
-        public Vector2 Scale { get; set; } = Vector2.One;
+namespace NTR {
 
-        public Camera(Vector2 postion, float scale = 1.0f, float rotation = 0, float zNear = 0, float zFar = 1)
-        {
+    public class Camera {
+
+        public Vector2 Position { get; set; } = Vector2.Zero;
+        public float Rotation { get; set; }
+        public Vector2 Scale { get; set; } = Vector2.One;
+        public Color SkyboxColor { get; set; } = Color.DimGray;
+        public float ZFar { get; set; }
+        public float ZNear { get; set; }
+
+        public Camera(Vector2 postion, float scale = 1.0f, float rotation = 0, float zNear = 0, float zFar = 1) {
             this.Position = postion;
             this.Scale = new Vector2(scale);
             this.Rotation = rotation;
@@ -21,13 +24,11 @@ namespace NTR
             this.ZFar = zFar;
         }
 
-        public Color SkyboxColor { get; set; } = Color.DimGray;
-        public float Rotation { get; set; }
-        public float ZNear { get; set; }
-        public float ZFar { get; set; }
+        public void Move(Vector2 vec) {
+            this.Position += vec;
+        }
 
-        public Vector2 ScreenToWorldCoordinates(Vector2 rawInput, int offsetX = 0, int offsetY = 0)
-        {
+        public Vector2 ScreenToWorldCoordinates(Vector2 rawInput, int offsetX = 0, int offsetY = 0) {
             rawInput.X += offsetX;
             rawInput.Y += offsetY;
 
@@ -43,14 +44,7 @@ namespace NTR
 
             return this.Position + dX * rawInput.X + dY * rawInput.Y;
         }
-
-        public void Move(Vector2 vec)
-        {
-            this.Position += vec;
-        }
-
-        internal void ApplyTransform()
-        {
+        internal void ApplyTransform() {
             var transform = Matrix4.Identity;
 
             // Position

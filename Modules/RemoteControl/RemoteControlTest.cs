@@ -6,12 +6,13 @@ using System.Windows.Input;
 namespace KLC_Finch {
     public class RemoteControlTest : IRemoteControl {
 
-        public WindowViewerV2 Viewer;
+        public WindowViewerV3 Viewer;
         //public bool UseYUVShader { get { return false; } set { } }
         public DecodeMode DecodeMode { get { return DecodeMode.BitmapRGB; } set { } }
 
         private string screenStr;
         private Thread threadTest;
+        private bool retina;
 
         private readonly Color[] colors = new Color[] { //The BIT.TRIP colours!
             Color.FromArgb(251, 218, 3), //Yellow
@@ -22,7 +23,7 @@ namespace KLC_Finch {
         };
         private int colorPos;
 
-        public void LoopStart(WindowViewerV2 viewer) {
+        public void LoopStart(WindowViewerV3 viewer) {
             if (threadTest != null)
                 LoopStop();
 
@@ -46,13 +47,22 @@ namespace KLC_Finch {
             while (Viewer.IsVisible) {
                 Thread.Sleep(500);
 
-                if (Viewer.CurrentScreen == null)
+                NTR.RCScreen screen = Viewer.GetCurrentScreen();
+                if (screen == null)
                     continue;
-                
-                Bitmap bTest = new Bitmap(Viewer.CurrentScreen.rect.Width, Viewer.CurrentScreen.rect.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+                int width = screen.rectOrg.Width;
+                int height = screen.rectOrg.Height;
+                if (retina) {
+                    width *= 2;
+                    height *= 2;
+                }
+
+                Bitmap bTest = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
                 using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(colors[colorPos]); }
                 Viewer.LoadTexture(bTest.Width, bTest.Height, bTest);
                 bTest.Dispose();
+                GC.Collect();
 
                 colorPos++;
                 if (colorPos >= colors.Length)
@@ -79,6 +89,9 @@ namespace KLC_Finch {
 
         public void Disconnect(string sessionId) {
             LoopStop();
+
+            if (Viewer != null)
+                Viewer.NotifySocketClosed(sessionId);
         }
 
         public void Reconnect() {
@@ -109,6 +122,10 @@ namespace KLC_Finch {
             //throw new NotImplementedException();
         }
 
+        public void SendMouseDown(System.Windows.Forms.MouseButtons changedButton) {
+            //throw new NotImplementedException();
+        }
+
         public void SendMousePosition(int x, int y) {
             //throw new NotImplementedException();
         }
@@ -117,8 +134,16 @@ namespace KLC_Finch {
             //throw new NotImplementedException();
         }
 
+        public void SendMouseUp(System.Windows.Forms.MouseButtons changedButton) {
+            //throw new NotImplementedException();
+        }
+
         public void SendMouseWheel(int delta) {
             //throw new NotImplementedException();
+        }
+
+        public void SetRetina(bool isChecked) {
+            retina = isChecked;
         }
 
         public void SendPanicKeyRelease() {
@@ -129,7 +154,7 @@ namespace KLC_Finch {
             //throw new NotImplementedException();
         }
 
-        public void UploadDrop(string v, Progress<int> progress) {
+        public void UploadDrop(string v, Progress<int> progress, bool showExplorer) {
             //throw new NotImplementedException();
         }
 
