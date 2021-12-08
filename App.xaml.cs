@@ -61,25 +61,31 @@ namespace KLC_Finch {
             new WindowException(e, unhandledExceptionType).Show(); //Removed: , Debugger.IsAttached
         }
 
-        private void Application_Startup(object sender, StartupEventArgs e) {
-			Kaseya.Start();
+        private void Application_Startup(object sender, StartupEventArgs e)
+        {
+            Kaseya.Start();
 
             string[] args = Environment.GetCommandLineArgs();
-            if (args.Length > 1) {
+            if (args.Length > 1)
+            {
                 KLCCommand command = KLCCommand.NewFromBase64(args[1].Replace("liveconnect:///", ""));
 
-                if(command.payload.navId == "remotecontrol/shared")
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, false);
-                else if(command.payload.navId == "remotecontrol/private")
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, true);
+                if (command.payload.navId == "remotecontrol/shared")
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.Shared);
+                else if (command.payload.navId == "remotecontrol/private")
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.Private);
+                else if (command.payload.navId == "remotecontrol/1-click")
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.OneClick);
                 else
                     alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token);
 
                 alternative.Show();
-            } else {
+            }
+            else
+            {
                 new MainWindow().Show();
             }
-		}
+        }
 
-	}
+    }
 }

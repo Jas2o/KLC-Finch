@@ -78,9 +78,9 @@ namespace KLC_Finch {
                 LibKaseya.Agent.OSProfile profile = (bool)chkMac.IsChecked ? LibKaseya.Agent.OSProfile.Mac : LibKaseya.Agent.OSProfile.Other;
                 myViewer = App.viewer = new WindowViewerV3(cmbRenderer.SelectedIndex, rcTest, profile);
                 if(profile == LibKaseya.Agent.OSProfile.Mac)
-                    myViewer.SetTitle("Test Mac", true);
+                    myViewer.SetTitle("Test Mac", LibKaseya.Enums.RC.Private);
                 else
-                    myViewer.SetTitle("Test", true);
+                    myViewer.SetTitle("Test", LibKaseya.Enums.RC.Private);
                 myViewer.Show();
                 myViewer.UpdateScreenLayout(json, txtInputJson.Text);
 

@@ -12,6 +12,7 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using static LibKaseya.Enums;
 
 //To look into regarding the changes to Key/Keys
 //https://stackoverflow.com/questions/1153009/how-can-i-convert-system-windows-input-key-to-system-windows-forms-keys
@@ -544,10 +545,25 @@ namespace KLC_Finch {
             }
         }
 
-        public void SetTitle(string title, bool modePrivate) {
-            this.Title = state.BaseTitle = title + "::" + (modePrivate ? "Private" : "Shared");
-            if (modePrivate)
-                toolReconnect.Header = "Reconnect (lose private session)";
+        public void SetTitle(string title, RC mode)
+        {
+            switch (mode)
+            {
+                case RC.Shared:
+                    this.Title = state.BaseTitle = title + "::Shared";
+                    break;
+                case RC.Private:
+                    this.Title = state.BaseTitle = title + "::Private";
+                    toolReconnect.Header = "Reconnect (lose private session)";
+                    break;
+                case RC.OneClick:
+                    this.Title = state.BaseTitle = title + "::1-Click";
+                    toolReconnect.Header = "Reconnect (lose 1-Click session)";
+                    break;
+                default:
+                    this.Title = state.BaseTitle = title + "::UNSUPPORTED";
+                    break;
+            }
         }
 
         public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight) {
@@ -752,7 +768,8 @@ namespace KLC_Finch {
             ssKeyHookAllow = Settings.KeyboardHook;
             KeyHookSet(false);
 
-            if (Settings.ClipboardSync == 2 && (endpointOS == Agent.OSProfile.Server || arrAdmins.Contains(endpointLastUser.ToLower()))) {
+            if (Settings.ClipboardSync == 2 && (endpointOS == Agent.OSProfile.Server || (endpointLastUser != null && arrAdmins.Contains(endpointLastUser.ToLower()))))
+            {
                 //Server/Admin only
                 state.SsClipboardSync = true;
             } else {

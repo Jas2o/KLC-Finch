@@ -13,12 +13,13 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Input;
+using static LibKaseya.Enums;
 
 namespace KLC_Finch {
 
     public class RemoteControl : IRemoteControl {
         public WindowViewerV3 Viewer;
-        private readonly bool modePrivate;
+        private readonly RC mode;
         private readonly KLC.LiveConnectSession session;
         private bool captureScreen;
         private int clientB;
@@ -36,9 +37,9 @@ namespace KLC_Finch {
         private System.Timers.Timer timerHeartbeat;
         private UploadRC fileUpload;
 
-        public RemoteControl(KLC.LiveConnectSession session, bool modePrivate) {
+        public RemoteControl(KLC.LiveConnectSession session, RC mode) {
             this.session = session;
-            this.modePrivate = modePrivate;
+            this.mode = mode;
 
             decoder = new VP8.Decoder();
             //decoder2 = new Vpx.Net.VP8Codec(); //Test
@@ -76,12 +77,12 @@ namespace KLC_Finch {
             }
 
             Viewer = App.viewer = new WindowViewerV3(App.Settings.Renderer, this, session.agent.OSTypeProfile, session.agent.UserLast);
-            Viewer.SetTitle(session.agent.Name, modePrivate);
+            Viewer.SetTitle(session.agent.Name, mode);
             Viewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             Viewer.Show();
 
             if (session != null) {
-                rcSessionId = session.WebsocketB.StartModuleRemoteControl(modePrivate);
+                rcSessionId = session.WebsocketB.StartModuleRemoteControl(mode);
                 Viewer.SetSessionID(rcSessionId);
             }
 
@@ -166,7 +167,10 @@ namespace KLC_Finch {
                     //{"default_screen":65537,"screens":[{"screen_height":1080,"screen_id":65537,"screen_name":"\\\\.\\DISPLAY1","screen_width":1440,"screen_x":0,"screen_y":0}]}
 
                     Viewer.UpdateScreenLayout(json, jsonstr);
-                    Viewer.SetControlEnabled(true, !modePrivate);
+                    if (mode == RC.Shared)
+                        Viewer.SetControlEnabled(true, true);
+                    else
+                        Viewer.SetControlEnabled(true, false);
                 } else if (type == (byte)Enums.KaseyaMessageTypes.HostTerminalSessionsList) {
                     //Console.WriteLine("HostTerminalSessionsList");
                     //{"default_session":4294967294,"sessions":[{"session_id":4294967294,"session_name":"Console JH-TEST-2016\\Hackerman"},{"session_id":1,"session_name":"JH-TEST-2016\\TestUser"}]}

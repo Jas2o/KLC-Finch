@@ -60,7 +60,7 @@ namespace KLC_Finch {
         }
 
         private void BtnLaunchWinTeamviewerShared_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Password, true, false);
+            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Password, true, Enums.RC.Shared);
             App.alternative.Show();
         }
 
