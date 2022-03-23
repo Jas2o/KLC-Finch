@@ -31,9 +31,13 @@
                                 <CheckBox
                                     x:Name="chkAltModulesStartAuto"
                                     Margin="0,5,0,0"
-                                    Content="Auto start modules"
-                                    IsChecked="{Binding AltModulesStartAuto}"
-                                    ToolTip="Overlay at top middle." />
+                                    Content="Auto start modules on tab change"
+                                    IsChecked="{Binding AltModulesStartAuto}" />
+                                <CheckBox
+                                    x:Name="chkAltModulesStartAutoMacStaticImage"
+                                    Margin="0,5,0,0"
+                                    Content="Mac: Static Image"
+                                    IsChecked="{Binding AltModulesStartAutoMacStaticImage}" />
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
@@ -140,9 +144,15 @@
                                 <CheckBox
                                     x:Name="chkSettingMacSwapCtrlWin"
                                     Margin="0,5,0,0"
-                                    Content="Swap Ctrl/Win keys on Macs"
+                                    Content="Mac: Swap Ctrl/Win keys"
                                     IsChecked="{Binding MacSwapCtrlWin}"
                                     ToolTip="Finch cannot keep focus when Win is pressed." />
+                                <CheckBox
+                                    x:Name="chkSettingMacSafeKeys"
+                                    Margin="0,5,0,0"
+                                    Content="Mac: Safe keys only"
+                                    IsChecked="{Binding MacSafeKeys}"
+                                    ToolTip="Prevents using keys that cause Fn key state issue on Macs." />
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />

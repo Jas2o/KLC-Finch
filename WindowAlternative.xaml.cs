@@ -89,6 +89,7 @@ namespace KLC_Finch
                 return;
             }
             this.Title = session.agent.Name + " - KLC-Finch";
+            btnRCOneClick.IsEnabled = session.agent.OneClickAccess;
 
             WindowUtilities.ActivateWindow(this);
         }
@@ -165,6 +166,7 @@ namespace KLC_Finch
             else
             {
                 ctrlCommand.btnCommandMacKillKRCH.Visibility = Visibility.Collapsed;
+                ctrlCommand.btnCommandMacReleaseFn.Visibility = Visibility.Collapsed;
             }
 
             if (!System.IO.File.Exists(@"C:\Program Files\Wireshark\Wireshark.exe"))
@@ -263,8 +265,14 @@ namespace KLC_Finch
             //ctrlDashboard.DisplayRAM(session.agent.RAMinGB);
             //ctrlDashboard.DisplayRCNotify(session.RCNotify);
             //ctrlDashboard.DisplayMachineNote(session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
-            ctrlDashboard.btnStaticImageStart_Click(sender, e);
-            ctrlDashboard.btnDashboardStartData_Click(sender, e);
+
+            if (App.Settings.AltModulesStartAuto)
+            {
+                if (session.agent.OSTypeProfile != LibKaseya.Agent.OSProfile.Mac || App.Settings.AltModulesStartAutoMacStaticImage)
+                    ctrlDashboard.btnStaticImageStart_Click(sender, e);
+                
+                ctrlDashboard.btnDashboardStartData_Click(sender, e);
+            }
         }
 
         private void btnWiresharkFilter_Click(object sender, RoutedEventArgs e)

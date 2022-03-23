@@ -43,6 +43,7 @@ namespace KLC_Finch {
                 Settings = JsonSettings.Load<Settings>(pathSettings);
             else
                 Settings = JsonSettings.Construct<Settings>(pathSettings);
+            Bookmarks.Load();
         }
 
         public static void ShowUnhandledExceptionFromSrc(Exception e, string source) {
@@ -57,7 +58,8 @@ namespace KLC_Finch {
             });
         }
 
-        void ShowUnhandledException(Exception e, string unhandledExceptionType) {
+        [STAThread]
+        private void ShowUnhandledException(Exception e, string unhandledExceptionType) {
             new WindowException(e, unhandledExceptionType).Show(); //Removed: , Debugger.IsAttached
         }
 
@@ -66,10 +68,17 @@ namespace KLC_Finch {
             Kaseya.Start();
 
             string[] args = Environment.GetCommandLineArgs();
-            if (args.Length > 1)
+            KLCCommand command = null;
+            for (int i = 1; i < args.Length; i++)
             {
-                KLCCommand command = KLCCommand.NewFromBase64(args[1].Replace("liveconnect:///", ""));
+                if (args[i].StartsWith("liveconnect:///"))
+                {
+                    command = KLCCommand.NewFromBase64(args[i].Replace("liveconnect:///", ""));
+                }
+            }
 
+            if (command != null)
+            {
                 if (command.payload.navId == "remotecontrol/shared")
                     alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.Shared);
                 else if (command.payload.navId == "remotecontrol/private")

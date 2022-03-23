@@ -147,6 +147,8 @@ namespace KLC_Finch {
         }
 
         public RCScreen GetScreenUsingMouse(int x, int y) {
+            if (CurrentScreen == null)
+                return null;
             if (CurrentScreen.rect.Contains(x, y))
                 return CurrentScreen;
 

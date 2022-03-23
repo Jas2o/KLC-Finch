@@ -8,7 +8,7 @@ namespace KLC_Finch {
 
         public WindowViewerV3 Viewer;
         //public bool UseYUVShader { get { return false; } set { } }
-        public DecodeMode DecodeMode { get { return DecodeMode.BitmapRGB; } set { } }
+        public DecodeMode DecodeMode { get; set; }
 
         private string screenStr;
         private Thread threadTest;
@@ -20,6 +20,13 @@ namespace KLC_Finch {
             Color.FromArgb(53, 166, 170), //Teal
             Color.FromArgb(220, 108, 167), //Pink
             Color.FromArgb(57, 54, 122) //Purple
+        };
+        private byte[,] colorsYUV = new byte[5, 3] {
+            { 203, 14, 161 }, //Yellow
+            { 178, 55, 182 }, //Orange
+            { 132, 149, 71 }, //Teal
+            { 148, 138, 179 }, //Pink
+            { 62, 161, 123 } //Purple
         };
         private int colorPos;
 
@@ -58,10 +65,26 @@ namespace KLC_Finch {
                     height *= 2;
                 }
 
-                Bitmap bTest = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-                using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(colors[colorPos]); }
-                Viewer.LoadTexture(bTest.Width, bTest.Height, bTest);
-                bTest.Dispose();
+                if (DecodeMode == DecodeMode.BitmapRGB)
+                {
+                    Bitmap bTest = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                    using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(colors[colorPos]); }
+                    Viewer.LoadTexture(bTest.Width, bTest.Height, bTest);
+                    bTest.Dispose();
+                } else
+                {
+                    int sizeY = width * height;
+                    int sizeUV = width * height / 4;
+                    byte[] yuv = new byte[sizeY + sizeUV + sizeUV];
+                    for (int i = 0; i < sizeY; i++)
+                    {
+                        yuv[i] = colorsYUV[colorPos, 0];
+                        yuv[i + sizeUV] = colorsYUV[colorPos, 1];
+                        yuv[i + sizeUV + sizeUV] = colorsYUV[colorPos, 2];
+                    }
+                    Viewer.LoadTextureRaw(yuv, width, height, width);
+                }
+
                 GC.Collect();
 
                 colorPos++;

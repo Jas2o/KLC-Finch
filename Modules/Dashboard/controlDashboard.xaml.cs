@@ -26,7 +26,7 @@ namespace KLC_Finch {
 
         public enum Badge {
             Blank,
-            UNEXPECTED,
+            Note,
             FlagRed,
             FlagBlue,
             FlagGreen,
@@ -92,6 +92,7 @@ namespace KLC_Finch {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
             if (session != null) { //Intentionally different
                 btnStaticImageStart.IsEnabled = false;
+                lblStaticImage.Visibility = Visibility.Collapsed;
 
                 moduleStaticImage = new StaticImage(session, imgScreenPreview);
                 session.ModuleStaticImage = moduleStaticImage;

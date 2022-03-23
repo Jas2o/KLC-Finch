@@ -386,9 +386,9 @@ namespace KLC_Finch {
         public void SendAutotype(string text, int speedPreset) {
             //Finch/Hawk method
             if (session.agent.OSTypeProfile == Agent.OSProfile.Mac) {
-                //speedPreset = 2;
-                //MITM.SendText(serverB, text, speedPreset);
-                SendPasteClipboard(text);
+                speedPreset = 2;
+                MITM.SendText(serverB, text, speedPreset);
+                //SendPasteClipboard(text);
             } else {
                 MITM.SendText(serverB, text, speedPreset);
             }
@@ -429,7 +429,10 @@ namespace KLC_Finch {
             //0300000081
             //E²}Â@,7 ÐyJ¾ P'Fu	~{"keyboard_layout_handle":"0","keyboard_layout_local":false,"lock_states":2,"pressed":true,"usb_keycode":458775,"virtual_key":84}
 
-            string sendjson = "{\"keyboard_layout_handle\":\"0\",\"keyboard_layout_local\":false,\"lock_states\":2,\"pressed\":true,\"usb_keycode\":" + USBKeycode + ",\"virtual_key\":" + KaseyaKeycode + "}";
+            //virtual_key does not seem to be required.
+
+            //string sendjson = "{\"keyboard_layout_handle\":\"0\",\"keyboard_layout_local\":false,\"lock_states\":2,\"pressed\":true,\"usb_keycode\":" + USBKeycode + ",\"virtual_key\":" + KaseyaKeycode + "}";
+            string sendjson = "{\"keyboard_layout_handle\":\"0\",\"keyboard_layout_local\":false,\"lock_states\":2,\"pressed\":true,\"usb_keycode\":" + USBKeycode + "}";
             SendJson(Enums.KaseyaMessageTypes.Keyboard, sendjson);
         }
 
@@ -438,7 +441,10 @@ namespace KLC_Finch {
             //0300000081
             //E²}Â@,7 ÐyJ¾ P'Fu	~{"keyboard_layout_handle":"0","keyboard_layout_local":false,"lock_states":2,"pressed":true,"usb_keycode":458775,"virtual_key":84}
 
-            string sendjson = "{\"keyboard_layout_handle\":\"0\",\"keyboard_layout_local\":false,\"lock_states\":2,\"pressed\":false,\"usb_keycode\":" + USBKeycode + ",\"virtual_key\":" + KaseyaKeycode + "}";
+            //virtual_key does not seem to be required.
+
+            //string sendjson = "{\"keyboard_layout_handle\":\"0\",\"keyboard_layout_local\":false,\"lock_states\":2,\"pressed\":false,\"usb_keycode\":" + USBKeycode + ",\"virtual_key\":" + KaseyaKeycode + "}";
+            string sendjson = "{\"keyboard_layout_handle\":\"0\",\"keyboard_layout_local\":false,\"lock_states\":2,\"pressed\":false,\"usb_keycode\":" + USBKeycode + "}";
             SendJson(Enums.KaseyaMessageTypes.Keyboard, sendjson);
         }
 
@@ -533,6 +539,8 @@ namespace KLC_Finch {
                 KeycodeV2 key = KeycodeV2.List.Find(x => x.JavascriptKeyCode == jskey);
                 serverB.Send(MITM.GetSendKey(key, false));
             }
+
+            //Needs to be updated to include Fn for Mac.
         }
 
         public void SendPasteClipboard(string text) {
@@ -580,30 +588,6 @@ namespace KLC_Finch {
                     fileUpload = null;
                 }
             }
-
-            /* Before KLC added their own file uploading
-             *
-            Console.WriteLine("Upload dropped file: " + file);
-            if (session.ModuleFileExplorer == null) {
-                //Console.WriteLine("Spinning up no-UI File module");
-                session.ModuleFileExplorer = new FileExplorer(session);
-            }
-
-            bool proceed = session.ModuleFileExplorer.IsUsable();
-            if (!proceed) {
-                //Terrible timeout
-                for (int i = 0; i < 10; i++) {
-                    Thread.Sleep(1000);
-                    proceed = session.ModuleFileExplorer.IsUsable();
-                    if (proceed)
-                        break;
-                }
-            }
-
-            if (proceed) {
-                session.ModuleFileExplorer.Upload(file, progress);
-            }
-            */
         }
 
         private static int GetNewPort() {

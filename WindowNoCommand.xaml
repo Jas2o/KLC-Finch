@@ -98,6 +98,13 @@
                     Click="BtnLaunchThisComputer_Click"
                     Content="This Computer" />
                 <Button
+                    x:Name="btnLaunchThisComputerShared"
+                    Grid.Row="2"
+                    Grid.Column="2"
+                    Margin="2"
+                    Click="BtnLaunchThisComputerShared_Click"
+                    Content="This (Shared)" />
+                <!--<Button
                     x:Name="btnLaunchWinTeamviewer"
                     Grid.Row="2"
                     Grid.Column="2"
@@ -117,21 +124,31 @@
                     Grid.Column="2"
                     Margin="2"
                     Click="BtnLaunchWinTeamviewerShared_Click"
-                    Content="TV Shared" />
+                    Content="TV Shared" />-->
                 <Button
                     x:Name="btnLaunchRCTest"
-                    Grid.Row="4"
+                    Grid.Row="3"
                     Grid.Column="1"
                     Margin="2"
                     Click="BtnLaunchRCTest_Click"
                     Content="RC Test" />
                 <Button
                     x:Name="btnLaunchNull"
-                    Grid.Row="4"
+                    Grid.Row="3"
                     Grid.Column="2"
                     Margin="2"
                     Click="BtnLaunchNull_Click"
                     Content="Null" />
+                <ListBox
+                    x:Name="cmbBookmarks"
+                    Grid.Row="4"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="2"
+                    MinHeight="20"
+                    Margin="2"
+                    Background="#FFF0F0F0"
+                    DisplayMemberPath="Display"
+                    MouseDoubleClick="cmbBookmarks_MouseDoubleClick" />
                 <CheckBox
                     x:Name="chkUseMITM"
                     Grid.Row="2"

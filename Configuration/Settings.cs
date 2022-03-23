@@ -13,6 +13,7 @@ namespace KLC_Finch {
 
         //Alternative
         public bool AltModulesStartAuto { get; set; } = true;
+        public bool AltModulesStartAutoMacStaticImage { get; set; } = true;
 
         //RC: Debug Text
         public bool DisplayOverlayMouse { get; set; } = false;
@@ -28,6 +29,7 @@ namespace KLC_Finch {
         public int ClipboardSync { get; set; } = 2; //Server/Admin only
         public bool KeyboardHook { get; set; } = false;
         public bool MacSwapCtrlWin { get; set; } = false;
+        public bool MacSafeKeys { get; set; } = true;
 
         //RC: Multi-Screen
         public bool StartMultiScreen { get; set; } = true;

@@ -26,6 +26,7 @@ namespace KLC_Finch {
     /// </summary>
     public partial class MainWindow : Window {
 
+        private string thisAgentID;
         private WindowRCTest winRCTest;
 
         public MainWindow() {
@@ -39,8 +40,30 @@ namespace KLC_Finch {
             if (savedAuthToken != null)
                 txtAuthToken.Password = savedAuthToken;
 
-            if (!File.Exists(@"C:\Program Files\Kaseya Live Connect-MITM\KaseyaLiveConnect.exe"))
+            if (!File.Exists(@"C:\Program Files\Kaseya Live Connect-MITM\KaseyaLiveConnect.exe") && !File.Exists(Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect-MITM\KaseyaLiveConnect.exe")))
                 chkUseMITM.Visibility = Visibility.Collapsed;
+
+            foreach (Bookmark bm in Bookmarks.List)
+            {
+                if(bm.Type == "Agent")
+                    cmbBookmarks.Items.Add(bm);
+            }
+
+            #region This Agent ID
+            try
+            {
+                using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
+                {
+                    RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
+                    if (subkey != null)
+                        thisAgentID = subkey.GetValue("AgentGUID").ToString();
+                    subkey.Close();
+                }
+            }
+            catch (Exception)
+            {
+            }
+            #endregion
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
@@ -54,6 +77,39 @@ namespace KLC_Finch {
             }
         }
 
+        private void BtnLaunchThisComputer_Click(object sender, RoutedEventArgs e)
+        {
+            if (thisAgentID != null)
+            {
+                App.alternative = new WindowAlternative(thisAgentID, txtAuthToken.Password);
+                App.alternative.Show();
+            }
+        }
+
+        private void BtnLaunchThisComputerShared_Click(object sender, RoutedEventArgs e)
+        {
+            if (thisAgentID != null)
+            {
+                App.alternative = new WindowAlternative(thisAgentID, txtAuthToken.Password, true, Enums.RC.Shared);
+                App.alternative.Show();
+            }
+        }
+
+        private void BtnLaunchRCTest_Click(object sender, RoutedEventArgs e)
+        {
+            if (winRCTest != null)
+                winRCTest.Close();
+            winRCTest = new WindowRCTest();
+            winRCTest.Show();
+        }
+
+        private void BtnLaunchNull_Click(object sender, RoutedEventArgs e)
+        {
+            App.alternative = new WindowAlternative(null, null);
+            App.alternative.Show();
+        }
+
+        /*
         private void BtnLaunchWinTeamviewer_Click(object sender, RoutedEventArgs e) {
             App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Password);
             App.alternative.Show();
@@ -68,37 +124,7 @@ namespace KLC_Finch {
             App.alternative = new WindowAlternative("428588645237770", txtAuthToken.Password);
             App.alternative.Show();
         }
-
-        private void BtnLaunchRCTest_Click(object sender, RoutedEventArgs e) {
-            if (winRCTest != null)
-                winRCTest.Close();
-            winRCTest = new WindowRCTest();
-            winRCTest.Show();
-        }
-
-        private void BtnLaunchNull_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative(null, null);
-            App.alternative.Show();
-        }
-
-        private void BtnLaunchThisComputer_Click(object sender, RoutedEventArgs e) {
-            string val = "";
-
-            try {
-                using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) {
-                    RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
-                    if (subkey != null)
-                        val = subkey.GetValue("AgentGUID").ToString();
-                    subkey.Close();
-                }
-
-                if (val.Length > 0) {
-                    App.alternative = new WindowAlternative(val, txtAuthToken.Password);
-                    App.alternative.Show();
-                }
-            } catch(Exception) {
-            }
-        }
+        */
 
         private void ChkUseMITM_Change(object sender, RoutedEventArgs e) {
             KLC.WsA.useInternalMITM = (bool)chkUseMITM.IsChecked;
@@ -109,6 +135,19 @@ namespace KLC_Finch {
                 Owner = this
             };
             winOptions.ShowDialog();
+        }
+
+        private void cmbBookmarks_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            Bookmark selected = (Bookmark)cmbBookmarks.SelectedItem;
+            if (selected == null)
+                return;
+
+            if (Keyboard.IsKeyDown(Key.LeftShift))
+                App.alternative = new WindowAlternative(selected.Value, txtAuthToken.Password, true, Enums.RC.Shared);
+            else
+                App.alternative = new WindowAlternative(selected.Value, txtAuthToken.Password);
+            App.alternative.Show();
         }
     }
 }

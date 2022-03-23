@@ -312,5 +312,17 @@ namespace KLC_Finch {
                 }
             }
         }
+
+        private void btnCommandMacReleaseFn_Click(object sender, RoutedEventArgs e)
+        {
+            if (moduleCommand != null)
+            {
+                //63 = Fn
+                string command = "osascript -e 'tell application \"System Events\" to key up 63'";
+                //Send twice as first time doesn't usually work.
+                moduleCommand.Send(command);
+                moduleCommand.Send(command);
+            }
+        }
     }
 }

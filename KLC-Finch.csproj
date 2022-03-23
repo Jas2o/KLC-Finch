@@ -229,7 +229,7 @@
     <Compile Include="Modules\Toolbox\Toolbox.cs" />
     <Compile Include="Modules\Toolbox\ToolboxData.cs" />
     <Compile Include="Modules\Toolbox\ToolboxValue.cs" />
-    <Compile Include="WindowOptions.xaml.cs">
+    <Compile Include="Configuration\WindowOptions.xaml.cs">
       <DependentUpon>WindowOptions.xaml</DependentUpon>
     </Compile>
     <Compile Include="Modules\RemoteControl\WindowRCTest.xaml.cs">
@@ -244,7 +244,7 @@
     <Compile Include="Modules\Services\Services.cs" />
     <Compile Include="Modules\Services\ServicesData.cs" />
     <Compile Include="Modules\Services\ServiceValue.cs" />
-    <Compile Include="Settings.cs" />
+    <Compile Include="Configuration\Settings.cs" />
     <Compile Include="WebSockets\LiveConnectSessionV1.cs" />
     <Compile Include="WebSockets\WsM.cs" />
     <Compile Include="WebSockets\WsA.cs" />
@@ -344,7 +344,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="WindowOptions.xaml">
+    <Page Include="Configuration\WindowOptions.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

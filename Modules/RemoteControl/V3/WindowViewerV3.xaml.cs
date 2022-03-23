@@ -1188,11 +1188,17 @@ namespace KLC_Finch {
                 try {
                     KeycodeV3 keykaseya = KeycodeV3.Dictionary[e2.KeyCode];
 
-                    if (endpointOS == Agent.OSProfile.Mac && Settings.MacSwapCtrlWin) {
-                        if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
-                            keykaseya = keywin;
-                        else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
-                            keykaseya = keyctrl;
+                    if (endpointOS == Agent.OSProfile.Mac)
+                    {
+                        if (Settings.MacSafeKeys && !keykaseya.IsMacSafe) return;
+
+                        if (Settings.MacSwapCtrlWin)
+                        {
+                            if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
+                                keykaseya = keywin;
+                            else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
+                                keykaseya = keyctrl;
+                        }
                     }
 
                     if (keykaseya == null)
@@ -1280,11 +1286,16 @@ namespace KLC_Finch {
                     if (keykaseya == null)
                         throw new KeyNotFoundException(e2.KeyCode.ToString());
 
-                    if (endpointOS == Agent.OSProfile.Mac && Settings.MacSwapCtrlWin) {
-                        if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
-                            keykaseya = keywin;
-                        else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
-                            keykaseya = keyctrl;
+                    if (endpointOS == Agent.OSProfile.Mac) {
+                        if (Settings.MacSafeKeys && !keykaseya.IsMacSafe) return false;
+
+                        if (Settings.MacSwapCtrlWin)
+                        {
+                            if (KeycodeV3.ModifiersControl.Contains(e2.KeyCode))
+                                keykaseya = keywin;
+                            else if (e2.KeyCode == System.Windows.Forms.Keys.LWin)
+                                keykaseya = keyctrl;
+                        }
                     }
 
                     if (e2.KeyCode == System.Windows.Forms.Keys.LWin || e2.KeyCode == System.Windows.Forms.Keys.RWin)
@@ -1336,5 +1347,143 @@ namespace KLC_Finch {
             UpdateScreenLayoutReflow();
             state.UseMultiScreenFixAvailable = false;
         }
+
+        /*
+        private void toolKeyFn_Click(object sender, RoutedEventArgs e)
+        {
+            if (!state.ControlEnabled)
+                return;
+
+            KeycodeV3 key = KeycodeV3.keyFN;
+            if (toolKeyFn.FontWeight == FontWeights.Bold)
+            {
+                //Is held
+                toolKeyFn.FontWeight = FontWeights.Normal;
+                rc.SendKeyUp(key.JavascriptKeyCode, key.USBKeyCode);
+            } else
+            {
+                //Not yet held
+                toolKeyFn.FontWeight = FontWeights.Bold;
+                rc.SendKeyDown(key.JavascriptKeyCode, key.USBKeyCode);
+            }
+        }
+        */
+
+        /*
+        private void toolKeyPos1_Click(object sender, RoutedEventArgs e)
+        {
+            if (!state.ControlEnabled)
+                return;
+
+            KeycodeV3 key = KeycodeV3.Dictionary[System.Windows.Forms.Keys.ControlKey];
+            if (toolKeyPos1.FontWeight == FontWeights.Bold)
+            {
+                //Is held
+                toolKeyPos1.FontWeight = FontWeights.Normal;
+                rc.SendKeyUp(key.JavascriptKeyCode, key.USBKeyCode);
+            }
+            else
+            {
+                //Not yet held
+                toolKeyPos1.FontWeight = FontWeights.Bold;
+                rc.SendKeyDown(key.JavascriptKeyCode, key.USBKeyCode);
+            }
+        }
+
+        private void toolKeyPos2_Click(object sender, RoutedEventArgs e)
+        {
+            if (!state.ControlEnabled)
+                return;
+
+            KeycodeV3 key = KeycodeV3.Dictionary[System.Windows.Forms.Keys.LWin];
+            if (toolKeyPos2.FontWeight == FontWeights.Bold)
+            {
+                //Is held
+                toolKeyPos2.FontWeight = FontWeights.Normal;
+                rc.SendKeyUp(key.JavascriptKeyCode, key.USBKeyCode);
+            }
+            else
+            {
+                //Not yet held
+                toolKeyPos2.FontWeight = FontWeights.Bold;
+                rc.SendKeyDown(key.JavascriptKeyCode, key.USBKeyCode);
+            }
+        }
+
+        private void toolKeyPos3_Click(object sender, RoutedEventArgs e)
+        {
+            if (!state.ControlEnabled)
+                return;
+
+            KeycodeV3 key = KeycodeV3.Dictionary[System.Windows.Forms.Keys.Alt];
+            if (toolKeyPos3.FontWeight == FontWeights.Bold)
+            {
+                //Is held
+                toolKeyPos3.FontWeight = FontWeights.Normal;
+                rc.SendKeyUp(key.JavascriptKeyCode, key.USBKeyCode);
+            }
+            else
+            {
+                //Not yet held
+                toolKeyPos3.FontWeight = FontWeights.Bold;
+                rc.SendKeyDown(key.JavascriptKeyCode, key.USBKeyCode);
+            }
+        }
+
+        private void toolKeyShift_Click(object sender, RoutedEventArgs e)
+        {
+            if (!state.ControlEnabled)
+                return;
+
+            KeycodeV3 key = KeycodeV3.Dictionary[System.Windows.Forms.Keys.ShiftKey];
+            if (toolKeyShift.FontWeight == FontWeights.Bold)
+            {
+                //Is held
+                toolKeyShift.FontWeight = FontWeights.Normal;
+                rc.SendKeyUp(key.JavascriptKeyCode, key.USBKeyCode);
+            }
+            else
+            {
+                //Not yet held
+                toolKeyShift.FontWeight = FontWeights.Bold;
+                rc.SendKeyDown(key.JavascriptKeyCode, key.USBKeyCode);
+            }
+        }
+
+        private void btnKeyCustom_Click(object sender, RoutedEventArgs e)
+        {
+            
+        }
+
+        private void btnKeyCustomD_Click(object sender, RoutedEventArgs e)
+        {
+            if (!state.ControlEnabled)
+                return;
+
+            try
+            {
+                int usb = int.Parse(txtKeyCustom.Text);
+                rc.SendKeyDown(0, usb);
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        private void btnKeyCustomU_Click(object sender, RoutedEventArgs e)
+        {
+            if (!state.ControlEnabled)
+                return;
+
+            try
+            {
+                int usb = int.Parse(txtKeyCustom.Text);
+                rc.SendKeyUp(0, usb);
+            }
+            catch (Exception)
+            {
+            }
+        }
+        */
     }
 }

@@ -45,6 +45,13 @@
             </TextBlock>
         </StackPanel>
 
+        <Label
+            x:Name="lblStaticImage"
+            Grid.Row="1"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Content="Static Image not started."
+            ToolTip="Check settings that modules are set to auto start." />
         <Image
             x:Name="imgScreenPreview"
             Grid.Row="1"

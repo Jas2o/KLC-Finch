@@ -6,7 +6,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     d:DesignHeight="450"
     d:DesignWidth="800"
-    mc:Ignorable="d" Loaded="UserControl_Loaded">
+    Loaded="UserControl_Loaded"
+    mc:Ignorable="d">
     <Grid Margin="5">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
@@ -58,6 +59,18 @@
                     <TextBlock>
                         Kill KaseyaRemoteControlHost<LineBreak />
                         for when Mac RC is unresponsive.</TextBlock>
+                </Button.ToolTip>
+            </Button>
+            <Button
+                x:Name="btnCommandMacReleaseFn"
+                Width="75"
+                Margin="0,0,5,0"
+                Click="btnCommandMacReleaseFn_Click"
+                Content="Release Fn">
+                <Button.ToolTip>
+                    <TextBlock>
+                        Sends keyboard action to release Fn key.<LineBreak />
+                        Useful for working around Kaseya's Mac glitches.</TextBlock>
                 </Button.ToolTip>
             </Button>
         </StackPanel>
