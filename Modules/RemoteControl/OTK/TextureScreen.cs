@@ -1,5 +1,6 @@
 ﻿using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -22,7 +23,7 @@ namespace NTR {
         private Vector2[] vertBufferScreen;
         private int width, height;
 
-        //public bool IsRetina { get; private set; }
+        public bool IsRetina { get; private set; }
 
         /// <summary>
         /// Only call this from GL Render
@@ -69,10 +70,12 @@ namespace NTR {
             lock (_lock) {
                 if (this.rect.Width != rect.Width || this.rect.Height != rect.Height || this.rect.X != rect.X || this.rect.Y != rect.Y) {
                     this.rect = rect;
+                    /*
                     if (width == this.rect.Width * 2) {
                         this.rect.Width = width;
                         this.rect.Height = height;
                     }
+                    */
                     vertBufferNeedUpdate = true;
                 }
 
@@ -108,7 +111,7 @@ namespace NTR {
         }
 
         public bool Render(int programYUV, int[] m_shader_sampler, int m_shader_multiplyColor = 0, Color? multiplyColor = null) {
-            if (ID == -1 || Data == null || rect == null)
+            if (ID == -1 || Data == null || rect.IsEmpty)
                 return false;
 
             if (vertBufferNeedUpdate) {
@@ -185,7 +188,7 @@ namespace NTR {
         }
 
         public void RenderNew(int[] m_shader_sampler) {
-            if (!IsNew || ID == -1 || rect == null)
+            if (!IsNew || ID == -1 || rect.IsEmpty)
                 return;
 
             if (DecodeMode == KLC_Finch.DecodeMode.BitmapRGB) {

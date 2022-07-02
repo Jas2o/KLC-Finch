@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using Ookii.Dialogs.Wpf;
 using System;
 using System.ComponentModel;
 using System.Windows;
@@ -14,30 +15,25 @@ namespace KLC_Finch
     /// </summary>
     public partial class WindowAlternative : Window
     {
+        private static SolidColorBrush brushBlue1 = new SolidColorBrush(Colors.DeepSkyBlue);
+        private static SolidColorBrush brushBlue2 = new SolidColorBrush(Colors.DodgerBlue);
 
         public KLC.LiveConnectSession session;
         public bool socketActive { get; private set; }
         private string agentID;
         private string shortToken;
 
+        private OnConnect directAction;
         private RC directToMode;
         private bool dashLoaded;
-
-        /*
-        RemoteControl moduleRemoteControl;
-        Dashboard moduleDashboard;
-        CommandTerminal moduleCommand;
-        CommandPowershell modulePowershell;
-        FileExplorer moduleFileExplorer;
-        RegistryEditor moduleRegistry;
-        */
+        private uint connectionAttempt;
 
         public WindowAlternative()
         {
             InitializeComponent();
         }
 
-        public WindowAlternative(string agentID, string shortToken, bool directToRemoteControl = false, RC directToMode = RC.Shared)
+        public WindowAlternative(string agentID, string shortToken, OnConnect directAction = OnConnect.NoAction, RC directToMode = RC.Shared)
         {
             InitializeComponent();
 
@@ -46,8 +42,10 @@ namespace KLC_Finch
 
             this.agentID = agentID;
             this.shortToken = shortToken;
+            this.directAction = directAction;
             this.directToMode = directToMode;
             socketActive = true;
+            connectionAttempt = 0;
 
             //--
 
@@ -67,7 +65,7 @@ namespace KLC_Finch
             }
             if (vcRuntimeBld < 23026)
             { //2015
-                directToRemoteControl = false;
+                this.directAction = OnConnect.NoAction;
                 new WindowException("Visual C++ Redistributable (x86) is not 2015 or above. You can download from:\r\n\r\nhttps://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0", "Dependency check").ShowDialog();
             }
 
@@ -81,7 +79,8 @@ namespace KLC_Finch
                 }
             }
 
-            HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
+            //HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
+            StatusCallback callback = new StatusCallback(StatusUpdate);
             session = new KLC.LiveConnectSession(shortToken, agentID, callback);
             if (session.Eirc == null)
             {
@@ -101,6 +100,7 @@ namespace KLC_Finch
 
             socketActive = false;
 
+            /*
             Application.Current.Dispatcher.Invoke((Action)delegate {
                 switch (reason)
                 {
@@ -117,8 +117,111 @@ namespace KLC_Finch
 
                 borderDisconnected.Visibility = Visibility.Visible;
             });
+            */
         }
 
+        public delegate void StatusCallback(EPStatus status);
+        public void StatusUpdate(EPStatus status)
+        {
+            if (status == EPStatus.Connected && directAction != OnConnect.NoAction)
+            {
+                if (directToMode == RC.NativeRDP)
+                {
+                    session.WebsocketB.ControlAgentSendRDP_StateRequest();
+                    return;
+                }
+                else
+                    session.ModuleRemoteControl = new RemoteControl(session, directToMode);
+            }
+
+            Application.Current.Dispatcher.Invoke((Action)delegate
+            {
+                switch (status)
+                {
+                    case EPStatus.AttemptingToConnect:
+                    case EPStatus.PeerOffline:
+                    case EPStatus.PeerToPeerFailure:
+                        connectionAttempt++;
+                        if (directAction != OnConnect.NoAction)
+                            txtStatus.Text = "Attempt " + connectionAttempt + " to connect and open Remote Control... ";
+                        else
+                            txtStatus.Text = "Attempt " + connectionAttempt + " to connect...";
+
+                        if (connectionAttempt % 2 == 0)
+                            borderStatus.Background = brushBlue1;
+                        else
+                            borderStatus.Background = brushBlue2;
+                        borderStatus.Visibility = Visibility.Visible;
+
+                        if (connectionAttempt > 99)
+                            session.Close();
+
+                        break;
+                    case EPStatus.Connected:
+                        txtStatus.Text = "Connected";
+                        borderStatus.Background = new SolidColorBrush(Colors.Green);
+                        borderStatus.Visibility = Visibility.Collapsed;
+                        ConnectUpdateUI();
+                        if (directAction != OnConnect.NoAction)
+                            session.ModuleRemoteControl.Connect();
+                        if (directAction == OnConnect.OnlyRC)
+                            this.Visibility = Visibility.Collapsed;
+                        break;
+
+                    case EPStatus.UnavailableWsA:
+                        txtStatus.Text = "Endpoint Unavailable (Web Socket A)";
+                        borderStatus.Background = new SolidColorBrush(Colors.DarkOrange);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+
+                    case EPStatus.DisconnectedWsB:
+                        txtStatus.Text = "Endpoint Disconnected (Web Socket B)";
+                        borderStatus.Background = new SolidColorBrush(Colors.Maroon);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+
+                    case EPStatus.DisconnectedManual:
+                        txtStatus.Text = "Manual Disconnection";
+                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+
+                    case EPStatus.AuthFailed:
+                        txtStatus.Text = "Authentication failure or cannot communicate with VSA.";
+                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+
+                    case EPStatus.NativeRDPStarting:
+                        txtStatus.Text = "Native RDP - Starting TCP Tunneling";
+                        borderStatus.Background = new SolidColorBrush(Colors.Green);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+                    case EPStatus.NativeRDPActive:
+                        txtStatus.Text = "Native RDP - TCP Tunneling Active";
+                        borderStatus.Background = new SolidColorBrush(Colors.Green);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+                    case EPStatus.NativeRDPEnded:
+                        txtStatus.Text = "Native RDP - Ended";
+                        borderStatus.Background = new SolidColorBrush(Colors.Green);
+                        borderStatus.Visibility = Visibility.Collapsed;
+                        break;
+
+                    default:
+                        Console.WriteLine("Status unknown: " + status);
+                        txtStatus.Text = "Status unknown: " + status;
+                        borderStatus.Background = new SolidColorBrush(Colors.Magenta);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+                }
+            });
+
+            if (status == EPStatus.Connected && directAction != OnConnect.NoAction)
+                directAction = OnConnect.NoAction;
+        }
+
+        /*
         public delegate void HasConnected();
         public void ConnectDirect()
         {
@@ -136,6 +239,8 @@ namespace KLC_Finch
                 ConnectUpdateUI();
             });
         }
+        */
+
         private void ConnectUpdateUI()
         {
             if (App.Settings.AltModulesStartAuto)
@@ -156,12 +261,15 @@ namespace KLC_Finch
 
             if (session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac)
             {
+                btnRCNativeRDP.Visibility = Visibility.Collapsed;
+
                 tabCommand.Header = "Terminal";
                 ctrlCommand.chkAllowColour.IsChecked = true;
 
                 tabPowershell.Visibility = Visibility.Collapsed;
                 tabRegistry.Visibility = Visibility.Collapsed;
                 tabEvents.Visibility = Visibility.Collapsed;
+                tabServices.Visibility = Visibility.Collapsed;
             }
             else
             {
@@ -178,7 +286,32 @@ namespace KLC_Finch
             if (session == null)
                 return; //Dragablz
 
-            if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible)
+            if(session.ModuleForwarding != null && session.ModuleForwarding.IsRunning())
+            {
+                using (TaskDialog dialog = new TaskDialog())
+                {
+                    dialog.WindowTitle = "KLC-Finch";
+                    dialog.MainInstruction = "Native RDP is still running";
+                    dialog.MainIcon = TaskDialogIcon.Information;
+                    dialog.CenterParent = true;
+                    dialog.Content = "Are you sure you want to close KLC-Finch and end Native RDP?";
+
+                    TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
+                    TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                    dialog.Buttons.Add(tdbYes);
+                    dialog.Buttons.Add(tdbCancel);
+
+                    TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                    if (button == tdbYes)
+                    {
+                        session.ModuleForwarding.Close();
+                        session.Close();
+                    } else
+                    {
+                        e.Cancel = true;
+                    }
+                }
+            } else if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible)
             {
                 this.Visibility = Visibility.Collapsed;
                 e.Cancel = true;
@@ -192,7 +325,11 @@ namespace KLC_Finch
         private void btnRCShared_Click(object sender, RoutedEventArgs e)
         {
             if (session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
+            {
+                directAction = OnConnect.AlsoRC;
+                directToMode = RC.Shared;
                 return;
+            }
             if (session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
 
@@ -220,6 +357,14 @@ namespace KLC_Finch
 
             session.ModuleRemoteControl = new RemoteControl(session, RC.OneClick);
             session.ModuleRemoteControl.Connect();
+        }
+
+        private void btnRCNativeRDP_Click(object sender, RoutedEventArgs e)
+        {
+            if (session != null && session.WebsocketB.ControlAgentIsReady())
+            {
+                session.WebsocketB.ControlAgentSendRDP_StateRequest();
+            }
         }
 
         private void btnReconnect_Click(object sender, RoutedEventArgs e)
@@ -320,13 +465,17 @@ namespace KLC_Finch
                 Owner = this
             };
             winOptions.ShowDialog();
+            ctrlDashboard.UpdateTimer();
         }
 
         private void btnRCLogs_Click(object sender, RoutedEventArgs e)
         {
-            //Copied from WindowViewerV3
+            if (session == null)
+                return;
+
             string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
             MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
         }
+
     }
 }

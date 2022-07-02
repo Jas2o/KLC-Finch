@@ -1,4 +1,5 @@
-﻿using LibKaseya;
+﻿using Fleck;
+using LibKaseya;
 using nucs.JsonSettings;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,7 @@ namespace KLC_Finch {
                 //Setup exception handling rather than closing rudely (this doesn't really work well).
                 AppDomain.CurrentDomain.UnhandledException += (sender, args) => ShowUnhandledException(args.ExceptionObject as Exception, "AppDomain.CurrentDomain.UnhandledException");
                 TaskScheduler.UnobservedTaskException += (sender, args) => {
-                    ShowUnhandledException(args.Exception, "TaskScheduler.UnobservedTaskException");
+                    ShowUnhandledExceptionFromSrc(args.Exception, "TaskScheduler.UnobservedTaskException");
                     args.SetObserved();
                 };
 
@@ -34,11 +35,16 @@ namespace KLC_Finch {
                     args.Handled = true;
                     ShowUnhandledException(args.Exception, "Dispatcher.UnhandledException");
                 };
-            }
+            }/* else
+            {
+                AppDomain.CurrentDomain.UnhandledException += (sender, args) => Debug.WriteLine("AppDom: " + (args.ExceptionObject as Exception).ToString());
+                TaskScheduler.UnobservedTaskException += (sender, args) => Debug.WriteLine("TS: " + args.Exception.ToString());
+                Dispatcher.UnhandledException += (sender, args) => Debug.WriteLine("Dispatcher: " + args.Exception.ToString());
+            }*/
 
             Version = KLC_Finch.Properties.Resources.BuildDate.Trim();
 
-            string pathSettings = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\KLC-Finch-config.json";
+            string pathSettings = System.IO.Path.GetDirectoryName(Environment.ProcessPath) + "\\KLC-Finch-config.json";
             if (File.Exists(pathSettings))
                 Settings = JsonSettings.Load<Settings>(pathSettings);
             else
@@ -80,11 +86,13 @@ namespace KLC_Finch {
             if (command != null)
             {
                 if (command.payload.navId == "remotecontrol/shared")
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.Shared);
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
                 else if (command.payload.navId == "remotecontrol/private")
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.Private);
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.Private);
+                else if (command.payload.navId.StartsWith("remotecontrol/private/#"))
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.AlsoRC, Enums.RC.NativeRDP);
                 else if (command.payload.navId == "remotecontrol/1-click")
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, true, Enums.RC.OneClick);
+                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.OneClick);
                 else
                     alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token);
 

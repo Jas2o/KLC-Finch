@@ -163,6 +163,25 @@ namespace KLC_Finch {
             return null;
         }
 
+        public RCScreen GetClosestScreenUsingMouse(int x, int y)
+        {
+            if (CurrentScreen == null)
+                return null;
+            if (CurrentScreen.rectEdge.Contains(x, y))
+                return CurrentScreen;
+
+            //This doesn't yet work in Canvas
+            foreach (RCScreen screen in ListScreen)
+            {
+                if (screen == CurrentScreen)
+                    continue;
+
+                if (screen.rectEdge.Contains(x, y))
+                    return screen;
+            }
+            return null;
+        }
+
         public void SetVirtual(int virtualX, int virtualY, int virtualWidth, int virtualHeight) {
             if (UseMultiScreen) {
                 virtualViewWant = new Rectangle(virtualX, virtualY, virtualWidth, virtualHeight);

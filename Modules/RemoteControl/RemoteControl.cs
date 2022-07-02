@@ -26,6 +26,7 @@ namespace KLC_Finch {
 
         //private string activeScreenID;
         private VP8.Decoder decoder;
+        private CancellationTokenSource decoderCT;
 
         //private Vpx.Net.VP8Codec decoder2; //Test
         private ulong lastFrameAckSeq;
@@ -41,6 +42,7 @@ namespace KLC_Finch {
             this.session = session;
             this.mode = mode;
 
+            decoderCT = new CancellationTokenSource();
             decoder = new VP8.Decoder();
             //decoder2 = new Vpx.Net.VP8Codec(); //Test
         }
@@ -48,14 +50,22 @@ namespace KLC_Finch {
         //public WindowViewerV2 Viewer;
         //public bool UseYUVShader { get; set; }
         public DecodeMode DecodeMode { get; set; }
+        public bool IsMac { get; set; }
 
         public void CaptureNextScreen() {
             captureScreen = true;
         }
 
-        public void ChangeScreen(string screen_id) {
-            string sendjson = "{\"monitorId\":" + screen_id + "}"; //Intentionally using a string as int/biginteger
-            SendJson(Enums.KaseyaMessageTypes.UpdateMonitorId, sendjson);
+        public void ChangeScreen(string screen_id, int clientH, int clientW) {
+            //{"downscale_limit":4,"monitorId":354484717,"screen_height":636,"screen_width":986}
+            JObject json = new JObject
+            {
+                ["downscale_limit"] = 1, //Kaseya default is 4
+                ["monitorId"] = int.Parse(screen_id), //Intentionally using a string as int/biginteger
+                ["screen_height"] = clientH,
+                ["screen_width"] = clientW
+            };
+            SendJson(Enums.KaseyaMessageTypes.UpdateMonitorId, json.ToString());
             //activeScreenID = screen_id;
         }
 
@@ -76,6 +86,7 @@ namespace KLC_Finch {
                 App.viewer = null;
             }
 
+            IsMac = session.agent.OSTypeProfile == Agent.OSProfile.Mac;
             Viewer = App.viewer = new WindowViewerV3(App.Settings.Renderer, this, session.agent.OSTypeProfile, session.agent.UserLast);
             Viewer.SetTitle(session.agent.Name, mode);
             Viewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
@@ -94,11 +105,21 @@ namespace KLC_Finch {
         }
 
         public void Disconnect(string sessionId) {
-            if (decoder != null) {
-                lock (decoder) {
-                    decoder.Dispose();
-                    decoder = null;
+            decoderCT.Cancel();
+
+            try
+            {
+                if (decoder != null)
+                {
+                    lock (decoderCT)
+                    {
+                        decoder.Dispose();
+                        decoder = null;
+                    }
                 }
+            }
+            catch (Exception) {
+                //For some reason, decoder can be null after being checked that it wasn't null.
             }
 
             if (timerHeartbeat != null)
@@ -117,14 +138,15 @@ namespace KLC_Finch {
 
                 /*
                 //This does not appear to fix the API logs (as opposed to VSA logs) issue
-                RestClient K_Client = new RestClient("https://vsa-web.company.com.au");
+                RestClient K_Client = new RestClient("https://" + LibKaseya.Kaseya.DefaultServer);
                 RestRequest request = new RestRequest("api/v1.0/assetmgmt/agent/" + session.agentGuid + "/KLCAuditLogEntry", Method.PUT);
                 request.AddHeader("Authorization", "Bearer " + session.shorttoken);
                 request.AddParameter("Content-Type", "application/json");
                 request.AddJsonBody("{\"UserName\":\"" + session.auth.UserName + "\",\"AgentName\":\"" + session.agent.Name + "\",\"LogMessage\":\"Remote Control Log Notes: \"}");
                 IRestResponse response = K_Client.Execute(request);
                 */
-            } else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported) {
+            }
+            else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported) {
                 App.ShowUnhandledExceptionFromSrc("SessionNotSupported", "Remote Control");
                 Disconnect(rcSessionId);
                 //Viewer.NotifySocketClosed(rcSessionId);
@@ -217,9 +239,17 @@ namespace KLC_Finch {
                         Bitmap b1 = null;
                         try {
                             if (decoder == null)
+                            {
                                 decoder = new VP8.Decoder(); //Due to Soft Reconnect
-                            lock (decoder) {
-                                b1 = decoder.Decode(remaining, 0);
+                                decoderCT = new CancellationTokenSource();
+                            }
+
+                            lock (decoderCT)
+                            {
+                                using (decoderCT.Token.Register(() => decoderCT.Token.ThrowIfCancellationRequested()))
+                                {
+                                    b1 = decoder.Decode(remaining, 0, IsMac);
+                                }
                             }
                         } catch (Exception ex) {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
@@ -253,13 +283,21 @@ namespace KLC_Finch {
                             int rawStride = 0;
                             byte[] rawYUV;
                             if (decoder == null)
+                            {
                                 decoder = new VP8.Decoder(); //Due to Soft Reconnect
-                            lock (decoder) {
-                                //This causes GC pressure
-                                if (DecodeMode == DecodeMode.RawYUV || captureScreen)
-                                    rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride);
-                                else
-                                    rawYUV = decoder.DecodeRawBW(remaining, out rawWidth, out rawHeight, out rawStride);
+                                decoderCT = new CancellationTokenSource();
+                            }
+
+                            lock (decoderCT)
+                            {
+                                using (decoderCT.Token.Register(() => decoderCT.Token.ThrowIfCancellationRequested()))
+                                {
+                                    //This causes GC pressure
+                                    if (DecodeMode == DecodeMode.RawYUV || captureScreen)
+                                        rawYUV = decoder.DecodeRaw(remaining, out rawWidth, out rawHeight, out rawStride, IsMac);
+                                    else
+                                        rawYUV = decoder.DecodeRawBW(remaining, out rawWidth, out rawHeight, out rawStride);
+                                }
                             }
 
                             /*
@@ -399,7 +437,7 @@ namespace KLC_Finch {
             //{"black_out_screen":0,"block_mouse_keyboard":1}
 
             JObject json = new JObject {
-                ["black_out_screen"] = (blackOutScreen ? 1 : 0), //This doesn't seem to work yet
+                ["black_out_screen"] = (blackOutScreen ? 1 : 2),
                 ["block_mouse_keyboard"] = (blockMouseKB ? 1 : 2)
             };
             SendJson(Enums.KaseyaMessageTypes.BlackScreenBlockInput, json.ToString());

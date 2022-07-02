@@ -14,6 +14,9 @@ namespace KLC_Finch {
         private List<System.Windows.Shapes.Rectangle> canvasListRectangle;
         private int canvasOffsetX, canvasOffsetY;
 
+        private bool tempPanning;
+        private System.Windows.Point tempPanningPoint;
+
         public RCvCanvas(IRemoteControl rc, RCstate state) : base(rc, state) {
             InitializeComponent();
             txtDebugLeft.Text = "";
@@ -221,10 +224,16 @@ namespace KLC_Finch {
             rcCanvas.MouseMove += HandleCanvasMouseMove;
             rcCanvas.MouseDown += HandleCanvasMouseDown;
             rcCanvas.MouseUp += HandleCanvasMouseUp;
+            rcCanvas.MouseLeave += HandleCanvasMouseLeave;
             rcCanvas.MouseWheel += HandleCanvasMouseWheel;
         }
 
         public override void ControlUnload() {
+        }
+
+        private void HandleCanvasMouseLeave(object sender, MouseEventArgs e)
+        {
+            tempPanning = false;
         }
 
         public override void DisplayApproval(bool visible) {
@@ -370,6 +379,17 @@ namespace KLC_Finch {
 
             if (state.UseMultiScreen) {
                 System.Windows.Point point = e.GetPosition(rcCanvas);
+
+                if (!state.ControlEnabled && e.ChangedButton == MouseButton.Right)
+                {
+                    if (state.UseMultiScreenPanZoom)
+                    {
+                        tempPanningPoint = Mouse.GetPosition(this);
+                        tempPanning = true;
+                    }
+                    return;
+                }
+
                 RCScreen screenPointingTo = state.GetScreenUsingMouse(canvasOffsetX + (int)point.X, canvasOffsetY + (int)point.Y);
                 if (screenPointingTo == null)
                     return;
@@ -430,6 +450,22 @@ namespace KLC_Finch {
 
             if (state.UseMultiScreen) {
                 System.Windows.Point point = e.GetPosition(rcCanvas);
+
+                if (!state.ControlEnabled)
+                {
+                    if (tempPanning)
+                    {
+                        Point pointMouse = Mouse.GetPosition(this);
+                        Point diff = (Point)(tempPanningPoint - pointMouse);
+                        tempPanningPoint = pointMouse;
+                        if (diff.X != 0)
+                            rcScrollViewer.ScrollToHorizontalOffset(rcScrollViewer.HorizontalOffset + diff.X);
+                        if (diff.Y != 0)
+                            rcScrollViewer.ScrollToVerticalOffset(rcScrollViewer.VerticalOffset + diff.Y);
+                        return;
+                    }
+                }
+
                 point.X += canvasOffsetX;
                 point.Y += canvasOffsetY;
                 state.Window.DebugMouseEvent((int)point.X, (int)point.Y);
@@ -494,8 +530,15 @@ namespace KLC_Finch {
         }
 
         private void HandleCanvasMouseUp(object sender, MouseButtonEventArgs e) {
-            if (!state.ControlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (state.connectionStatus != ConnectionStatus.Connected)
                 return;
+
+            if (!state.ControlEnabled)
+            {
+                if (e.ChangedButton == MouseButton.Right)
+                    tempPanning = false;
+                return;
+            }
 
             //if (rcCanvas.Contains(e.GetPosition((Canvas)sender))) {
             rc.SendMouseUp(e.ChangedButton);

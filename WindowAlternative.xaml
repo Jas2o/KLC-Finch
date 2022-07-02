@@ -19,16 +19,13 @@
             <RowDefinition />
         </Grid.RowDefinitions>
 
-        <Border
-            x:Name="borderDisconnected"
-            Background="Maroon"
-            Visibility="Collapsed">
+        <Border x:Name="borderStatus" Background="Gray">
             <TextBlock
-                x:Name="txtDisconnected"
+                x:Name="txtStatus"
                 Margin="0,2"
                 HorizontalAlignment="Center"
                 Foreground="White"
-                Text="Disconnected" />
+                Text="Waiting for status update." />
         </Border>
 
         <TabControl x:Name="tabControl" Grid.Row="1">
@@ -61,6 +58,12 @@
                             VerticalAlignment="Top"
                             Click="btnRCOneClick_Click"
                             Content="1-Click" />
+                        <Button
+                            x:Name="btnRCNativeRDP"
+                            Margin="0,5,0,0"
+                            VerticalAlignment="Top"
+                            Click="btnRCNativeRDP_Click"
+                            Content="Native RDP" />
 
                         <Button
                             x:Name="btnWiresharkFilter"
@@ -161,6 +164,19 @@
             </TabItem>
             <TabItem x:Name="tabToolbox" Header="Toolbox">
                 <command:controlToolbox x:Name="ctrlToolbox" />
+            </TabItem>
+            <TabItem x:Name="tabAlpha" Header="Alpha">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock
+                        Margin="5,5,5,5"
+                        Text="Kaseya's TCP forwarding feature is the basis for their Native RDP feature, but VSA / Live Connect also supports using it for accessing other TCP services such as HTTP, HTTPS, SSH that are on a same network device without an agent. You can experiment with that here."
+                        TextWrapping="Wrap" />
+                    <command:controlForwarding x:Name="ctrlForwarding" Grid.Row="1" />
+                </Grid>
             </TabItem>
         </TabControl>
 

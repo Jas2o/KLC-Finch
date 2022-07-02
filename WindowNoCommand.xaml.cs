@@ -90,7 +90,7 @@ namespace KLC_Finch {
         {
             if (thisAgentID != null)
             {
-                App.alternative = new WindowAlternative(thisAgentID, txtAuthToken.Password, true, Enums.RC.Shared);
+                App.alternative = new WindowAlternative(thisAgentID, txtAuthToken.Password, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
                 App.alternative.Show();
             }
         }
@@ -144,7 +144,7 @@ namespace KLC_Finch {
                 return;
 
             if (Keyboard.IsKeyDown(Key.LeftShift))
-                App.alternative = new WindowAlternative(selected.Value, txtAuthToken.Password, true, Enums.RC.Shared);
+                App.alternative = new WindowAlternative(selected.Value, txtAuthToken.Password, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
             else
                 App.alternative = new WindowAlternative(selected.Value, txtAuthToken.Password);
             App.alternative.Show();

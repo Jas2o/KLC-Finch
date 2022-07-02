@@ -21,8 +21,8 @@ namespace KLC_Finch {
     /// </summary>
     public partial class WindowRCTest : Window {
 
-        private readonly int width = 800;
-        private readonly int height = 1080;
+        //private readonly int width = 800;
+        //private readonly int height = 1080;
 
         private const string exampleDefault = @"{""default_screen"":65539,""screens"":[{""screen_id"":65539,""screen_name"":""Test Screen"",""screen_width"":800,""screen_height"":1080,""screen_x"":0,""screen_y"":0}]}";
 
@@ -89,8 +89,8 @@ namespace KLC_Finch {
             }
         }
 
-        private void chkRetina_Changed(object sender, RoutedEventArgs e) {
-            rcTest.SetRetina((bool)chkRetina.IsChecked);
+        private void ChkRetina_Changed(object sender, RoutedEventArgs e) {
+            rcTest.SetRetina((bool)ChkRetina.IsChecked);
         }
 
     }

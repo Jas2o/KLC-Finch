@@ -1,7 +1,8 @@
 ﻿using NTR;
 using OpenTK;
-using OpenTK.Graphics.OpenGL;
 using OpenTK.Wpf;
+using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using System;
 using System.Drawing;
 using System.Linq;
@@ -30,6 +31,9 @@ namespace KLC_Finch {
         private int vertex_shader_object = 0;
         private int vpX, vpY;
 
+        private bool tempPanning;
+        private System.Windows.Point tempPanningPoint;
+
         public RCvOpenGLWPF(IRemoteControl rc, RCstate state) : base(rc, state) {
             InitializeComponent();
             MainCamera = new Camera(Vector2.Zero); //for Multi-screen
@@ -44,6 +48,7 @@ namespace KLC_Finch {
             if (System.Windows.Media.RenderCapability.Tier < 0x00020000) {
                 //Software, such as RDP
                 //GLWpfControl would crash if used without the minimum version
+
                 OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
                 glVersion = glSoftwareTest.Version;
                 if (glVersion.StartsWith("1.") || glVersion.Contains("Mesa")) //Mesa seen on Citrix which claims to support 3.1
@@ -102,9 +107,9 @@ namespace KLC_Finch {
                 state.SetVirtual(state.CurrentScreen.rect.X - (adjustLeft ? 80 : 0),
                     state.CurrentScreen.rect.Y - (adjustUp ? 80 : 0),
                     state.CurrentScreen.rect.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
-                    state.CurrentScreen.rect.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
+                    state.CurrentScreen.rect.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : (rc.IsMac ? 5 : 0)));
             } else
-                state.SetVirtual(state.CurrentScreen.rect.X, state.CurrentScreen.rect.Y, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height);
+                state.SetVirtual(state.CurrentScreen.rect.X, state.CurrentScreen.rect.Y, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height + (rc.IsMac ? 5 : 0));
         }
 
         public override void CameraToOverview() {
@@ -237,6 +242,7 @@ namespace KLC_Finch {
             glControl.MouseMove += HandleMouseMove;
             glControl.MouseDown += HandleMouseDown;
             glControl.MouseUp += HandleMouseUp;
+            glControl.MouseLeave += HandleMouseLeave;
             glControl.MouseWheel += HandleMouseWheel;
             glControl.Render += GlControl_Render;
         }
@@ -417,7 +423,7 @@ namespace KLC_Finch {
 
                         if (!state.ListScreen[i].Texture.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, multiplyColor)) {
                             GL.Disable(EnableCap.Texture2D);
-                            //GL.UseProgram(0);
+                            GL.UseProgram(0);
                             GL.Color3(System.Drawing.Color.DimGray);
 
                             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
@@ -502,6 +508,16 @@ namespace KLC_Finch {
 
             System.Windows.Point pointWPF = e.GetPosition(glControl);
             if (state.UseMultiScreen) {
+                if (!state.ControlEnabled && e.ChangedButton == MouseButton.Right)
+                {
+                    if (state.UseMultiScreenPanZoom)
+                    {
+                        tempPanningPoint = pointWPF;
+                        tempPanning = true;
+                    }
+                    return;
+                }
+
                 Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(pointWPF.X / scaleX), (float)(pointWPF.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
                 RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
                 if (screenPointingTo == null)
@@ -556,6 +572,11 @@ namespace KLC_Finch {
             }
         }
 
+        private void HandleMouseLeave(object sender, MouseEventArgs e)
+        {
+            tempPanning = false;
+        }
+
         private void HandleMouseMove(object sender, MouseEventArgs e) {
             if (state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
@@ -564,6 +585,17 @@ namespace KLC_Finch {
             System.Windows.Point pointWPF = e.GetPosition(glControl);
 
             if (state.UseMultiScreen) {
+                if (!state.ControlEnabled)
+                {
+                    if (tempPanning)
+                    {
+                        Vector2 diff = new Vector2((float)(tempPanningPoint.X - pointWPF.X), (float)(tempPanningPoint.Y - pointWPF.Y));
+                        tempPanningPoint = pointWPF;
+                        MainCamera.Move(diff);
+                        return;
+                    }
+                }
+
                 Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(pointWPF.X / scaleX), (float)(pointWPF.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
 
                 RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
@@ -614,8 +646,15 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseUp(object sender, MouseButtonEventArgs e) {
-            if (!state.ControlEnabled || state.connectionStatus != ConnectionStatus.Connected)
+            if (state.connectionStatus != ConnectionStatus.Connected)
                 return;
+
+            if (!state.ControlEnabled)
+            {
+                if (e.ChangedButton == MouseButton.Right)
+                    tempPanning = false;
+                return;
+            }
 
             if (glControl.IsMouseOver) {
                 rc.SendMouseUp(e.ChangedButton);

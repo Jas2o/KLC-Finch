@@ -39,8 +39,6 @@ namespace KLC.Structure
             string decoded = JWT.Decode(auth_jwt, publicKey, JwsAlgorithm.RS256);
 
             string encoded = JWT.Encode(auth_jwt_p2, privateKey, JwsAlgorithm.RS256);
-
-            Console.WriteLine();
             */
         }
 

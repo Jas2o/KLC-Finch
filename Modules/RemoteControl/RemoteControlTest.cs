@@ -9,9 +9,11 @@ namespace KLC_Finch {
         public WindowViewerV3 Viewer;
         //public bool UseYUVShader { get { return false; } set { } }
         public DecodeMode DecodeMode { get; set; }
+        public bool IsMac { get; set; }
 
         private string screenStr;
         private Thread threadTest;
+        private static CancellationTokenSource threadCTokenSource;
         private bool retina;
 
         private readonly Color[] colors = new Color[] { //The BIT.TRIP colours!
@@ -35,6 +37,7 @@ namespace KLC_Finch {
                 LoopStop();
 
             Viewer = viewer;
+            threadCTokenSource = new CancellationTokenSource();
             threadTest = new Thread(() => {
                 Loop();
             });
@@ -43,15 +46,14 @@ namespace KLC_Finch {
 
         public void LoopStop() {
             if (threadTest != null) {
-                threadTest.Abort();
-                threadTest.Join();
+                threadCTokenSource.Cancel();
+                threadTest.Join(1000);
             }
         }
 
         private void Loop() {
             Viewer.ClearApproval();
-
-            while (Viewer.IsVisible) {
+            while (!threadCTokenSource.Token.IsCancellationRequested && Viewer.IsVisible) {
                 Thread.Sleep(500);
 
                 NTR.RCScreen screen = Viewer.GetCurrentScreen();
@@ -101,7 +103,7 @@ namespace KLC_Finch {
             screenStr = jsonstr;
         }
 
-        public void ChangeScreen(string screen_id) {
+        public void ChangeScreen(string screen_id, int clientH, int clientW) {
             //Console.WriteLine("ChangeScreen: " + screen_id);
             //screenCurrent = screenList.Find(x => x.screen_id == screen_id);
         }

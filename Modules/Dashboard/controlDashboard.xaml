@@ -102,12 +102,70 @@
                         Margin="0,0,0,5"
                         Text="Last rebooted (fuzzy time) ago"
                         TextAlignment="Center" />
-                    <TextBlock
-                        x:Name="txtUtilisationRAM"
-                        Grid.Row="0"
+                    <Grid
+                        Height="20"
                         Margin="0,0,0,5"
-                        Text="RAM % used"
-                        TextAlignment="Center" />
+                        VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Button
+                            Margin="0,2"
+                            Padding="0"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            Click="btnDashboardGetCpuRam_Click"
+                            Content="CPU"
+                            Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" />
+                        <ProgressBar
+                            x:Name="progressCPU"
+                            Grid.Column="1"
+                            Height="5"
+                            VerticalAlignment="Bottom"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="0" />
+                        <TextBlock
+                            Name="txtUtilisationCPU"
+                            Grid.Column="1"
+                            Margin="0,0,0,5"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Text="-" />
+                    </Grid>
+                    <Grid
+                        Height="20"
+                        Margin="0,0,0,5"
+                        VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Button
+                            Margin="0,2"
+                            Padding="0"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            Click="btnDashboardGetCpuRam_Click"
+                            Content="RAM"
+                            Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" />
+                        <ProgressBar
+                            x:Name="progressRAM"
+                            Grid.Column="1"
+                            Height="5"
+                            VerticalAlignment="Bottom"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="0" />
+                        <TextBlock
+                            Name="txtUtilisationRAM"
+                            Grid.Column="1"
+                            Margin="0,0,0,5"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Text="-" />
+                    </Grid>
                 </StackPanel>
                 <Expander
                     Grid.Row="1"
@@ -117,7 +175,7 @@
                         <!--<command:controlDisk/>-->
                     </StackPanel>
                 </Expander>
-                <Expander Grid.Row="2" Header="CPU/RAM">
+                <Expander Grid.Row="2" Header="Misc">
                     <TextBox
                         x:Name="txtDashboard"
                         Margin="0"

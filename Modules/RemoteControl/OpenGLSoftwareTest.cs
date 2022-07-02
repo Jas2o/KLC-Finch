@@ -1,6 +1,7 @@
 ﻿using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Windowing.Desktop;
 using System;
 
 namespace KLC_Finch {
@@ -8,12 +9,12 @@ namespace KLC_Finch {
 
         public string Version { get; private set; }
 
-        public OpenGLSoftwareTest(int width, int height, string title) : base(width, height, OpenTK.Graphics.GraphicsMode.Default, title) {
-            Run(0);
+        public OpenGLSoftwareTest(int width, int height, string title) : base(GameWindowSettings.Default, NativeWindowSettings.Default) {
+            Run();
         }
 
-        protected override void OnLoad(EventArgs e) {
-            base.OnLoad(e);
+        protected override void OnLoad() {
+            base.OnLoad();
             Version = GL.GetString(StringName.Version);
             Close();
         }

@@ -84,6 +84,7 @@ namespace KLC_Finch {
 
             JObject jAction;
             if (IsMac) {
+                input = Uri.EscapeDataString(input);
                 jAction = new JObject {
                     ["action"] = "ShellInput",
                     ["input"] = input + "\n"

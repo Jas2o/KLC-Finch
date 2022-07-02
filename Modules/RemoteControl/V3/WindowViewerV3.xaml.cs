@@ -78,11 +78,9 @@ namespace KLC_Finch {
                 case 0:
                     rcv = new RCvOpenGL(rc, state);
                     break;
-
                 case 1:
                     rcv = new RCvOpenGLWPF(rc, state);
                     break;
-
                 case 2:
                     rcv = new RCvCanvas(rc, state);
                     break;
@@ -98,8 +96,8 @@ namespace KLC_Finch {
                 toolBlockMouseKB.Visibility = Visibility.Collapsed;
                 if (Settings.MacSwapCtrlWin)
                     toolKeyWin.Visibility = Visibility.Collapsed;
+                toolBlockScreen.Visibility = Visibility.Collapsed; //Does this even work for Windows?
             }
-            toolBlockScreen.Visibility = Visibility.Collapsed;
 
             SetControlEnabled(false, true); //Just for the visual
 
@@ -204,7 +202,7 @@ namespace KLC_Finch {
         public void FromGlChangeScreen(RCScreen screen, bool moveCamera = true) {
             state.previousScreen = state.CurrentScreen;
             state.CurrentScreen = screen;
-            rc.ChangeScreen(state.CurrentScreen.screen_id);
+            rc.ChangeScreen(state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
 
             rcv.CameraFromClickedScreen(screen, moveCamera);
 
@@ -263,23 +261,10 @@ namespace KLC_Finch {
                 if (state.CurrentScreen == null)
                     return;
 
-                if (state.legacyVirtualWidth != width || state.legacyVirtualHeight != height) {
+                if (state.legacyVirtualWidth != state.CurrentScreen.rect.Width || state.legacyVirtualHeight != state.CurrentScreen.rect.Height)
+                {
                     //Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
-                    SetVirtual(0, 0, width, height);
-
-                    /*
-                    try {
-                        state.CurrentScreen.rect.Width = width;
-                        state.CurrentScreen.rect.Height = height;
-                        //This is a sad attempt a fixing a problem when changing left monitor's size.
-                        //However if changing a middle monitor, the right monitor will break.
-                        //The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                        if (state.CurrentScreen.rect.X < 0)
-                            state.CurrentScreen.rect.X = width * -1;
-                    } catch (Exception ex) {
-                        Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
-                    }
-                    */
+                    SetVirtual(0, 0, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height);
                 }
 
                 if (state.textureLegacy != null)
@@ -319,6 +304,7 @@ namespace KLC_Finch {
                 */
             }
 
+            /*
             state.UseMultiScreenFixAvailable = (state.CurrentScreen.rect.Width != width);
             if (state.UseMultiScreenFixAvailable) {
                 state.legacyVirtualWidth = width;
@@ -327,6 +313,7 @@ namespace KLC_Finch {
                 if (state.previousScreen == null)
                     ToolScreenFix_Click(null, null);
             }
+            */
             state.socketAlive = true;
 
             fpsLast = fpsCounter.GetFPS();
@@ -353,8 +340,8 @@ namespace KLC_Finch {
                     Dispatcher.Invoke((Action)delegate {
                         if (state.CurrentScreen.CanvasImage == null)
                             state.CurrentScreen.CanvasImage = new System.Windows.Controls.Image();
-                        state.CurrentScreen.CanvasImage.Width = width;
-                        state.CurrentScreen.CanvasImage.Height = height;
+                        state.CurrentScreen.CanvasImage.Width = state.CurrentScreen.rect.Width;
+                        state.CurrentScreen.CanvasImage.Height = state.CurrentScreen.rect.Height;
 
                         state.CurrentScreen.SetCanvasImageBW(width, height, stride, buffer);
                     });
@@ -364,28 +351,15 @@ namespace KLC_Finch {
                 if (state.CurrentScreen == null)
                     return;
 
-                if (state.legacyVirtualWidth != width || state.legacyVirtualHeight != height) {
+                if (state.legacyVirtualWidth != state.CurrentScreen.rect.Width || state.legacyVirtualHeight != state.CurrentScreen.rect.Height) {
                     //Console.WriteLine("[LoadTexture:Legacy] Virtual resolution did not match texture received.");
-                    SetVirtual(0, 0, width, height);
-
-                    /*
-                    try {
-                        state.CurrentScreen.rect.Width = state.CurrentScreen.rectFixed.Width = width;
-                        state.CurrentScreen.rect.Height = state.CurrentScreen.rectFixed.Height = height;
-                        ////This is a sad attempt a fixing a problem when changing left monitor's size.
-                        ////However if changing a middle monitor, the right monitor will break.
-                        ////The reconnect button can otherwise be used, or perhaps a multimonitor/scan feature can be added to automatically detect and repair the list of screens.
-                        //if (currentScreen.rect.X < 0)
-                        //currentScreen.rect.X = width * -1;
-                    } catch (Exception ex) {
-                        Console.WriteLine("[LoadTexture:Legacy] " + ex.ToString());
-                    }
-                    */
+                    SetVirtual(0, 0, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height);
                 }
 
                 state.textureLegacy.LoadRaw(new Rectangle(0, 0, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height), width, height, stride, buffer);
             }
 
+            /*
             state.UseMultiScreenFixAvailable = (state.CurrentScreen.rect.Width != width);
             if (state.UseMultiScreenFixAvailable) {
                 state.legacyVirtualWidth = width;
@@ -394,6 +368,7 @@ namespace KLC_Finch {
                 if (state.previousScreen == null)
                     ToolScreenFix_Click(null, null);
             }
+            */
             state.socketAlive = true;
 
             fpsLast = fpsCounter.GetFPS();
@@ -521,7 +496,7 @@ namespace KLC_Finch {
         public void SetScreen(string id) {
             state.previousScreen = state.CurrentScreen;
             state.CurrentScreen = state.ListScreen.First(x => x.screen_id == id);
-            rc.ChangeScreen(state.CurrentScreen.screen_id);
+            rc.ChangeScreen(state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
 
             if (state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
@@ -894,11 +869,17 @@ namespace KLC_Finch {
         }
 
         private void toolOpenGLInfo_Click(object sender, RoutedEventArgs e) {
-            OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
-            MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
+            MessageBoxResult result = MessageBoxResult.OK;
+            if (rcv is RCvOpenGLWPF)
+                result = MessageBox.Show("Because you are using renderer GLWpfControl, you will need to manually reconnect Remote Control after this test. Would you like to proceed?", "KLC-Finch: OpenGL Info", MessageBoxButton.OKCancel);
 
-            if (!(rcv is RCvCanvas))
-                ToolReconnect_Click(sender, e); //Issue with spawning an OpenGL when using GLControl
+            if (result == MessageBoxResult.OK)
+            {
+                OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
+                MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
+            }
+
+            //if (rcv is RCvOpenGLWPF) ToolReconnect_Click(sender, e); //Issue with spawning an OpenGL when using GLControl
         }
 
         private void ToolOptions_Click(object sender, RoutedEventArgs e) {
@@ -947,7 +928,7 @@ namespace KLC_Finch {
 
             state.previousScreen = state.CurrentScreen;
             state.CurrentScreen = state.ListScreen.First(x => x.screen_name == screen_selected[0]);
-            rc.ChangeScreen(state.CurrentScreen.screen_id);
+            rc.ChangeScreen(state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
 
             if (state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
@@ -1044,8 +1025,12 @@ namespace KLC_Finch {
         }
 
         private void toolViewRCLogs_Click(object sender, RoutedEventArgs e) {
-            string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
-            MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
+            try
+            {
+                string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
+                MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
+            } catch(Exception) {
+            }
         }
 
         private void toolPanZoom_Click(object sender, RoutedEventArgs e) {
@@ -1330,11 +1315,11 @@ namespace KLC_Finch {
             }
         }
 
+        /*
         private void ToolScreenFix_Click(object sender, RoutedEventArgs e) {
             if (state.CurrentScreen.rect.Width != state.legacyVirtualWidth) {
                 state.CurrentScreen.rect.Width = state.legacyVirtualWidth;
                 state.CurrentScreen.rect.Height = state.legacyVirtualHeight;
-
                 if (state.UseMultiScreen) {
                     //Retina hack
                     if (state.UseMultiScreenOverview)
@@ -1346,6 +1331,12 @@ namespace KLC_Finch {
 
             UpdateScreenLayoutReflow();
             state.UseMultiScreenFixAvailable = false;
+        }
+        */
+
+        private void toolDumpState_Click(object sender, RoutedEventArgs e)
+        {
+            Console.WriteLine(state);
         }
 
         /*

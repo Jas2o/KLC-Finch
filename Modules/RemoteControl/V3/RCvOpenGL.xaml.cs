@@ -4,6 +4,7 @@ using NTR;
 using Ookii.Dialogs.Wpf;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -31,6 +32,8 @@ namespace KLC_Finch {
         private int fragment_shader_object = 0;
         private string glVersion;
         private int m_shader_multiplyColor = 0;
+        private bool overlayNewKeyboard;
+        private bool overlayNewMouse;
         private Bitmap overlay2dControlOff;
         private Bitmap overlay2dDisconnected;
         private Bitmap overlay2dKeyboard;
@@ -51,10 +54,15 @@ namespace KLC_Finch {
         private Vector2[] vertBufferScreen;
         private int vertex_shader_object = 0;
         private int vpX, vpY;
-        
+
+        private bool tempPanning;
+        private System.Drawing.Point tempPanningPoint;
+
         public RCvOpenGL(IRemoteControl rc, RCstate state) : base(rc, state) {
             InitializeComponent();
             MainCamera = new Camera(Vector2.Zero); //for Multi-screen
+            glControl.APIVersion = new Version(3, 2, 0, 0);
+            glControl.Profile = OpenTK.Windowing.Common.ContextProfile.Compatability;
             glControl.Load += glControl_Load;
         }
 
@@ -100,9 +108,9 @@ namespace KLC_Finch {
                 state.SetVirtual(state.CurrentScreen.rect.X - (adjustLeft ? 80 : 0),
                     state.CurrentScreen.rect.Y - (adjustUp ? 80 : 0),
                     state.CurrentScreen.rect.Width + (adjustLeft ? 80 : 0) + (adjustRight ? 80 : 0),
-                    state.CurrentScreen.rect.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : 0));
+                    state.CurrentScreen.rect.Height + (adjustUp ? 80 : 0) + (adjustDown ? 80 : (rc.IsMac ? 5 : 0)));
             } else
-                state.SetVirtual(state.CurrentScreen.rect.X, state.CurrentScreen.rect.Y, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height);
+                state.SetVirtual(state.CurrentScreen.rect.X, state.CurrentScreen.rect.Y, state.CurrentScreen.rect.Width, state.CurrentScreen.rect.Height + (rc.IsMac ? 5 : 0));
         }
 
         public override void CameraToOverview() {
@@ -153,6 +161,7 @@ namespace KLC_Finch {
                 state.Window.Title = state.BaseTitle + " (YUV)";
             }
 
+            /*
             glVersion = GL.GetString(StringName.Version);
 
             CreateShaders(Shaders.yuvtorgb_vertex, Shaders.yuvtorgb_fragment, out vertex_shader_object, out fragment_shader_object, out shader_program);
@@ -160,6 +169,7 @@ namespace KLC_Finch {
             m_shader_sampler[1] = GL.GetUniformLocation(shader_program, "u_sampler");
             m_shader_sampler[2] = GL.GetUniformLocation(shader_program, "v_sampler");
             m_shader_multiplyColor = GL.GetUniformLocation(shader_program, "multiplyColor");
+            */
         }
 
         public override void ControlUnload() {
@@ -182,9 +192,60 @@ namespace KLC_Finch {
         }
 
         public override void DisplayDebugKeyboard(string strKeyboard) {
+            using (Graphics gfx = Graphics.FromImage(overlay2dKeyboard))
+            {
+                gfx.Clear(System.Drawing.Color.Transparent);
+
+                using (GraphicsPath gp = new GraphicsPath())
+                using (System.Drawing.Pen outline = new System.Drawing.Pen(System.Drawing.Color.Black, 4) { LineJoin = LineJoin.Round }) //outline width=1
+                using (StringFormat sf = new StringFormat())
+                using (System.Drawing.Brush foreBrush = new SolidBrush(System.Drawing.Color.Lime))
+                {
+                    gp.AddString(strKeyboard, arial.FontFamily, (int)arial.Style, arial.Size, new PointF(0, 0), sf); //12=arial.Size
+                    gfx.DrawPath(outline, gp);
+                    gfx.FillPath(foreBrush, gp);
+                }
+
+                BitmapData data2 = overlay2dKeyboard.LockBits(new System.Drawing.Rectangle(0, 0, overlay2dKeyboard.Width, overlay2dKeyboard.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                if (textureOverlayDataKeyboard == null)
+                    textureOverlayDataKeyboard = new byte[Math.Abs(data2.Stride * data2.Height)];
+                Marshal.Copy(data2.Scan0, textureOverlayDataKeyboard, 0, textureOverlayDataKeyboard.Length);
+
+                overlay2dKeyboard.UnlockBits(data2);
+
+                overlayNewKeyboard = true;
+            }
         }
 
         public override void DisplayDebugMouseEvent(int X, int Y) {
+            string strMousePos = string.Format("X: {0}, Y: {1}", X, Y);
+
+            using (Graphics gfx = Graphics.FromImage(overlay2dMouse))
+            {
+                gfx.Clear(System.Drawing.Color.Transparent);
+
+                using (GraphicsPath gp = new GraphicsPath())
+                using (System.Drawing.Pen outline = new System.Drawing.Pen(System.Drawing.Color.Black, 4) { LineJoin = LineJoin.Round }) //outline width=1
+                using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Far })
+                using (System.Drawing.Brush foreBrush = new SolidBrush(System.Drawing.Color.Lime))
+                {
+                    gp.AddString(strMousePos, arial.FontFamily, (int)arial.Style, arial.Size, gfx.VisibleClipBounds, sf);
+                    gfx.DrawPath(outline, gp);
+                    gfx.FillPath(foreBrush, gp);
+                }
+
+                BitmapData data2 = overlay2dMouse.LockBits(new System.Drawing.Rectangle(0, 0, overlay2dMouse.Width, overlay2dMouse.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                if (textureOverlayDataMouse == null)
+                    textureOverlayDataMouse = new byte[Math.Abs(data2.Stride * data2.Height)];
+                Marshal.Copy(data2.Scan0, textureOverlayDataMouse, 0, textureOverlayDataMouse.Length);
+
+                //qtOverlay2d.Load(overlay2d.Width, overlay2d.Height, bData);
+                overlay2dMouse.UnlockBits(data2);
+
+                overlayNewMouse = true;
+            }
+
+            glControl.Invalidate();
         }
 
         public override void DisplayKeyHook(bool enabled) {
@@ -240,6 +301,8 @@ namespace KLC_Finch {
         public override bool SwitchToLegacy() {
             state.UseMultiScreen = false;
             state.virtualRequireViewportUpdate = true;
+
+            SetCanvas(state.CurrentScreen.rect.Left, state.CurrentScreen.rect.Bottom, state.CurrentScreen.rect.Right, state.CurrentScreen.rect.Top);
 
             return true;
         }
@@ -339,10 +402,20 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseDown(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (rc == null || state.connectionStatus != ConnectionStatus.Connected)
+            if (rc == null) // || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             if (state.UseMultiScreen) {
+                if (!state.ControlEnabled && e.Button == System.Windows.Forms.MouseButtons.Right)
+                {
+                    if (state.UseMultiScreenPanZoom)
+                    {
+                        tempPanningPoint = e.Location;
+                        tempPanning = true;
+                    }
+                    return;
+                }
+
                 Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
                 RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
                 if (screenPointingTo == null)
@@ -398,18 +471,42 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (state.CurrentScreen == null || rc == null || state.connectionStatus != ConnectionStatus.Connected)
+            if (rc == null || state.CurrentScreen == null || state.connectionStatus != ConnectionStatus.Connected)
                 return;
 
             state.windowActivatedMouseMove = false;
 
             if (state.UseMultiScreen) {
+                if (!state.ControlEnabled)
+                {
+                    if (tempPanning)
+                    {
+                        Vector2 diff = new Vector2(tempPanningPoint.X - e.Location.X, tempPanningPoint.Y - e.Location.Y);
+                        tempPanningPoint = e.Location;
+                        MainCamera.Move(diff);
+                        glControl.Invalidate();
+                        return;
+                    }
+                }
+
                 Vector2 point = MainCamera.ScreenToWorldCoordinates(new Vector2((float)(e.X / scaleX), (float)(e.Y / scaleY)), state.virtualViewNeed.X, state.virtualViewNeed.Y);
-                state.Window.DebugMouseEvent((int)point.X, (int)point.Y);
 
                 RCScreen screenPointingTo = state.GetScreenUsingMouse((int)point.X, (int)point.Y);
                 if (screenPointingTo == null)
-                    return;
+                {
+                    screenPointingTo = state.GetClosestScreenUsingMouse((int)point.X, (int)point.Y);
+                    if (screenPointingTo == null)
+                    {
+                        //Debug.WriteLine("No screen");
+                        return;
+                    } else
+                    {
+                        point.X = Math.Clamp(point.X, screenPointingTo.rect.Left, screenPointingTo.rect.Right);
+                        point.Y = Math.Clamp(point.Y, screenPointingTo.rect.Top, screenPointingTo.rect.Bottom-1);
+                        //Debug.WriteLine("Clamped");
+                    }
+                }
+                state.Window.DebugMouseEvent((int)point.X, (int)point.Y);
 
                 if ((state.UseMultiScreenOverview || state.UseMultiScreenPanZoom) && state.CurrentScreen.screen_id != screenPointingTo.screen_id) {
                     //We are in overview, change which screen gets texture updates
@@ -441,8 +538,8 @@ namespace KLC_Finch {
                 if (legacyPoint.X > state.legacyVirtualWidth || legacyPoint.Y > state.legacyVirtualHeight)
                     return;
 
-                legacyPoint.X = legacyPoint.X + state.CurrentScreen.rect.X;
-                legacyPoint.Y = legacyPoint.Y + state.CurrentScreen.rect.Y;
+                legacyPoint.X += state.CurrentScreen.rect.X;
+                legacyPoint.Y += state.CurrentScreen.rect.Y;
 
                 state.Window.DebugMouseEvent(legacyPoint.X, legacyPoint.Y);
 
@@ -451,10 +548,20 @@ namespace KLC_Finch {
         }
 
         private void HandleMouseUp(object sender, System.Windows.Forms.MouseEventArgs e) {
-            if (!state.ControlEnabled || rc == null || state.connectionStatus != ConnectionStatus.Connected)
+            if (rc == null)
                 return;
 
+            if (!state.ControlEnabled)
+            {
+                if (e.Button == System.Windows.Forms.MouseButtons.Right)
+                    tempPanning = false;
+                return;
+            }
+
             if (glControl.ClientRectangle.Contains(e.Location)) {
+                if (state.connectionStatus != ConnectionStatus.Connected)
+                    return;
+
                 rc.SendMouseUp(e.Button);
 
                 if (e.Button == System.Windows.Forms.MouseButtons.Left)
@@ -595,6 +702,11 @@ namespace KLC_Finch {
 
             #endregion Texture - Control Off
 
+            textureOverlayDataMouse = new byte[Math.Abs(overlayWidth * overlayWidth)];
+            textureOverlayDataKeyboard = new byte[Math.Abs(overlayWidth * overlayWidth)];
+            overlayNewKeyboard = true;
+            overlayNewMouse = true;
+
             state.textureLegacy = new TextureScreen(rc.DecodeMode);
             //InitLegacyScreenTexture();
 
@@ -728,7 +840,7 @@ namespace KLC_Finch {
 
                         if (!screen.Texture.Render(shader_program, m_shader_sampler, m_shader_multiplyColor, multiplyColor)) {
                             GL.Disable(EnableCap.Texture2D);
-                            //GL.UseProgram(0);
+                            GL.UseProgram(0);
                             GL.Color3(Color.DimGray);
 
                             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
@@ -811,7 +923,6 @@ namespace KLC_Finch {
             GL.LoadIdentity();
             GL.Ortho(0, glControl.Width, glControl.Height, 0, MainCamera.ZNear, MainCamera.ZFar); //Test
 
-            /*
             if (overlayNewMouse) {
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, textureOverlay2dMouse);
@@ -847,7 +958,6 @@ namespace KLC_Finch {
 
                 overlayNewKeyboard = false;
             }
-            */
 
             GL.Color3(Color.White);
             GL.UseProgram(0);

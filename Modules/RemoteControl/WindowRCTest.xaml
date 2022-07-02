@@ -54,12 +54,12 @@
                 VerticalAlignment="Center"
                 Content="Mac" />
             <CheckBox
-                x:Name="chkRetina"
+                x:Name="ChkRetina"
                 Margin="0,0,5,0"
                 VerticalAlignment="Center"
-                Checked="chkRetina_Changed"
+                Checked="ChkRetina_Changed"
                 Content="Retina"
-                Unchecked="chkRetina_Changed" />
+                Unchecked="ChkRetina_Changed" />
             <ComboBox
                 x:Name="cmbRenderer"
                 Grid.Column="1"

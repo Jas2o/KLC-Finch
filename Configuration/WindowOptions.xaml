@@ -38,6 +38,20 @@
                                     Margin="0,5,0,0"
                                     Content="Mac: Static Image"
                                     IsChecked="{Binding AltModulesStartAutoMacStaticImage}" />
+                                <CheckBox
+                                    x:Name="chkAltModulesDashboardRefresh"
+                                    Margin="0,5,0,0"
+                                    Content="Dashboard: auto refresh CPU/RAM"
+                                    IsChecked="{Binding AltModulesDashboardRefresh}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Being tested">
+                            <StackPanel>
+                                <CheckBox
+                                    x:Name="chkAltShowAlpha"
+                                    Margin="0,5,0,0"
+                                    Content="Show Alpha tab (experimental)"
+                                    IsChecked="{Binding AltShowAlphaTab}" />
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>

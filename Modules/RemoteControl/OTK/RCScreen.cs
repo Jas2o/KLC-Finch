@@ -15,6 +15,7 @@ namespace NTR {
         //public int screen_y;
 
         public Rectangle rect;
+        public Rectangle rectEdge;
         public Rectangle rectOrg { get; private set; }
         //public Rectangle rectFixed;
 
@@ -32,6 +33,7 @@ namespace NTR {
             //this.screen_y = screen_y;
 
             rect = new Rectangle(screen_x, screen_y, screen_width, screen_height);
+            rectEdge = new Rectangle(screen_x - 10, screen_y - 10, screen_width + 20, screen_height + 20);
             rectOrg = new Rectangle(screen_x, screen_y, screen_width, screen_height);
 
             /*

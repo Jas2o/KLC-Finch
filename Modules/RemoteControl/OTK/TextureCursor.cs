@@ -1,5 +1,6 @@
 ﻿using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using System;
 using System.Drawing;
 
@@ -43,7 +44,7 @@ namespace NTR {
         }
 
         public bool Render() {
-            if (ID == -1 || Data == null || rect == null)
+            if (ID == -1 || Data == null || rect.IsEmpty)
                 return false;
 
             if (vertBufferNeedUpdate) {
@@ -78,7 +79,7 @@ namespace NTR {
         }
 
         public void RenderNew() {
-            if (!IsNew || ID == -1 || rect == null)
+            if (!IsNew || ID == -1 || rect.IsEmpty)
                 return;
 
             GL.ActiveTexture(TextureUnit.Texture0);

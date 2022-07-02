@@ -71,12 +71,15 @@ namespace KLC_Finch {
 
                 if (selectedFile != null && selectedFile.Length > 0) {
                     SaveFileDialog saveFileDialog = new SaveFileDialog();
+                    saveFileDialog.Title = "KLC-Finch: Download file '" + selectedFile + "'";
                     saveFileDialog.FileName = selectedFile;
                     if (saveFileDialog.ShowDialog() == true)
                         moduleFileExplorer.Download(selectedFile, saveFileDialog.FileName);
                 }
             } else {
                 VistaFolderBrowserDialog folderDialog = new VistaFolderBrowserDialog();
+                folderDialog.UseDescriptionForTitle = true;
+                folderDialog.Description = "KLC-Finch: Download multiple files";
                 if (folderDialog.ShowDialog() == true) {
                     foreach (object selectedItem in dgvFilesFiles.SelectedItems) {
                         string selectedFile = ((KLCFile)selectedItem).Name;
@@ -94,6 +97,7 @@ namespace KLC_Finch {
 
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Multiselect = true;
+            openFileDialog.Title = "KLC-Finch: Upload file";
             if (openFileDialog.ShowDialog() == true) {
                 foreach (string fileName in openFileDialog.FileNames)
                     moduleFileExplorer.Upload(fileName);
@@ -134,39 +138,36 @@ namespace KLC_Finch {
         }
 
         private void btnFilesFolderDelete_Click(object sender, RoutedEventArgs e) {
-            if (moduleFileExplorer == null)
+            if (moduleFileExplorer == null || listFilesFolders.SelectedItem == null)
                 return;
 
-            if (listFilesFolders.SelectedIndex > -1)
+            string selectedkey = listFilesFolders.SelectedItem.ToString();
+            KLCFile lookup = moduleFileExplorer.GetKLCFolder(selectedkey);
+            if (lookup == null)
+                return;
+
+            using (TaskDialog dialog = new TaskDialog())
             {
-                string selectedkey = listFilesFolders.SelectedItem.ToString();
-                KLCFile lookup = moduleFileExplorer.GetKLCFolder(selectedkey);
-                if (lookup == null)
-                    return;
+                dialog.WindowTitle = "KLC-Finch: Folder";
+                dialog.MainInstruction = "Delete folder?";
+                //dialog.MainIcon = TaskDialogIcon.Warning; //Overrides custom
+                dialog.CustomMainIcon = Properties.Resources.WarningRed;
+                dialog.CenterParent = true;
+                dialog.Content = selectedkey;
+                dialog.VerificationText = "Confirm";
+                dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
 
-                using (TaskDialog dialog = new TaskDialog())
-                {
-                    dialog.WindowTitle = "KLC-Finch: Folder";
-                    dialog.MainInstruction = "Delete folder?";
-                    //dialog.MainIcon = TaskDialogIcon.Warning; //Overrides custom
-                    dialog.CustomMainIcon = Properties.Resources.WarningRed;
-                    dialog.CenterParent = true;
-                    dialog.Content = selectedkey;
-                    dialog.VerificationText = "Confirm";
-                    dialog.VerificationClicked += DestructiveDialog_VerificationClicked;
+                TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
+                tdbDelete.Enabled = false;
+                TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
+                tdbCancel.Default = true;
+                dialog.Buttons.Add(tdbDelete);
+                dialog.Buttons.Add(tdbCancel);
 
-                    TaskDialogButton tdbDelete = new TaskDialogButton("Delete");
-                    tdbDelete.Enabled = false;
-                    TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
-                    tdbCancel.Default = true;
-                    dialog.Buttons.Add(tdbDelete);
-                    dialog.Buttons.Add(tdbCancel);
-
-                    System.Media.SystemSounds.Beep.Play(); //Custom doesn't beep
-                    TaskDialogButton button = dialog.ShowDialog(App.alternative);
-                    if (button == tdbDelete)
-                        moduleFileExplorer.DeleteFolder(lookup);
-                }
+                System.Media.SystemSounds.Beep.Play(); //Custom doesn't beep
+                TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                if (button == tdbDelete)
+                    moduleFileExplorer.DeleteFolder(lookup);
             }
         }
 
@@ -244,6 +245,9 @@ namespace KLC_Finch {
                     return;
 
                 VistaFolderBrowserDialog folderDialog = new VistaFolderBrowserDialog();
+                folderDialog.UseDescriptionForTitle = true;
+                folderDialog.Description = "KLC-Finch: Download folder '" + lookup.Name + "'";
+
                 if (folderDialog.ShowDialog() == true)
                     moduleFileExplorer.DownloadFolder(lookup, folderDialog.SelectedPath);
             }

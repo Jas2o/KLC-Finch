@@ -7,10 +7,11 @@ namespace KLC_Finch {
 
     public interface IRemoteControl {
         DecodeMode DecodeMode { get; set; }
+        public bool IsMac { get; set; }
 
         void CaptureNextScreen();
 
-        void ChangeScreen(string screen_id);
+        void ChangeScreen(string screen_id, int clientH, int clientW);
 
         void ChangeTSSession(string session_id);
 

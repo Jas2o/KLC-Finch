@@ -318,7 +318,8 @@ namespace KLC_Finch {
             if (moduleCommand != null)
             {
                 //63 = Fn
-                string command = "osascript -e 'tell application \"System Events\" to key up 63'";
+                //string command = "osascript -e 'tell application \"System Events\" to key up 63'";
+                string command = "su $(stat -f \"%Su\" /dev/console) -c \"osascript -e 'tell application \\\"System Events\\\" to key up 63'\"";
                 //Send twice as first time doesn't usually work.
                 moduleCommand.Send(command);
                 moduleCommand.Send(command);

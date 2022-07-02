@@ -20,6 +20,7 @@ namespace KLC {
         //private string Module;
 
         private IWebSocketConnection ServerBsocketControlAgent;
+        private List<IWebSocketConnection> ServerBsocket;
         private IWebSocketConnection ServerBsocketRemoteControl;
         private int clientPortControlAgent;
         private int clientPortRemoteControl;
@@ -31,6 +32,7 @@ namespace KLC {
             PortB = portB;
 
             //B - new WebSocketServer (my port B)
+            ServerBsocket = new List<IWebSocketConnection>();
             ServerB = new WebSocketServer("ws://0.0.0.0:" + PortB);
 
             ServerB.Start(socket => {
@@ -66,7 +68,13 @@ namespace KLC {
                     if (message.Contains("RemoteControl") && Session.ModuleRemoteControl != null) {
                         ////{"extendedError":2,"id":"5c419d84-20d7-448a-9605-73df69c52261","p2pConnectionId":"4bc14e73-b863-4586-a0fe-ea331f83ac25","result":false,"type":"RemoteControl"}
                         Session.ModuleRemoteControl.Disconnect(path); //Should be session ID but meh
-                    } else
+                    } else if (message.Contains("RDP_StateRequest")) {
+                        ControlAgentSendRDP_StateSet();
+                    } else if (message.Contains("RDP_StateSet"))
+                    {
+                        Session.ModuleForwarding = new Forwarding(Session, Session.agent.NetIPAddress, 3389);
+                    }
+                    else
                         App.ShowUnhandledExceptionFromSrc(message, "Websocket B Control Agent");
                     //Console.WriteLine("ServerB Message Unhandled [ControlAgent]: " + message);
                     break;
@@ -110,6 +118,10 @@ namespace KLC {
 
                 case "/app/toolbox":
                     Session.ModuleToolbox.Receive(message);
+                    break;
+
+                case "/app/forwarding":
+                    Session.ModuleForwarding.Receive(message);
                     break;
 
                 default:
@@ -164,7 +176,8 @@ namespace KLC {
 
             if(socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
                 if (App.alternative != null) {
-                    App.alternative.Disconnect(Session.RandSessionGuid, 1);
+                    Session.Callback?.Invoke(EPStatus.DisconnectedWsB);
+                    //App.alternative.Disconnect(Session.RandSessionGuid, 1);
                 }
             }
             
@@ -181,6 +194,7 @@ namespace KLC {
 #if DEBUG
             Console.WriteLine("B Connect (server port: " + PortB + ") " + socket.ConnectionInfo.Path);
 #endif
+            ServerBsocket.Add(socket);
 
             int clientPort = socket.ConnectionInfo.ClientPort;
 
@@ -189,7 +203,7 @@ namespace KLC {
                 case "/control/agent":
                     ServerBsocketControlAgent = socket;
                     clientPortControlAgent = clientPort;
-                    Session.Callback?.Invoke();
+                    Session.Callback?.Invoke(EPStatus.Connected);
                     break;
 
                 case "/app/dashboard":
@@ -241,6 +255,10 @@ namespace KLC {
                     Session.ModuleToolbox.SetSocket(socket);
                     break;
 
+                case "/app/forwarding":
+                    Session.ModuleForwarding.SetSocket(socket);
+                    break;
+
                 default:
                     if(socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/")) {
                         ServerBsocketRemoteControl = socket;
@@ -260,7 +278,10 @@ namespace KLC {
         }
 
         public void Close() {
-            //ServerBsocket.Close();
+            foreach(IWebSocketConnection socket in ServerBsocket)
+                socket.Close();
+            //ServerBsocketControlAgent.Close();
+
             ServerB.ListenerSocket.Close();
         }
 
@@ -354,7 +375,7 @@ namespace KLC {
                 ["p2pConnectionId"] = randSessionGuid,
                 ["data"] = new JObject {
                     ["moduleId"] = module,
-                    ["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.858/content"
+                    ["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.1075/content"
                 }
             };
 
@@ -381,6 +402,52 @@ namespace KLC {
                 ServerBsocketControlAgent.Send(jMain.ToString());
             else
                 throw new Exception("Agent offline?");
+        }
+
+        public void ControlAgentSendRDP_StateRequest()
+        {
+            JObject jMain = new JObject
+            {
+                ["type"] = "RDP_StateRequest",
+            };
+
+            if (ServerBsocketControlAgent != null)
+                ServerBsocketControlAgent.Send(jMain.ToString());
+        }
+
+        public void ControlAgentSendRDP_StateSet()
+        {
+            JObject jMain = new JObject
+            {
+                ["data"] = new JObject {
+                    ["save_GPO"] = "no",
+                    ["save_NLA"] = "no",
+                    ["save_PF"] = "no",
+                    ["save_RDP"] = "no"
+                },
+                ["type"] = "RDP_StateSet"
+            };
+
+            if (ServerBsocketControlAgent != null)
+                ServerBsocketControlAgent.Send(jMain.ToString());
+        }
+
+        public void ControlAgentSendRDP_StateRestore()
+        {
+            JObject jMain = new JObject
+            {
+                ["data"] = new JObject
+                {
+                    ["save_GPO"] = "no",
+                    ["save_NLA"] = "no",
+                    ["save_PF"] = "no",
+                    ["save_RDP"] = "no"
+                },
+                ["type"] = "RDP_StateRestore"
+            };
+
+            if (ServerBsocketControlAgent != null)
+                ServerBsocketControlAgent.Send(jMain.ToString());
         }
 
     }

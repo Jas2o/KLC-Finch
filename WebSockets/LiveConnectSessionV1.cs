@@ -37,17 +37,23 @@ namespace KLC {
         public KLC_Finch.Modules.Services ModuleServices;
         public KLC_Finch.Modules.Processes ModuleProcesses;
         public Toolbox ModuleToolbox;
+        public Forwarding ModuleForwarding;
 
-        public WindowAlternative.HasConnected Callback;
+        public WindowAlternative.StatusCallback Callback;
 
-        public LiveConnectSession(string shortToken, string agentID, WindowAlternative.HasConnected callback = null) {
+        public LiveConnectSession(string shortToken, string agentID, WindowAlternative.StatusCallback callback = null) {
             agentGuid = agentID;
             shorttoken = shortToken;
             Callback = callback;
             Kaseya.LoadToken(shortToken);
             agent = new Agent(agentGuid);
 
-            Auth = KaseyaAuth.ApiAuthX(shorttoken);
+            Auth = KaseyaAuth.ApiAuthX(shorttoken, Kaseya.DefaultServer);
+            if (Auth == null)
+            {
+                Callback?.Invoke(Enums.EPStatus.AuthFailed);
+                return;
+            }
             shortToken = Auth.Token; //Works fine without this line, but it's something KLC does.
             Eal = Api15.EndpointsAdminLogin(shorttoken);
 

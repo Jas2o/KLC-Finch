@@ -15,18 +15,24 @@ namespace KLC_Finch {
 
         private static readonly string modulename = "dashboard";
         private readonly TextBlock txtRAM;
+        private readonly TextBlock txtCPU;
+        private readonly ProgressBar progressRAM;
+        private readonly ProgressBar progressCPU;
         private readonly TextBox txtBox;
         private readonly StackPanel stackDisks;
         private IWebSocketConnection serverB;
 
         private readonly KLC.LiveConnectSession session;
         private readonly System.Timers.Timer timerStart;
-        //System.Timers.Timer timerRefresh;
+        private readonly System.Timers.Timer timerRefresh;
 
-        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks=null, TextBlock txtRAM =null) {
+        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks = null, TextBlock txtRAM = null, TextBlock txtCPU = null, ProgressBar progressCPU = null, ProgressBar progressRAM = null) {
             this.session = session;
             this.txtBox = txtBox;
             this.txtRAM = txtRAM;
+            this.txtCPU = txtCPU;
+            this.progressRAM = progressRAM;
+            this.progressCPU = progressCPU;
             this.stackDisks = stackDisks;
 
             timerStart = new System.Timers.Timer(1000);
@@ -34,8 +40,10 @@ namespace KLC_Finch {
             if(session.WebsocketB != null)
                 timerStart.Start();
 
-            //timerRefresh = new System.Timers.Timer(30000);
-            //timerRefresh.Elapsed += TimerRefresh_Elapsed;
+            timerRefresh = new System.Timers.Timer(4000);
+            timerRefresh.Elapsed += TimerRefresh_Elapsed;
+            if (App.Settings.AltModulesDashboardRefresh)
+                timerRefresh.Start();
         }
 
         public void SetSocket(IWebSocketConnection ServerBsocket) {
@@ -51,14 +59,12 @@ namespace KLC_Finch {
             }
         }
 
-        /*
         private void TimerRefresh_Elapsed(object sender, System.Timers.ElapsedEventArgs e) {
-            RequestRefresh();
+            GetCpuRam();
         }
-        */
 
         public void GetCpuRam() {
-            if (serverB != null) {
+            if (serverB != null && serverB.IsAvailable) {
                 JObject jAction = new JObject { ["action"] = "GetCpuRam" };
                 serverB.Send(jAction.ToString());
             }
@@ -110,13 +116,35 @@ namespace KLC_Finch {
 
                     case "CpuRamData":
                         //{"action":"CpuRamData","data":{"ram":46,"cpu":1.6440618016222541},"errors":[]}
-                        string ram = temp["data"]["ram"].ToString();
-                        int ramPoint = ram.IndexOf('.');
-                        if (ramPoint > -1) //Seems to be a Mac thing
-                            ram = ram.Substring(0, ramPoint);
-                        txtRAM.Text = "RAM: " + ram + "% used of " + session.agent.RAMinGB + " GB";
 
-                        txtBox.AppendText("Dashboard message: " + message + "\r\n");
+                        if (temp == null || temp["data"] == null)
+                            return;
+                        //Sometimes you get RAM but not CPU.
+
+                        if (temp["data"]["cpu"] != null)
+                        {
+                            string cpu = temp["data"]["cpu"].ToString();
+                            int cpuPoint = cpu.IndexOf('.');
+                            if (cpuPoint > -1)
+                                cpu = cpu.Substring(0, cpuPoint);
+                            if (timerRefresh.Enabled)
+                                txtCPU.Text = cpu + "%";
+                            else
+                                txtCPU.Text = string.Format("{0}% at {1}", cpu, DateTime.Now.ToString("h:mm tt"));
+                            progressCPU.Value = int.Parse(cpu);
+                        }
+
+                        if (temp["data"]["ram"] != null)
+                        {
+                            string ram = temp["data"]["ram"].ToString();
+                            int ramPoint = ram.IndexOf('.');
+                            if (ramPoint > -1) //Seems to be a Mac thing
+                                ram = ram.Substring(0, ramPoint);
+                            txtRAM.Text = ram + "% used of " + session.agent.RAMinGB + " GB";
+                            progressRAM.Value = int.Parse(ram);
+                        }
+
+                        //txtBox.AppendText("Dashboard message: " + message + "\r\n");
                         break;
 
                     case "EventsData":
@@ -160,6 +188,11 @@ namespace KLC_Finch {
                         break;
                 }
             }));
+        }
+
+        public void UpdateTimer()
+        {
+            timerRefresh.Enabled = App.Settings.AltModulesDashboardRefresh;
         }
     }
 }

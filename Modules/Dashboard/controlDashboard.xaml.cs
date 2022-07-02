@@ -70,7 +70,7 @@ namespace KLC_Finch {
             if (session != null) { //Intentionally different
                 btnDashboardStartData.IsEnabled = false;
 
-                moduleDashboard = new Dashboard(session, txtDashboard, stackDisks, txtUtilisationRAM);
+                moduleDashboard = new Dashboard(session, txtDashboard, stackDisks, txtUtilisationRAM, txtUtilisationCPU, progressCPU, progressRAM);
                 session.ModuleDashboard = moduleDashboard;
             }
         }
@@ -163,6 +163,12 @@ namespace KLC_Finch {
 
         private void txtMachineNoteLink_RequestNavigate(object sender, RequestNavigateEventArgs e) {
             Process.Start(new ProcessStartInfo(e.Uri.ToString()) { UseShellExecute = true });
+        }
+
+        public void UpdateTimer()
+        {
+            if (moduleDashboard != null)
+                moduleDashboard.UpdateTimer();
         }
 
     }
