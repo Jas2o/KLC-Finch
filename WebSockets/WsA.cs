@@ -11,10 +11,12 @@ using System.Threading.Tasks;
 using System.Windows.Threading;
 using static LibKaseya.Enums;
 
-namespace KLC {
+namespace KLC
+{
 
-    public class WsA {
-        
+    public class WsA
+    {
+
         private readonly LiveConnectSession Session;
 
         private readonly WebSocketServer ServerA;
@@ -28,7 +30,8 @@ namespace KLC {
         public static bool useInternalMITM = false; //Hawk
         private readonly bool useExternalMITM = false; //Port M
 
-        public WsA(LiveConnectSession session, int portA, int portB) {
+        public WsA(LiveConnectSession session, int portA, int portB)
+        {
             Session = session;
             //Module = "A";
 
@@ -54,11 +57,13 @@ namespace KLC {
                     Console.WriteLine("A Close");
 #endif
 
-                    if (App.alternative != null) {
+                    if (App.winStandalone != null)
+                    {
                         Session.Callback?.Invoke(EPStatus.UnavailableWsA);
-                        App.alternative.Disconnect(Session.RandSessionGuid, 0);
+                        App.winStandalone.Disconnect(Session.RandSessionGuid, 0);
                     }
-                    if (Session.ModuleRemoteControl != null) {
+                    if (Session.ModuleRemoteControl != null)
+                    {
                         string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "").Replace("?Y2", "");
                         Session.ModuleRemoteControl.Disconnect(sessionId);
                     }
@@ -164,25 +169,30 @@ namespace KLC {
             //Tell AdminEndPoint
         }
 
-        public void Close() {
+        public void Close()
+        {
             if (ServerAsocket != null)
                 ServerAsocket.Close();
             if (ServerA.ListenerSocket.Connected)
                 ServerA.ListenerSocket.Close();
         }
 
-        public void Send(string message) {
-            try {
+        public void Send(string message)
+        {
+            try
+            {
                 ServerAsocket.Send(message).Wait();
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
 #if DEBUG
                 Console.WriteLine("[WsA:Send] " + ex.ToString());
 #endif
             }
         }
 
-        private void ServerOnOpen(IWebSocketConnection socket) {
-
+        private void ServerOnOpen(IWebSocketConnection socket)
+        {
             JObject json1 = new JObject
             {
                 ["data"] = new JObject
@@ -190,7 +200,7 @@ namespace KLC {
                     ["adminId"] = Session.Auth.AdminId,
                     ["adminName"] = Session.Auth.UserName,
                     ["jsonWebToken"] = Session.Eal.auth_jwt,
-                    ["server"] = LibKaseya.Kaseya.DefaultServer,
+                    ["server"] = Session.agent.VSA,
                     ["serverPort"] = 443,
                     ["tenantId"] = "1"
                 },
@@ -204,15 +214,16 @@ namespace KLC {
                     ["agentId"] = Session.agentGuid,
                     ["connectPort"] = PortB,
                     ["endpointId"] = Session.Eirc.endpoint_id,
-                    ["jsonWebToken"] = Session.Eal.auth_jwt,
+                    ["jsonWebToken"] = Session.Eirc.session_jwt,
                     ["policy"] = 0,
-                    ["tenantId"] = Session.Auth.TenantId,
-                    ["p2pConnectionId"] = Session.RandSessionGuid,
+                    ["tenantId"] = Session.Auth.TenantId
                 },
+                ["p2pConnectionId"] = Session.RandSessionGuid,
                 ["type"] = "AgentIdentity"
             };
 
-            if (useExternalMITM) {
+            if (useExternalMITM)
+            {
                 int newPort = Session.WebsocketM.PortM;
 
                 json1["data"]["server"] = "vsa-mitm.example";

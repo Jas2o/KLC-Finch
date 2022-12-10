@@ -78,6 +78,9 @@
                     Binding="{Binding CPU, StringFormat={}{0}%}"
                     Header="CPU"
                     SortDirection="Descending" />
+                <DataGridTextColumn Binding="{Binding DiskUtilization, Converter={StaticResource FormatKbSizeConverter}, StringFormat={}{0}/s}" Header="Disk" />
+                <DataGridTextColumn Binding="{Binding GpuUtilization, StringFormat={}{0}%}" Header="GPU" />
+                <DataGridTextColumn Binding="{Binding PType}" Header="Type" />
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

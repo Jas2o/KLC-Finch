@@ -56,9 +56,19 @@ namespace KLC_Finch {
         private ScreenStatus screenStatus;
         private bool ssKeyHookAllow;
         private RCstate state;
+        private bool supportOpenGL;
+
+        public WindowViewerV3()
+        {
+            InitializeComponent();
+            if (DesignerProperties.GetIsInDesignMode(new DependencyObject()))
+                return;
+        }
 
         public WindowViewerV3(int renderer, IRemoteControl rc, Agent.OSProfile endpointOS = Agent.OSProfile.Other, string endpointLastUser = "") {
             InitializeComponent();
+            if (DesignerProperties.GetIsInDesignMode(new DependencyObject()))
+                return;
 
             this.rc = rc;
             state = new RCstate(this);
@@ -74,6 +84,12 @@ namespace KLC_Finch {
             this.endpointLastUser = endpointLastUser;
 
             Settings = App.Settings;
+
+            supportOpenGL = !SystemParameters.IsRemoteSession;
+            //supportOpenGL = System.Windows.Media.RenderCapability.IsPixelShaderVersionSupported(1, 0) || System.Windows.Media.RenderCapability.IsPixelShaderVersionSupportedInSoftware(1, 0);
+            if (!supportOpenGL)
+                renderer = 2;
+
             switch (renderer) {
                 case 0:
                     rcv = new RCvOpenGL(rc, state);
@@ -474,18 +490,25 @@ namespace KLC_Finch {
             toolMachineNoteLink.Visibility = (machineNoteLink == null ? Visibility.Collapsed : Visibility.Visible);
         }
 
-        public void SetControlEnabled(bool value, bool isStart = false) {
-            if (isStart) {
+        public void SetControlEnabled(/*RCstate state,*/ bool value, bool isStart = false)
+        {
+            if (rc == null)
+                return;
+
+            if (isStart)
+            {
                 state.ControlEnabled = Settings.StartControlEnabled;
                 if (Settings.StartMultiScreen && state.ControlEnabled)
                     rcv.CameraToCurrentScreen();
                 else
                     state.UseMultiScreenOverview = true;
-            } else
+            }
+            else
                 state.ControlEnabled = value;
 
             Dispatcher.Invoke((Action)delegate {
-                if (state.connectionStatus != ConnectionStatus.Disconnected) {
+                if (state.connectionStatus != ConnectionStatus.Disconnected)
+                {
                     rcv.DisplayControl(value);
                 }
 
@@ -665,7 +688,7 @@ namespace KLC_Finch {
 
                     case ConnectionStatus.Disconnected:
                         toolLatency.Content = "N/C";
-                        if (App.alternative == null || !App.alternative.socketActive)
+                        if (App.winStandalone == null || !App.winStandalone.socketActive)
                             toolReconnect.Header = "Hard Reconnect Required";
 
                         if (keyHook.IsActive)
@@ -869,17 +892,22 @@ namespace KLC_Finch {
         }
 
         private void toolOpenGLInfo_Click(object sender, RoutedEventArgs e) {
-            MessageBoxResult result = MessageBoxResult.OK;
-            if (rcv is RCvOpenGLWPF)
-                result = MessageBox.Show("Because you are using renderer GLWpfControl, you will need to manually reconnect Remote Control after this test. Would you like to proceed?", "KLC-Finch: OpenGL Info", MessageBoxButton.OKCancel);
+            //if (supportOpenGL) {
+                MessageBoxResult result = MessageBoxResult.OK;
+                if (rcv is RCvOpenGLWPF)
+                    result = MessageBox.Show("Because you are using renderer GLWpfControl, you will need to manually reconnect Remote Control after this test. Would you like to proceed?", "KLC-Finch: OpenGL Info", MessageBoxButton.OKCancel);
 
-            if (result == MessageBoxResult.OK)
-            {
-                OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
-                MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
-            }
+                if (result == MessageBoxResult.OK)
+                {
+                    OpenGLSoftwareTest glSoftwareTest = new OpenGLSoftwareTest(50, 50, "OpenGL Test");
+                    MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X") + "\r\n\r\nOpenGL Version: " + glSoftwareTest.Version, "KLC-Finch: OpenGL Info");
+                }
 
-            //if (rcv is RCvOpenGLWPF) ToolReconnect_Click(sender, e); //Issue with spawning an OpenGL when using GLControl
+                ////if (rcv is RCvOpenGLWPF) ToolReconnect_Click(sender, e); //Issue with spawning an OpenGL when using GLControl
+            //} else
+            //{
+                //MessageBox.Show("Render capability: 0x" + System.Windows.Media.RenderCapability.Tier.ToString("X"), "KLC-Finch: Non-OpenGL Info");
+            //}
         }
 
         private void ToolOptions_Click(object sender, RoutedEventArgs e) {
@@ -973,21 +1001,40 @@ namespace KLC_Finch {
         }
 
         private void ToolShowAlternative_Click(object sender, RoutedEventArgs e) {
-            if (App.alternative == null)
+            if (App.winStandalone == null)
                 return;
 
-            if (App.alternative.WindowState == System.Windows.WindowState.Minimized)
-                App.alternative.WindowState = System.Windows.WindowState.Normal;
-            App.alternative.Visibility = Visibility.Visible;
-            App.alternative.Focus();
+            if (App.winStandalone.WindowState == System.Windows.WindowState.Minimized)
+                App.winStandalone.WindowState = System.Windows.WindowState.Normal;
+            App.winStandalone.Visibility = Visibility.Visible;
+            App.winStandalone.Focus();
 
+            if (this.WindowState == WindowState.Maximized)
+            {
+                System.Windows.Point point = placeholder.TransformToAncestor(this).Transform(new System.Windows.Point(0, 0));
+
+                IntPtr handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                System.Windows.Forms.Screen screen = System.Windows.Forms.Screen.FromHandle(handle);
+
+                App.winStandalone.Left = screen.WorkingArea.Left + 6;
+                App.winStandalone.Top = screen.WorkingArea.Top + SystemParameters.CaptionHeight + point.Y + 10;
+            }
+            else
+            {
+                App.winStandalone.Left = this.Left + 11;
+                App.winStandalone.Top = this.Top + 76;
+            }
+
+            /*
+            Rectangle testArea = new Rectangle((int)this.Left + 10, (int)this.Top + 10, 10, 10);
             foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens) {
-                if (screen.Bounds.IntersectsWith(new System.Drawing.Rectangle((int)this.Left, (int)this.Top, (int)this.Width, (int)this.Height))) {
+                if (screen.Bounds.IntersectsWith(testArea)) {
                     App.alternative.Left = screen.Bounds.X + ((screen.Bounds.Width - App.alternative.Width) / 2);
                     App.alternative.Top = screen.Bounds.Y + ((screen.Bounds.Height - App.alternative.Height) / 2);
                     break;
                 }
             }
+            */
         }
 
         private void ToolShowMouse_Click(object sender, RoutedEventArgs e) {
@@ -1027,7 +1074,7 @@ namespace KLC_Finch {
         private void toolViewRCLogs_Click(object sender, RoutedEventArgs e) {
             try
             {
-                string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
+                string logs = App.winStandalone.session.agent.GetAgentRemoteControlLogs();
                 MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
             } catch(Exception) {
             }
@@ -1062,7 +1109,7 @@ namespace KLC_Finch {
         private void Window_Closed(object sender, EventArgs e) {
             rcv.ControlUnload();
 
-            if (App.alternative != null && App.alternative.Visibility != Visibility.Visible)
+            if (App.winStandalone != null && App.winStandalone.Visibility != Visibility.Visible)
                 Environment.Exit(0);
         }
 
@@ -1101,15 +1148,15 @@ namespace KLC_Finch {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
                 bool doUpload = false;
-                bool showExplorer = false;
+                //bool showExplorer = false;
                 using (TaskDialog dialog = new TaskDialog()) {
                     dialog.WindowTitle = "KLC-Finch: Upload File";
                     dialog.MainInstruction = "Upload dropped file to KRCTransferFiles?";
                     dialog.MainIcon = TaskDialogIcon.Information;
                     dialog.CenterParent = true;
                     dialog.Content = files[0];
-                    dialog.VerificationText = "Open file explorer when complete";
-                    dialog.IsVerificationChecked = true;
+                    //dialog.VerificationText = "Open file explorer when complete";
+                    //dialog.IsVerificationChecked = true;
 
                     TaskDialogButton tdbYes = new TaskDialogButton(ButtonType.Yes);
                     TaskDialogButton tdbCancel = new TaskDialogButton(ButtonType.Cancel);
@@ -1118,7 +1165,7 @@ namespace KLC_Finch {
 
                     TaskDialogButton button = dialog.ShowDialog(this);
                     doUpload = (button == tdbYes);
-                    showExplorer = dialog.IsVerificationChecked;
+                    //showExplorer = dialog.IsVerificationChecked;
                 }
 
                 if (doUpload) {
@@ -1137,7 +1184,7 @@ namespace KLC_Finch {
                     progressDialog.DoWork += new DoWorkEventHandler(ProgressDialog_DoWork);
                     progressDialog.Show();
 
-                    rc.UploadDrop(files[0], progress, showExplorer);
+                    rc.UploadDrop(files[0], progress);
                 }
             }
         }
@@ -1333,11 +1380,6 @@ namespace KLC_Finch {
             state.UseMultiScreenFixAvailable = false;
         }
         */
-
-        private void toolDumpState_Click(object sender, RoutedEventArgs e)
-        {
-            Console.WriteLine(state);
-        }
 
         /*
         private void toolKeyFn_Click(object sender, RoutedEventArgs e)

@@ -31,7 +31,7 @@
             <RowDefinition />
         </Grid.RowDefinitions>
         <ToolBarTray IsLocked="True">
-            <ToolBar x:Name="toolBar">
+            <ToolBar x:Name="toolBar" ToolBarTray.IsLocked="True">
                 <ext:DropdownButton
                     x:Name="toolMachineNote"
                     Content="Note"
@@ -47,10 +47,6 @@
                         </ContextMenu>
                     </ext:DropdownButton.DropdownMenu>
                 </ext:DropdownButton>
-                <Button
-                    x:Name="toolDumpState"
-                    Click="toolDumpState_Click"
-                    Content="DumpState" />
                 <Button
                     x:Name="toolSendCtrlAltDel"
                     Click="ToolSendCtrlAltDel_Click"
@@ -87,14 +83,6 @@
                     VerticalAlignment="Stretch"
                     Click="ToolScreenMode_Click"
                     Content="{Binding ScreenModeText, Mode=OneWay, FallbackValue='Multi'}" />
-                <!--<Button
-                    x:Name="toolScreenFix"
-                    VerticalAlignment="Stretch"
-                    Background="Gold"
-                    Click="ToolScreenFix_Click"
-                    Content="Fix"
-                    FontWeight="Bold"
-                    Visibility="{Binding Path=UseMultiScreenFixAvailable, Converter={StaticResource BoolToVis}, FallbackValue=Visible}" />-->
                 <Button
                     x:Name="toolScreenOverview"
                     VerticalAlignment="Stretch"
@@ -119,20 +107,6 @@
                             Visibility="{Binding Path=UseMultiScreenPanZoom, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
                 </Button>
-                <!--
-            <Button
-                x:Name="toolZoomIn"
-                Click="ToolZoomIn_Click"
-                ToolTip="Zoom In">
-                <Image Source="/KLC-Finch;component/Resources/magnify-plus-outline.png" StretchDirection="DownOnly" />
-            </Button>
-            <Button
-                x:Name="toolZoomOut"
-                Click="ToolZoomOut_Click"
-                ToolTip="Zoom Out">
-                <Image Source="/KLC-Finch;component/Resources/magnify-minus-outline.png" StretchDirection="DownOnly" />
-            </Button>
-                -->
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
                 <Button
                     x:Name="toolClipboardSync"
@@ -253,6 +227,7 @@
                     </ext:DropdownButton.DropdownMenu>
                 </ext:DropdownButton>
             </ToolBar>
+
             <!--<ToolBar Band="1">
                 <Label Content="Keys:" />
                 <Button

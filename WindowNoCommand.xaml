@@ -50,28 +50,38 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock
+                <Label Grid.Row="0" Content="VSA:" />
+                <ComboBox
+                    x:Name="cmbAddress"
                     Grid.Row="0"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="2"
+                    Margin="2,5"
+                    IsEditable="True"
+                    LostFocus="cmbAddress_LostFocus" />
+                <TextBlock
+                    Grid.Row="1"
                     Margin="5,0"
                     VerticalAlignment="Center"
                     Text="Token"
                     TextWrapping="Wrap" />
                 <TextBlock
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Margin="5,0"
                     VerticalAlignment="Center"
                     Text="GUID"
                     TextWrapping="Wrap" />
                 <PasswordBox
                     x:Name="txtAuthToken"
-                    Grid.Row="0"
+                    Grid.Row="1"
                     Grid.Column="1"
                     Grid.ColumnSpan="2"
                     Margin="2,5" />
                 <Grid
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Grid.Column="1"
                     Grid.ColumnSpan="2"
                     Margin="2,5">
@@ -92,56 +102,35 @@
                 </Grid>
                 <Button
                     x:Name="btnLaunchThisComputer"
-                    Grid.Row="2"
+                    Grid.Row="3"
                     Grid.Column="1"
                     Margin="2"
                     Click="BtnLaunchThisComputer_Click"
                     Content="This Computer" />
                 <Button
                     x:Name="btnLaunchThisComputerShared"
-                    Grid.Row="2"
+                    Grid.Row="3"
                     Grid.Column="2"
                     Margin="2"
                     Click="BtnLaunchThisComputerShared_Click"
                     Content="This (Shared)" />
-                <!--<Button
-                    x:Name="btnLaunchWinTeamviewer"
-                    Grid.Row="2"
-                    Grid.Column="2"
-                    Margin="2"
-                    Click="BtnLaunchWinTeamviewer_Click"
-                    Content="JumpBox" />
-                <Button
-                    x:Name="btnLaunchMacMini"
-                    Grid.Row="3"
-                    Grid.Column="1"
-                    Margin="2"
-                    Click="BtnLaunchMacMini_Click"
-                    Content="Mac Mini" />
-                <Button
-                    x:Name="btnLaunchWinTeamviewerShared"
-                    Grid.Row="3"
-                    Grid.Column="2"
-                    Margin="2"
-                    Click="BtnLaunchWinTeamviewerShared_Click"
-                    Content="TV Shared" />-->
                 <Button
                     x:Name="btnLaunchRCTest"
-                    Grid.Row="3"
+                    Grid.Row="4"
                     Grid.Column="1"
                     Margin="2"
                     Click="BtnLaunchRCTest_Click"
                     Content="RC Test" />
                 <Button
                     x:Name="btnLaunchNull"
-                    Grid.Row="3"
+                    Grid.Row="4"
                     Grid.Column="2"
                     Margin="2"
                     Click="BtnLaunchNull_Click"
                     Content="Null" />
                 <ListBox
                     x:Name="cmbBookmarks"
-                    Grid.Row="4"
+                    Grid.Row="5"
                     Grid.Column="1"
                     Grid.ColumnSpan="2"
                     MinHeight="20"
@@ -151,7 +140,7 @@
                     MouseDoubleClick="cmbBookmarks_MouseDoubleClick" />
                 <CheckBox
                     x:Name="chkUseMITM"
-                    Grid.Row="2"
+                    Grid.Row="3"
                     Margin="0,0,5,0"
                     VerticalAlignment="Center"
                     Checked="ChkUseMITM_Change"

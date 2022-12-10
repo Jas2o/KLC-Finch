@@ -6,9 +6,11 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 
-namespace NTR {
+namespace NTR
+{
 
-    public class TextureScreen {
+    public class TextureScreen
+    {
         private readonly object _lock = new object();
         public byte[] Data;
         public byte[] DataU, DataV;
@@ -28,20 +30,26 @@ namespace NTR {
         /// <summary>
         /// Only call this from GL Render
         /// </summary>
-        public TextureScreen(KLC_Finch.DecodeMode decodeMode) {
+        public TextureScreen(KLC_Finch.DecodeMode decodeMode)
+        {
             DecodeMode = decodeMode;
             ID = GL.GenTexture();
-            if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+            if (DecodeMode == KLC_Finch.DecodeMode.RawYUV)
+            {
                 IDu = GL.GenTexture();
                 IDv = GL.GenTexture();
             }
         }
 
-        public void Load(Rectangle rect, Bitmap decomp) {
-            lock (_lock) {
-                if (this.rect.Width != rect.Width || this.rect.Height != rect.Height || this.rect.X != rect.X || this.rect.Y != rect.Y) {
+        public void Load(Rectangle rect, Bitmap decomp)
+        {
+            lock (_lock)
+            {
+                if (this.rect.Width != rect.Width || this.rect.Height != rect.Height || this.rect.X != rect.X || this.rect.Y != rect.Y)
+                {
                     this.rect = rect;
-                    if (width == this.rect.Width * 2) {
+                    if (width == this.rect.Width * 2)
+                    {
                         this.rect.Width = width;
                         this.rect.Height = height;
                     }
@@ -66,9 +74,12 @@ namespace NTR {
             }
         }
 
-        public void LoadRaw(Rectangle rect, int width, int height, int stride, byte[] buffer) {
-            lock (_lock) {
-                if (this.rect.Width != rect.Width || this.rect.Height != rect.Height || this.rect.X != rect.X || this.rect.Y != rect.Y) {
+        public void LoadRaw(Rectangle rect, int width, int height, int stride, byte[] buffer)
+        {
+            lock (_lock)
+            {
+                if (this.rect.Width != rect.Width || this.rect.Height != rect.Height || this.rect.X != rect.X || this.rect.Y != rect.Y)
+                {
                     this.rect = rect;
                     /*
                     if (width == this.rect.Width * 2) {
@@ -83,7 +94,8 @@ namespace NTR {
                 this.height = height;
                 this.stride = stride;
 
-                if (Data == null || Data.Length != stride * height) {
+                if (Data == null || Data.Length != stride * height)
+                {
                     //virtualRequireViewportUpdate = true;
                     //Console.WriteLine("[LoadTexture:Legacy] Array needs to be resized");
 
@@ -93,9 +105,11 @@ namespace NTR {
                 int pos = 0;
                 System.Buffer.BlockCopy(buffer, pos, Data, 0, Data.Length);
 
-                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV)
+                {
                     int len = stride * height / 4;
-                    if (DataU == null || DataU.Length != len) {
+                    if (DataU == null || DataU.Length != len)
+                    {
                         DataU = new byte[len];
                         DataV = new byte[len];
                     }
@@ -110,11 +124,13 @@ namespace NTR {
             }
         }
 
-        public bool Render(int programYUV, int[] m_shader_sampler, int m_shader_multiplyColor = 0, Color? multiplyColor = null) {
+        public bool Render(int programYUV, int[] m_shader_sampler, int m_shader_multiplyColor = 0, Color? multiplyColor = null)
+        {
             if (ID == -1 || Data == null || rect.IsEmpty)
                 return false;
 
-            if (vertBufferNeedUpdate) {
+            if (vertBufferNeedUpdate)
+            {
                 vertBufferNeedUpdate = false;
                 if (vertBufferScreen == null)
                     VBOScreen = GL.GenBuffer();
@@ -132,7 +148,8 @@ namespace NTR {
 
             GL.Enable(EnableCap.Texture2D);
 
-            if (DecodeMode == KLC_Finch.DecodeMode.BitmapRGB) {
+            if (DecodeMode == KLC_Finch.DecodeMode.BitmapRGB)
+            {
                 GL.UseProgram(0);
 
                 GL.Color3(multiplyColor ?? Color.White);
@@ -140,8 +157,11 @@ namespace NTR {
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBOScreen);
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, ID);
-            } else {
-                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+            }
+            else
+            {
+                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV)
+                {
                     GL.UseProgram(programYUV);
                 }
 
@@ -153,7 +173,8 @@ namespace NTR {
                 GL.ActiveTexture(TextureUnit.Texture1);
                 GL.EnableClientState(ArrayCap.TextureCoordArray);
                 GL.BindTexture(TextureTarget.Texture2D, ID);
-                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV)
+                {
                     //Y
                     GL.Uniform1(m_shader_sampler[0], 1);
 
@@ -187,11 +208,13 @@ namespace NTR {
             return true;
         }
 
-        public void RenderNew(int[] m_shader_sampler) {
+        public void RenderNew(int[] m_shader_sampler)
+        {
             if (!IsNew || ID == -1 || rect.IsEmpty)
                 return;
 
-            if (DecodeMode == KLC_Finch.DecodeMode.BitmapRGB) {
+            if (DecodeMode == KLC_Finch.DecodeMode.BitmapRGB)
+            {
                 GL.ActiveTexture(TextureUnit.Texture0);
                 GL.BindTexture(TextureTarget.Texture2D, ID);
 
@@ -211,7 +234,9 @@ namespace NTR {
 
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            } else {
+            }
+            else
+            {
                 GL.PixelStore(PixelStoreParameter.UnpackRowLength, stride);
 
                 //Y
@@ -223,7 +248,8 @@ namespace NTR {
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
-                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV) {
+                if (DecodeMode == KLC_Finch.DecodeMode.RawYUV)
+                {
                     //Y
                     GL.Uniform1(m_shader_sampler[0], 1);
 
@@ -256,5 +282,6 @@ namespace NTR {
 
             IsNew = false;
         }
+
     }
 }

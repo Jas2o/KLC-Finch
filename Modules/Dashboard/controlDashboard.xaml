@@ -75,7 +75,12 @@
                 x:Name="btnStaticImageRefreshFull"
                 Margin="0,0,5,0"
                 Click="btnStaticImageRefreshFull_Click"
-                Content="Get full res. frame" />
+                Content="Get native" />
+            <Button
+                x:Name="btnStaticImageDumpLayout"
+                Margin="0,0,5,0"
+                Click="btnStaticImageDumpLayout_Click"
+                Content="Screen layout to clipboard" />
         </StackPanel>
 
         <GridSplitter

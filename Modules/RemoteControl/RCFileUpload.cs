@@ -6,7 +6,6 @@ namespace KLC_Finch {
     public class UploadRC {
         public List<string> Path { get; private set; }
         public string fileName { get; private set; }
-        public bool showExplorer { get; private set; }
 
         private Progress<int> progress;
         private string readLocation;
@@ -15,10 +14,9 @@ namespace KLC_Finch {
 
         public int Chunk;
 
-        public UploadRC(string readLocation, bool showExplorer, Progress<int> progress = null) {
+        public UploadRC(string readLocation, Progress<int> progress = null) {
             fileName = System.IO.Path.GetFileName(readLocation);
             this.readLocation = readLocation;
-            this.showExplorer = showExplorer;
             this.progress = progress;
             Chunk = 0;
 

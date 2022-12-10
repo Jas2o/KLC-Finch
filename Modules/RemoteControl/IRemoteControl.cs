@@ -51,6 +51,8 @@ namespace KLC_Finch {
 
         void UpdateScreens(string jsonstr);
 
-        void UploadDrop(string file, Progress<int> progress, bool showExplorer);
+        void UploadDrop(string file, Progress<int> progress);
+
+        void UpdateScreensHack();
     }
 }

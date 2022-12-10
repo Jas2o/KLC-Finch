@@ -24,65 +24,37 @@
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <OutputPath>..\Build\Debug\</OutputPath>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <BaseIntermediateOutputPath>C:\kworking\repo-build-obj\KLC-Finch\</BaseIntermediateOutputPath>
-    <IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <OutputPath>..\Build\Release\</OutputPath>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <BaseIntermediateOutputPath>C:\kworking\repo-build-obj\KLC-Finch\</BaseIntermediateOutputPath>
-    <IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
-  </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Finch Icon.ico</ApplicationIcon>
+	<PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="obj\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="obj\**" />
+    <Page Remove="obj\**" />
+  </ItemGroup>
+  <ItemGroup>
     <Resource Include="Finch Icon.ico" />
-    <None Include="WebSockets\Unused\LiveConnectSessionV1.cs" />
-    <None Include="WebSockets\Unused\WsY1.cs" />
-    <None Include="WebSockets\Unused\WsY2.cs" />
-    <None Include="WebSockets\Unused\WsZ.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\tray-arrow-down.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\tray-arrow-up.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\magnify-plus-outline.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\magnify-minus-outline.png" />
-  </ItemGroup>
-  <ItemGroup>
+    <Resource Include="Resources\application.png" />
+    <Resource Include="Resources\apps.png" />
     <Resource Include="Resources\auto-fix.png" />
-  </ItemGroup>
-  <ItemGroup>
+    <Resource Include="Resources\clipboard-arrow-down-outline.png" />
+    <Resource Include="Resources\fit-to-page-outline.png" />
+    <Resource Include="Resources\fit-to-screen-outline.png" />
     <Resource Include="Resources\key-outline.png" />
     <Resource Include="Resources\key.png" />
     <Resource Include="Resources\keyboard-close.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\clipboard-arrow-down-outline.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\sync-off.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\sync.png" />
-  </ItemGroup>
-  <ItemGroup>
+    <Resource Include="Resources\magnify-expand.png" />
+    <Resource Include="Resources\magnify-minus-outline.png" />
+    <Resource Include="Resources\magnify-plus-outline.png" />
     <Resource Include="Resources\sync-half.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\application.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\apps.png" />
+    <Resource Include="Resources\sync-off.png" />
+    <Resource Include="Resources\sync.png" />
+    <Resource Include="Resources\tray-arrow-down.png" />
+    <Resource Include="Resources\tray-arrow-up.png" />
+    <Resource Include="_Notes.txt" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
@@ -97,25 +69,13 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\fit-to-page-outline.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\fit-to-screen-outline.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\magnify-expand.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="_Notes.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="CredentialManagement.Standard" Version="1.0.4" />
     <PackageReference Include="Fleck" Version="1.2.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="nucs.JsonSettings" Version="1.0.7" />
-    <PackageReference Include="Ookii.Dialogs.Wpf" Version="3.1.0" />
-    <PackageReference Include="OpenTK" Version="4.6.4" />
+    <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
+    <PackageReference Include="OpenTK" Version="4.7.5" />
     <PackageReference Include="OpenTK.GLWpfControl" Version="4.2.2" />
     <PackageReference Include="RestSharp" Version="106.12.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
@@ -128,11 +88,6 @@
     <Compile Remove="WebSockets\Unused\WsZ.cs" />
     <Page Remove="Resources\TemplateMenuFixed.xaml" />
   </ItemGroup>
-  <PropertyGroup>
-    <PreBuildEvent>set mydate=%25date:~10,4%25-%25date:~7,2%25-%25date:~4,2%25
-echo %25mydate%25 &gt; "$(MSBuildProjectDirectory)\Resources\BuildDate.txt"</PreBuildEvent>
-    <PlatformTarget>x64</PlatformTarget>
-  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibrariesExternal\GLControl\OpenTK.WinForms\OpenTK.WinForms.csproj" />
   </ItemGroup>

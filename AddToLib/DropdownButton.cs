@@ -5,15 +5,19 @@ using System.Windows.Shapes;
 
 //https://github.com/givemelight/wpf-toolbar-dropdown
 
-namespace System.Windows.Controls.Extensions {
-    public class DropdownButton : ToggleButton {
-        public DropdownButton() {
+namespace System.Windows.Controls.Extensions
+{
+    public class DropdownButton : ToggleButton
+    {
+        public DropdownButton()
+        {
             Checked += DropdownButton_Checked;
             ContentTemplate = GetDataTemplate();
             Style = (Style)FindResource(ToolBar.ToggleButtonStyleKey);
         }
 
-        private DataTemplate GetDataTemplate() {
+        private DataTemplate GetDataTemplate()
+        {
             DataTemplate template = new DataTemplate(typeof(DropdownButton));
             FrameworkElementFactory path = new FrameworkElementFactory(typeof(Path));
             path.SetValue(Path.DataProperty, Geometry.Parse("F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z"));
@@ -39,22 +43,27 @@ namespace System.Windows.Controls.Extensions {
             return template;
         }
 
-        private void DropdownMenu_Closed(object sender, System.Windows.RoutedEventArgs e) {
+        private void DropdownMenu_Closed(object sender, System.Windows.RoutedEventArgs e)
+        {
             IsChecked = false;
         }
 
         private ContextMenu dropdownMenu;
-        public ContextMenu DropdownMenu {
-            get {
+        public ContextMenu DropdownMenu
+        {
+            get
+            {
                 return dropdownMenu;
             }
-            set {
+            set
+            {
                 dropdownMenu = value;
                 dropdownMenu.Closed += DropdownMenu_Closed;
             }
         }
 
-        private void DropdownButton_Checked(object sender, System.Windows.RoutedEventArgs e) {
+        private void DropdownButton_Checked(object sender, System.Windows.RoutedEventArgs e)
+        {
             DropdownMenu.PlacementTarget = sender as ToggleButton;
             DropdownMenu.Placement = PlacementMode.Bottom;
             DropdownMenu.IsOpen = true;

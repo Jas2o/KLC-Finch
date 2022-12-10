@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 
 namespace KLC_Finch {
@@ -178,6 +179,32 @@ namespace KLC_Finch {
                     btnServicesStart.Visibility = Visibility.Collapsed;
                 }
             }
+        }
+
+        private void chkServicesFilterAutoNotRunning_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            ListCollectionView collectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(dgvServices.ItemsSource);
+            if ((bool)chkServicesFilterAutoNotRunning.IsChecked)
+            {
+                collectionView.Filter = new Predicate<object>(x =>
+                    ((Modules.ServiceValue)x).StartupType == "Automatic" && ((Modules.ServiceValue)x).ServiceStatus != 4
+                );
+            }
+            else
+            {
+                collectionView.Filter = null;
+            }
+        }
+
+        private void txtFilter_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ListCollectionView collectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(dgvServices.ItemsSource);
+            collectionView.Filter = new Predicate<object>(x =>
+                ((Modules.ServiceValue)x).DisplayName.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0
+                || ((Modules.ServiceValue)x).ServiceName.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0
+                //|| ((Modules.ServiceValue)x).Description.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0
+            );
+            //collectionView.Refresh();
         }
     }
 }

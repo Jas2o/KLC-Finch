@@ -10,8 +10,10 @@ using System.Threading;
 using System.Web;
 using System.Windows.Controls;
 
-namespace KLC_Finch {
-    public class Dashboard {
+namespace KLC_Finch
+{
+    public class Dashboard
+    {
 
         private static readonly string modulename = "dashboard";
         private readonly TextBlock txtRAM;
@@ -26,7 +28,8 @@ namespace KLC_Finch {
         private readonly System.Timers.Timer timerStart;
         private readonly System.Timers.Timer timerRefresh;
 
-        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks = null, TextBlock txtRAM = null, TextBlock txtCPU = null, ProgressBar progressCPU = null, ProgressBar progressRAM = null) {
+        public Dashboard(KLC.LiveConnectSession session, TextBox txtBox = null, StackPanel stackDisks = null, TextBlock txtRAM = null, TextBlock txtCPU = null, ProgressBar progressCPU = null, ProgressBar progressRAM = null)
+        {
             this.session = session;
             this.txtBox = txtBox;
             this.txtRAM = txtRAM;
@@ -37,7 +40,7 @@ namespace KLC_Finch {
 
             timerStart = new System.Timers.Timer(1000);
             timerStart.Elapsed += TimerStart_Elapsed;
-            if(session.WebsocketB != null)
+            if (session.WebsocketB != null)
                 timerStart.Start();
 
             timerRefresh = new System.Timers.Timer(4000);
@@ -46,55 +49,71 @@ namespace KLC_Finch {
                 timerRefresh.Start();
         }
 
-        public void SetSocket(IWebSocketConnection ServerBsocket) {
+        public void SetSocket(IWebSocketConnection ServerBsocket)
+        {
             this.serverB = ServerBsocket;
         }
 
-        private void TimerStart_Elapsed(object sender, System.Timers.ElapsedEventArgs e) {
-            if (session == null) {
+        private void TimerStart_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (session == null)
+            {
                 timerStart.Stop();
-            } else if (session.WebsocketB.ControlAgentIsReady()) {
+            }
+            else if (session.WebsocketB.ControlAgentIsReady())
+            {
                 timerStart.Stop();
                 session.WebsocketB.ControlAgentSendTask(modulename);
             }
         }
 
-        private void TimerRefresh_Elapsed(object sender, System.Timers.ElapsedEventArgs e) {
+        private void TimerRefresh_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
             GetCpuRam();
         }
 
-        public void GetCpuRam() {
-            if (serverB != null && serverB.IsAvailable) {
+        public void GetCpuRam()
+        {
+            if (serverB != null && serverB.IsAvailable)
+            {
                 JObject jAction = new JObject { ["action"] = "GetCpuRam" };
                 serverB.Send(jAction.ToString());
             }
         }
 
-        public void GetTopEvents() {
-            if (serverB != null) {
+        public void GetTopEvents()
+        {
+            if (serverB != null)
+            {
                 JObject jAction = new JObject { ["action"] = "GetTopEvents" };
                 serverB.Send(jAction.ToString());
             }
         }
 
-        public void GetTopProcesses() {
-            if (serverB != null) {
+        public void GetTopProcesses()
+        {
+            if (serverB != null)
+            {
                 JObject jAction = new JObject { ["action"] = "GetTopProcesses" };
                 serverB.Send(jAction.ToString());
             }
         }
 
-        public void GetVolumes() {
-            if (serverB != null) {
+        public void GetVolumes()
+        {
+            if (serverB != null)
+            {
                 JObject jAction = new JObject { ["action"] = "GetVolumes" };
                 serverB.Send(jAction.ToString());
             }
         }
 
-        public void Receive(string message) {
+        public void Receive(string message)
+        {
             txtBox.Dispatcher.Invoke(new Action(() => {
                 dynamic temp = JsonConvert.DeserializeObject(message);
-                switch (temp["action"].ToString()) {
+                switch (temp["action"].ToString())
+                {
                     case "ScriptReady":
                         JObject jStartDashboardData = new JObject { ["action"] = "StartDashboardData" };
                         serverB.Send(jStartDashboardData.ToString());
@@ -104,7 +123,8 @@ namespace KLC_Finch {
                         //{"action":"VolumesData","data":[{"label":"C:\\","free":129323569152,"total":254956666880,"type":"Fixed"}],"errors":[]}
                         stackDisks.Children.Clear();
 
-                        foreach (dynamic v in temp["data"].Children()) {
+                        foreach (dynamic v in temp["data"].Children())
+                        {
                             if ((string)v["type"] != "Fixed")
                                 continue;
 
@@ -169,19 +189,19 @@ namespace KLC_Finch {
                         break;
 
                     case "TopProcData":
-                        /* {
-                           "action":"TopProcData",
-                           "topCpu":[
-                              { "pid":"4", "name":"System", "user":"NT AUTHORITY\\SYSTEM", "mem":"0.21", "cpu":"0.7" },
-                              { "pid":"33892", "name":"ServiceHub.ThreadedWaitDialog.exe", "user":"company\\username", "mem":"73.54", "cpu":"0.4" }
-                           ],
-                           "topMem":[
-                              { "pid":"5020", "name":"SavService.exe", "user":"NT AUTHORITY\\LOCAL SERVICE", "mem":"353.78", "cpu":"0.0" },
-                              { "pid":"34284", "name":"devenv.exe", "user":"company\\username", "mem":"320.46", "cpu":"0.0" }
-                           ],
-                           "errors":[]
-                        } */
-                        //break;
+                    /* {
+                       "action":"TopProcData",
+                       "topCpu":[
+                          { "pid":"4", "name":"System", "user":"NT AUTHORITY\\SYSTEM", "mem":"0.21", "cpu":"0.7" },
+                          { "pid":"33892", "name":"ServiceHub.ThreadedWaitDialog.exe", "user":"company\\username", "mem":"73.54", "cpu":"0.4" }
+                       ],
+                       "topMem":[
+                          { "pid":"5020", "name":"SavService.exe", "user":"NT AUTHORITY\\LOCAL SERVICE", "mem":"353.78", "cpu":"0.0" },
+                          { "pid":"34284", "name":"devenv.exe", "user":"company\\username", "mem":"320.46", "cpu":"0.0" }
+                       ],
+                       "errors":[]
+                    } */
+                    //break;
 
                     default:
                         txtBox.AppendText("Dashboard message: " + message + "\r\n");

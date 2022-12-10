@@ -29,6 +29,9 @@ namespace KLC_Finch {
         private RCScreen currentScreen = null;
         private int requestWidth, requestHeight;
 
+        private bool useReconnectHack; //This is used by Macs to get updated screen layout
+        //private string jsonScreens;
+
         public StaticImage(KLC.LiveConnectSession session, Image imgScreenPreview) {
             this.session = session;
             this.imgScreenPreview = imgScreenPreview;
@@ -82,7 +85,18 @@ namespace KLC_Finch {
                     Console.WriteLine("StaticImage - HostDesktopConfiguration");
                     //Console.WriteLine(jsonstr);
 #endif
+                    //jsonScreens = jsonstr;
+                    if (useReconnectHack)
+                    {
+                        useReconnectHack = false;
+                        //session.ModuleRemoteControl.state.UpdateScreenLayout(json);
+                        session.ModuleRemoteControl.Viewer.UpdateScreenLayout(jsonstr);
 
+                        if (session.ModuleRemoteControl.mode == Enums.RC.Shared)
+                            session.ModuleRemoteControl.Viewer.SetControlEnabled(true, true);
+                        else
+                            session.ModuleRemoteControl.Viewer.SetControlEnabled(true, false);
+                    }
                     string default_screen = json["default_screen"].ToString();
                     ClearScreens();
 
@@ -95,9 +109,6 @@ namespace KLC_Finch {
                         int screen_y = (int)screen["screen_y"];
 
                         AddScreen(screen_id, screen_name, screen_height, screen_width, screen_x, screen_y);
-#if DEBUG
-                        Console.WriteLine("StaticImage - Add Screen: " + screen_id);
-#endif
 
                         if(screen["screen_id"].ToString() == default_screen) { //int or BigInteger
                             //Same as how it's done in Kaseya's rc-screenshot.html
@@ -109,19 +120,25 @@ namespace KLC_Finch {
                     RequestRefresh();
                     timerRefresh.Start();
                 } else if(type == (byte)Enums.KaseyaMessageTypes.ThumbnailResult) {
-                    imgScreenPreview.Dispatcher.Invoke(new Action(() => {
-                        using (MemoryStream stream = new MemoryStream(remaining)) {
-                            BitmapImage bitmap = new BitmapImage();
-                            bitmap.BeginInit();
-                            bitmap.StreamSource = stream;
-                            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                            //Mac images have red/blue swapped but can't find a quick way to toggle
-                            bitmap.EndInit();
-                            bitmap.Freeze();
+                    if (imgScreenPreview != null)
+                    {
+                        //Could be null if using reconnect hack without a WindowAlternative
+                        imgScreenPreview.Dispatcher.Invoke(new Action(() =>
+                        {
+                            using (MemoryStream stream = new MemoryStream(remaining))
+                            {
+                                BitmapImage bitmap = new BitmapImage();
+                                bitmap.BeginInit();
+                                bitmap.StreamSource = stream;
+                                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                //Mac images have red/blue swapped but can't find a quick way to toggle
+                                bitmap.EndInit();
+                                bitmap.Freeze();
 
-                            imgScreenPreview.Source = bitmap;
-                        }
-                    }));
+                                imgScreenPreview.Source = bitmap;
+                            }
+                        }));
+                    }
                 } else if (type == (byte)Enums.KaseyaMessageTypes.Clipboard) {
                     //Yes this is a thing...
 #if DEBUG
@@ -204,6 +221,32 @@ namespace KLC_Finch {
                 string sendjson = "{\"width\":" + width + ",\"height\":" + height + "}";
                 SendJson(Enums.KaseyaMessageTypes.ThumbnailRequest, sendjson);
             }
+        }
+
+        public string DumpScreens()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("StaticImage info:");
+            bool more = false;
+            foreach (RCScreen screen in listScreen)
+            {
+                if (more)
+                    sb.Append(",");
+
+                sb.AppendLine('{' + string.Format("\"screen_height\":{0},\"screen_id\":{1},\"screen_name\":\"{2}\",\"screen_width\":{3},\"screen_x\":{4},\"screen_y\":{5}", screen.rect.Height, screen.screen_id, screen.screen_name.Replace("\\", "\\\\"), screen.rect.Width, screen.rect.X, screen.rect.Y) + '}');
+
+                more = true;
+            }
+
+            return sb.ToString();
+        }
+
+        public void ReconnectHack()
+        {
+            useReconnectHack = true;
+            if (serverB != null && serverB.IsAvailable)
+                serverB.Close();
+            session.WebsocketB.ControlAgentSendStaticImage(150, 300);
         }
 
     }

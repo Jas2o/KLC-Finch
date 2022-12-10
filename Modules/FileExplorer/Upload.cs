@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 
 namespace KLC_Finch {
-    class Upload {
+    public class Upload {
         public List<string> Path { get; private set; }
         public string fileName { get; private set; }
         public long fileID { get; private set; }
         public string type { get; private set; }
 
         private Progress<int> progress;
-        private string readLocation;
+        public string readLocation { get; private set; }
         private FileStream filestream;
         private long bytesRead;
 

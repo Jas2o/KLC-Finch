@@ -1,52 +1,49 @@
 ﻿using LibKaseya;
 using Microsoft.Win32;
-using Newtonsoft.Json.Linq;
-using nucs.JsonSettings;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
-namespace KLC_Finch {
+namespace KLC_Finch
+{
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window {
+    public partial class MainWindow : Window
+    {
 
         private string thisAgentID;
+        private string thisAgentVSA;
         private WindowRCTest winRCTest;
 
-        public MainWindow() {
+        public MainWindow()
+        {
             InitializeComponent();
+
+            foreach (KeyValuePair<string, KaseyaVSA> vsa in Kaseya.VSA)
+            {
+                cmbAddress.Items.Add(vsa.Key);
+            }
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e) {
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
             txtVersion.Text = "Build date: " + App.Version;
 
-            string savedAuthToken = KaseyaAuth.GetStoredAuth();
-            if (savedAuthToken != null)
-                txtAuthToken.Password = savedAuthToken;
+            if (cmbAddress.Items.Count > 0)
+            {
+                cmbAddress.SelectedIndex = 0;
+                cmbAddress_LostFocus(sender, e);
+            }
 
             if (!File.Exists(@"C:\Program Files\Kaseya Live Connect-MITM\KaseyaLiveConnect.exe") && !File.Exists(Environment.ExpandEnvironmentVariables(@"%localappdata%\Apps\Kaseya Live Connect-MITM\KaseyaLiveConnect.exe")))
                 chkUseMITM.Visibility = Visibility.Collapsed;
 
-            foreach (Bookmark bm in Bookmarks.List)
+            foreach (Bookmark bm in App.Shared.Bookmarks)
             {
-                if(bm.Type == "Agent")
-                    cmbBookmarks.Items.Add(bm);
+                cmbBookmarks.Items.Add(bm);
             }
 
             #region This Agent ID
@@ -56,7 +53,10 @@ namespace KLC_Finch {
                 {
                     RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
                     if (subkey != null)
+                    {
+                        thisAgentVSA = subkey.GetValue("lastKnownConnAddr").ToString();
                         thisAgentID = subkey.GetValue("AgentGUID").ToString();
+                    }
                     subkey.Close();
                 }
             }
@@ -66,14 +66,17 @@ namespace KLC_Finch {
             #endregion
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
             Environment.Exit(0);
         }
 
-        private void BtnAgentGuidConnect_Click(object sender, RoutedEventArgs e) {
-            if (txtAgentGuid.Text.Trim().Length > 0) {
-                App.alternative = new WindowAlternative(txtAgentGuid.Text.Trim(), txtAuthToken.Password);
-                App.alternative.Show();
+        private void BtnAgentGuidConnect_Click(object sender, RoutedEventArgs e)
+        {
+            if (txtAgentGuid.Text.Trim().Length > 0)
+            {
+                App.winStandalone = new WindowAlternative(txtAgentGuid.Text.Trim(), cmbAddress.Text, txtAuthToken.Password);
+                App.winStandalone.Show();
             }
         }
 
@@ -81,8 +84,8 @@ namespace KLC_Finch {
         {
             if (thisAgentID != null)
             {
-                App.alternative = new WindowAlternative(thisAgentID, txtAuthToken.Password);
-                App.alternative.Show();
+                App.winStandalone = new WindowAlternative(thisAgentID, thisAgentVSA, txtAuthToken.Password);
+                App.winStandalone.Show();
             }
         }
 
@@ -90,8 +93,8 @@ namespace KLC_Finch {
         {
             if (thisAgentID != null)
             {
-                App.alternative = new WindowAlternative(thisAgentID, txtAuthToken.Password, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
-                App.alternative.Show();
+                App.winStandalone = new WindowAlternative(thisAgentID, thisAgentVSA, txtAuthToken.Password, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
+                App.winStandalone.Show();
             }
         }
 
@@ -105,33 +108,19 @@ namespace KLC_Finch {
 
         private void BtnLaunchNull_Click(object sender, RoutedEventArgs e)
         {
-            App.alternative = new WindowAlternative(null, null);
-            App.alternative.Show();
+            App.winStandalone = new WindowAlternative(null, null, null);
+            App.winStandalone.Show();
         }
 
-        /*
-        private void BtnLaunchWinTeamviewer_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Password);
-            App.alternative.Show();
-        }
-
-        private void BtnLaunchWinTeamviewerShared_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative("111111111111111", txtAuthToken.Password, true, Enums.RC.Shared);
-            App.alternative.Show();
-        }
-
-        private void BtnLaunchMacMini_Click(object sender, RoutedEventArgs e) {
-            App.alternative = new WindowAlternative("428588645237770", txtAuthToken.Password);
-            App.alternative.Show();
-        }
-        */
-
-        private void ChkUseMITM_Change(object sender, RoutedEventArgs e) {
+        private void ChkUseMITM_Change(object sender, RoutedEventArgs e)
+        {
             KLC.WsA.useInternalMITM = (bool)chkUseMITM.IsChecked;
         }
 
-        private void BtnRCSettings_Click(object sender, RoutedEventArgs e) {
-            WindowOptions winOptions = new WindowOptions(ref App.Settings, true) {
+        private void BtnRCSettings_Click(object sender, RoutedEventArgs e)
+        {
+            WindowOptions winOptions = new WindowOptions(ref App.Settings, true)
+            {
                 Owner = this
             };
             winOptions.ShowDialog();
@@ -144,10 +133,29 @@ namespace KLC_Finch {
                 return;
 
             if (Keyboard.IsKeyDown(Key.LeftShift))
-                App.alternative = new WindowAlternative(selected.Value, txtAuthToken.Password, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
+                App.winStandalone = new WindowAlternative(selected.AgentGUID, selected.VSA, txtAuthToken.Password, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
             else
-                App.alternative = new WindowAlternative(selected.Value, txtAuthToken.Password);
-            App.alternative.Show();
+                App.winStandalone = new WindowAlternative(selected.AgentGUID, selected.VSA, txtAuthToken.Password);
+            App.winStandalone.Show();
+        }
+
+        private void cmbAddress_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (cmbAddress.SelectedItem == null)
+            {
+                txtAuthToken.Password = "";
+                return;
+            }
+
+            string selected = cmbAddress.SelectedItem.ToString();
+            foreach (KeyValuePair<string, KaseyaVSA> vsa in Kaseya.VSA)
+            {
+                if (vsa.Key == selected)
+                {
+                    txtAuthToken.Password = vsa.Value.Token;
+                    break;
+                }
+            }
         }
     }
 }

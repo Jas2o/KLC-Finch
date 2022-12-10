@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace NTR {
 
-    internal class FPSCounter {
+    public class FPSCounter {
         private static int MAXSAMPLES = 10;
         private Stopwatch stopwatch;
         private int tickindex = 0;

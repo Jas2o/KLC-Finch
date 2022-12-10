@@ -38,6 +38,9 @@ namespace KLC_Finch
 
         private void btnForwardingStart_Click(object sender, RoutedEventArgs e)
         {
+            if (Session == null)
+                return;
+
             try
             {
                 Session.ModuleForwarding = new Forwarding(Session, txtIPAddress.Text.Trim(), int.Parse(txtPort.Text), txtAccess, lblStatus);
@@ -50,6 +53,9 @@ namespace KLC_Finch
 
         private void btnForwardingEnd_Click(object sender, RoutedEventArgs e)
         {
+            if (Session == null || Session.ModuleForwarding == null)
+                return;
+
             Session.ModuleForwarding.Close();
             Session.ModuleForwarding = null;
 

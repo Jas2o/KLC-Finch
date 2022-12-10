@@ -1,5 +1,4 @@
-﻿using Fleck;
-using LibKaseya;
+﻿using LibKaseya;
 using nucs.JsonSettings;
 using System;
 using System.Collections.Generic;
@@ -18,38 +17,43 @@ namespace KLC_Finch {
     public partial class App : Application {
 
         public static string Version;
-        public static WindowAlternative alternative;
-        public static WindowViewerV3 viewer;
+        public static WindowAlternative winStandalone;
+        public static WindowViewerV3 winStandaloneViewer;
         public static Settings Settings;
+        public static KLCShared Shared;
 
         public App() : base() {
             if (!Debugger.IsAttached) {
-                //Setup exception handling rather than closing rudely (this doesn't really work well).
+                //Setup exception handling rather than closing rudely
                 AppDomain.CurrentDomain.UnhandledException += (sender, args) => ShowUnhandledException(args.ExceptionObject as Exception, "AppDomain.CurrentDomain.UnhandledException");
                 TaskScheduler.UnobservedTaskException += (sender, args) => {
-                    ShowUnhandledExceptionFromSrc(args.Exception, "TaskScheduler.UnobservedTaskException");
+                    if (Settings.AltShowWarnings)
+                        ShowUnhandledExceptionFromSrc(args.Exception, "TaskScheduler.UnobservedTaskException");
                     args.SetObserved();
                 };
 
                 Dispatcher.UnhandledException += (sender, args) => {
                     args.Handled = true;
-                    ShowUnhandledException(args.Exception, "Dispatcher.UnhandledException");
+                    if (Settings.AltShowWarnings)
+                        ShowUnhandledException(args.Exception, "Dispatcher.UnhandledException");
                 };
-            }/* else
-            {
-                AppDomain.CurrentDomain.UnhandledException += (sender, args) => Debug.WriteLine("AppDom: " + (args.ExceptionObject as Exception).ToString());
-                TaskScheduler.UnobservedTaskException += (sender, args) => Debug.WriteLine("TS: " + args.Exception.ToString());
-                Dispatcher.UnhandledException += (sender, args) => Debug.WriteLine("Dispatcher: " + args.Exception.ToString());
-            }*/
+            }
 
             Version = KLC_Finch.Properties.Resources.BuildDate.Trim();
 
-            string pathSettings = System.IO.Path.GetDirectoryName(Environment.ProcessPath) + "\\KLC-Finch-config.json";
+            //--
+
+            string pathSettings = Path.GetDirectoryName(Environment.ProcessPath) + "\\KLC-Finch-config.json";
             if (File.Exists(pathSettings))
                 Settings = JsonSettings.Load<Settings>(pathSettings);
             else
                 Settings = JsonSettings.Construct<Settings>(pathSettings);
-            Bookmarks.Load();
+
+            string pathShared = Path.GetDirectoryName(Environment.ProcessPath) + @"\KLC-Shared.json";
+            if (File.Exists(pathShared))
+                Shared = JsonSettings.Load<KLCShared>(pathShared);
+            else
+                Shared = JsonSettings.Construct<KLCShared>(pathShared);
         }
 
         public static void ShowUnhandledExceptionFromSrc(Exception e, string source) {
@@ -69,9 +73,11 @@ namespace KLC_Finch {
             new WindowException(e, unhandledExceptionType).Show(); //Removed: , Debugger.IsAttached
         }
 
-        private void Application_Startup(object sender, StartupEventArgs e)
-        {
-            Kaseya.Start();
+        private void Application_Startup(object sender, StartupEventArgs e) {
+            foreach (string vsa in App.Shared.VSA)
+            {
+                Kaseya.Start(vsa, KaseyaAuth.GetStoredAuth(vsa));
+            }
 
             string[] args = Environment.GetCommandLineArgs();
             KLCCommand command = null;
@@ -86,17 +92,17 @@ namespace KLC_Finch {
             if (command != null)
             {
                 if (command.payload.navId == "remotecontrol/shared")
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
+                    winStandalone = new WindowAlternative(command.payload.agentId, command.VSA, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.Shared);
                 else if (command.payload.navId == "remotecontrol/private")
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.Private);
+                    winStandalone = new WindowAlternative(command.payload.agentId, command.VSA, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.Private);
                 else if (command.payload.navId.StartsWith("remotecontrol/private/#"))
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.AlsoRC, Enums.RC.NativeRDP);
+                    winStandalone = new WindowAlternative(command.payload.agentId, command.VSA, command.payload.auth.Token, Enums.OnConnect.AlsoRC, Enums.RC.NativeRDP);
                 else if (command.payload.navId == "remotecontrol/1-click")
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.OneClick);
+                    winStandalone = new WindowAlternative(command.payload.agentId, command.VSA, command.payload.auth.Token, Enums.OnConnect.OnlyRC, Enums.RC.OneClick);
                 else
-                    alternative = new WindowAlternative(command.payload.agentId, command.payload.auth.Token);
+                    winStandalone = new WindowAlternative(command.payload.agentId, command.VSA, command.payload.auth.Token);
 
-                alternative.Show();
+                winStandalone.Show();
             }
             else
             {

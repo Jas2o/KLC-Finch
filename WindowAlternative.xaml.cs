@@ -20,6 +20,7 @@ namespace KLC_Finch
 
         public KLC.LiveConnectSession session;
         public bool socketActive { get; private set; }
+        private string vsa;
         private string agentID;
         private string shortToken;
 
@@ -33,13 +34,14 @@ namespace KLC_Finch
             InitializeComponent();
         }
 
-        public WindowAlternative(string agentID, string shortToken, OnConnect directAction = OnConnect.NoAction, RC directToMode = RC.Shared)
+        public WindowAlternative(string agentID, string vsa, string shortToken, OnConnect directAction = OnConnect.NoAction, RC directToMode = RC.Shared)
         {
             InitializeComponent();
 
-            if (agentID == null || shortToken == null)
+            if (agentID == null || vsa == null || shortToken == null)
                 return;
 
+            this.vsa = vsa;
             this.agentID = agentID;
             this.shortToken = shortToken;
             this.directAction = directAction;
@@ -81,13 +83,13 @@ namespace KLC_Finch
 
             //HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
             StatusCallback callback = new StatusCallback(StatusUpdate);
-            session = new KLC.LiveConnectSession(shortToken, agentID, callback);
+            session = new KLC.LiveConnectSession(vsa, shortToken, agentID, callback);
             if (session.Eirc == null)
             {
                 session = null;
                 return;
             }
-            this.Title = session.agent.Name + " - KLC-Finch";
+            this.Title = session.agent.Name + " - " + vsa + " - KLC-Finch";
             btnRCOneClick.IsEnabled = session.agent.OneClickAccess;
 
             WindowUtilities.ActivateWindow(this);
@@ -125,9 +127,9 @@ namespace KLC_Finch
         {
             if (status == EPStatus.Connected && directAction != OnConnect.NoAction)
             {
-                if (directToMode == RC.NativeRDP)
+                if (directToMode == RC.NativeRDP || directToMode == RC.Private || directToMode == RC.OneClick)
                 {
-                    session.WebsocketB.ControlAgentSendRDP_StateRequest();
+                    session.WebsocketB.ControlAgentSendRDP_StateRequest(directToMode);
                     return;
                 }
                 else
@@ -182,6 +184,12 @@ namespace KLC_Finch
 
                     case EPStatus.DisconnectedManual:
                         txtStatus.Text = "Manual Disconnection";
+                        borderStatus.Background = new SolidColorBrush(Colors.DimGray);
+                        borderStatus.Visibility = Visibility.Visible;
+                        break;
+
+                    case EPStatus.UnableToStartSession:
+                        txtStatus.Text = "Unable to start session with endpoint.";
                         borderStatus.Background = new SolidColorBrush(Colors.DimGray);
                         borderStatus.Visibility = Visibility.Visible;
                         break;
@@ -259,6 +267,9 @@ namespace KLC_Finch
             if (shortToken == null || agentID == null || session == null)
                 return; //Dragablz
 
+            if (!App.Settings.AltShowAlphaTab)
+                tabAlpha.Visibility = Visibility.Collapsed;
+
             if (session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac)
             {
                 btnRCNativeRDP.Visibility = Visibility.Collapsed;
@@ -286,7 +297,7 @@ namespace KLC_Finch
             if (session == null)
                 return; //Dragablz
 
-            if(session.ModuleForwarding != null && session.ModuleForwarding.IsRunning())
+            if (session.ModuleForwarding != null && session.ModuleForwarding.IsRunning())
             {
                 using (TaskDialog dialog = new TaskDialog())
                 {
@@ -301,17 +312,19 @@ namespace KLC_Finch
                     dialog.Buttons.Add(tdbYes);
                     dialog.Buttons.Add(tdbCancel);
 
-                    TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                    TaskDialogButton button = dialog.ShowDialog(App.winStandalone);
                     if (button == tdbYes)
                     {
                         session.ModuleForwarding.Close();
                         session.Close();
-                    } else
+                    }
+                    else
                     {
                         e.Cancel = true;
                     }
                 }
-            } else if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible)
+            }
+            else if (session.ModuleRemoteControl != null && session.ModuleRemoteControl.Viewer != null && session.ModuleRemoteControl.Viewer.IsVisible)
             {
                 this.Visibility = Visibility.Collapsed;
                 e.Cancel = true;
@@ -355,6 +368,8 @@ namespace KLC_Finch
             if (session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
 
+            session.WebsocketB.ControlAgentSendRDP_StateRequest(RC.OneClick);
+
             session.ModuleRemoteControl = new RemoteControl(session, RC.OneClick);
             session.ModuleRemoteControl.Connect();
         }
@@ -363,7 +378,7 @@ namespace KLC_Finch
         {
             if (session != null && session.WebsocketB.ControlAgentIsReady())
             {
-                session.WebsocketB.ControlAgentSendRDP_StateRequest();
+                session.WebsocketB.ControlAgentSendRDP_StateRequest(RC.NativeRDP);
             }
         }
 
@@ -379,13 +394,13 @@ namespace KLC_Finch
             int tempWidth = (int)this.Width;
             int tempHeight = (int)this.Height;
 
-            App.alternative = new WindowAlternative(agentID, shortToken);
-            App.alternative.Show();
-            App.alternative.Left = tempLeft;
-            App.alternative.Top = tempTop;
-            App.alternative.Width = tempWidth;
-            App.alternative.Height = tempHeight;
-            App.alternative.WindowState = tempState;
+            App.winStandalone = new WindowAlternative(agentID, vsa, shortToken);
+            App.winStandalone.Show();
+            App.winStandalone.Left = tempLeft;
+            App.winStandalone.Top = tempTop;
+            App.winStandalone.Width = tempWidth;
+            App.winStandalone.Height = tempHeight;
+            App.winStandalone.WindowState = tempState;
 
             this.Close();
         }
@@ -415,7 +430,7 @@ namespace KLC_Finch
             {
                 if (session.agent.OSTypeProfile != LibKaseya.Agent.OSProfile.Mac || App.Settings.AltModulesStartAutoMacStaticImage)
                     ctrlDashboard.btnStaticImageStart_Click(sender, e);
-                
+
                 ctrlDashboard.btnDashboardStartData_Click(sender, e);
             }
         }
@@ -436,7 +451,7 @@ namespace KLC_Finch
             if (session == null)
                 return;
 
-            LibKaseya.KLCCommand command = LibKaseya.KLCCommand.Example(agentID, shortToken);
+            LibKaseya.KLCCommand command = LibKaseya.KLCCommand.Example(vsa, agentID, shortToken);
             command.SetForLiveConnect();
             command.Launch(false, LibKaseya.LaunchExtra.None);
         }
@@ -473,7 +488,7 @@ namespace KLC_Finch
             if (session == null)
                 return;
 
-            string logs = App.alternative.session.agent.GetAgentRemoteControlLogs();
+            string logs = App.winStandalone.session.agent.GetAgentRemoteControlLogs();
             MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
         }
 

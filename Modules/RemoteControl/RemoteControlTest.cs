@@ -3,8 +3,10 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Input;
 
-namespace KLC_Finch {
-    public class RemoteControlTest : IRemoteControl {
+namespace KLC_Finch
+{
+    public class RemoteControlTest : IRemoteControl
+    {
 
         public WindowViewerV3 Viewer;
         //public bool UseYUVShader { get { return false; } set { } }
@@ -16,14 +18,14 @@ namespace KLC_Finch {
         private static CancellationTokenSource threadCTokenSource;
         private bool retina;
 
-        private readonly Color[] colors = new Color[] { //The BIT.TRIP colours!
+        private static Color[] colors = new Color[] { //The BIT.TRIP colours!
             Color.FromArgb(251, 218, 3), //Yellow
             Color.FromArgb(255, 165, 50), //Orange
             Color.FromArgb(53, 166, 170), //Teal
             Color.FromArgb(220, 108, 167), //Pink
             Color.FromArgb(57, 54, 122) //Purple
         };
-        private byte[,] colorsYUV = new byte[5, 3] {
+        private static byte[,] colorsYUV = new byte[5, 3] {
             { 203, 14, 161 }, //Yellow
             { 178, 55, 182 }, //Orange
             { 132, 149, 71 }, //Teal
@@ -32,7 +34,8 @@ namespace KLC_Finch {
         };
         private int colorPos;
 
-        public void LoopStart(WindowViewerV3 viewer) {
+        public void LoopStart(WindowViewerV3 viewer)
+        {
             if (threadTest != null)
                 LoopStop();
 
@@ -44,16 +47,20 @@ namespace KLC_Finch {
             threadTest.Start();
         }
 
-        public void LoopStop() {
-            if (threadTest != null) {
+        public void LoopStop()
+        {
+            if (threadTest != null)
+            {
                 threadCTokenSource.Cancel();
                 threadTest.Join(1000);
             }
         }
 
-        private void Loop() {
+        private void Loop()
+        {
             Viewer.ClearApproval();
-            while (!threadCTokenSource.Token.IsCancellationRequested && Viewer.IsVisible) {
+            while (!threadCTokenSource.Token.IsCancellationRequested && Viewer.IsVisible)
+            {
                 Thread.Sleep(500);
 
                 NTR.RCScreen screen = Viewer.GetCurrentScreen();
@@ -62,7 +69,8 @@ namespace KLC_Finch {
 
                 int width = screen.rectOrg.Width;
                 int height = screen.rectOrg.Height;
-                if (retina) {
+                if (retina)
+                {
                     width *= 2;
                     height *= 2;
                 }
@@ -73,7 +81,8 @@ namespace KLC_Finch {
                     using (Graphics g = Graphics.FromImage(bTest)) { g.Clear(colors[colorPos]); }
                     Viewer.LoadTexture(bTest.Width, bTest.Height, bTest);
                     bTest.Dispose();
-                } else
+                }
+                else
                 {
                     int sizeY = width * height;
                     int sizeUV = width * height / 4;
@@ -95,99 +104,127 @@ namespace KLC_Finch {
             }
         }
 
-        public void CaptureNextScreen() {
+        public void CaptureNextScreen()
+        {
             //throw new NotImplementedException();
         }
 
-        public void UpdateScreens(string jsonstr) {
+        public void UpdateScreens(string jsonstr)
+        {
             screenStr = jsonstr;
         }
 
-        public void ChangeScreen(string screen_id, int clientH, int clientW) {
+        public void ChangeScreen(string screen_id, int clientH, int clientW)
+        {
             //Console.WriteLine("ChangeScreen: " + screen_id);
             //screenCurrent = screenList.Find(x => x.screen_id == screen_id);
         }
 
-        public void ChangeTSSession(string session_id) {
+        public void ChangeTSSession(string session_id)
+        {
             //throw new NotImplementedException();
         }
 
-        public void Disconnect(string sessionId) {
+        public void Disconnect(string sessionId)
+        {
             LoopStop();
 
             if (Viewer != null)
                 Viewer.NotifySocketClosed(sessionId);
         }
 
-        public void Reconnect() {
+        public void Reconnect()
+        {
             LoopStart(Viewer);
         }
 
-        public void SendAutotype(string text) {
+        public void SendAutotype(string text)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendPasteClipboard(string clipboard) {
+        public void SendPasteClipboard(string clipboard)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendClipboard(string clipboard) {
+        public void SendClipboard(string clipboard)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendKeyDown(int javascriptKeyCode, int uSBKeyCode) {
+        public void SendKeyDown(int javascriptKeyCode, int uSBKeyCode)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendKeyUp(int javascriptKeyCode, int uSBKeyCode) {
+        public void SendKeyUp(int javascriptKeyCode, int uSBKeyCode)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseDown(MouseButton changedButton) {
+        public void SendMouseDown(MouseButton changedButton)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseDown(System.Windows.Forms.MouseButtons changedButton) {
+        public void SendMouseDown(System.Windows.Forms.MouseButtons changedButton)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMousePosition(int x, int y) {
+        public void SendMousePosition(int x, int y)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseUp(MouseButton changedButton) {
+        public void SendMouseUp(MouseButton changedButton)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseUp(System.Windows.Forms.MouseButtons changedButton) {
+        public void SendMouseUp(System.Windows.Forms.MouseButtons changedButton)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendMouseWheel(int delta) {
+        public void SendMouseWheel(int delta)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SetRetina(bool isChecked) {
+        public void SetRetina(bool isChecked)
+        {
             retina = isChecked;
         }
 
-        public void SendPanicKeyRelease() {
+        public void SendPanicKeyRelease()
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendSecureAttentionSequence() {
+        public void SendSecureAttentionSequence()
+        {
             //throw new NotImplementedException();
         }
 
-        public void UploadDrop(string v, Progress<int> progress, bool showExplorer) {
+        public void UploadDrop(string v, Progress<int> progress)
+        {
             //throw new NotImplementedException();
         }
 
-        public void ShowCursor(bool enabled) {
+        public void ShowCursor(bool enabled)
+        {
             //throw new NotImplementedException();
         }
 
-        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB) {
+        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB)
+        {
+            //throw new NotImplementedException();
+        }
+
+        public void UpdateScreensHack()
+        {
             //throw new NotImplementedException();
         }
     }

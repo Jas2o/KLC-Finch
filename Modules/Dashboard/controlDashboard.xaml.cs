@@ -165,6 +165,11 @@ namespace KLC_Finch {
             Process.Start(new ProcessStartInfo(e.Uri.ToString()) { UseShellExecute = true });
         }
 
+        private void btnStaticImageDumpLayout_Click(object sender, RoutedEventArgs e)
+        {
+            Clipboard.SetDataObject(moduleStaticImage.DumpScreens());
+        }
+
         public void UpdateTimer()
         {
             if (moduleDashboard != null)

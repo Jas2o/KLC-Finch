@@ -45,8 +45,13 @@
                                     IsChecked="{Binding AltModulesDashboardRefresh}" />
                             </StackPanel>
                         </GroupBox>
-                        <GroupBox Header="Being tested">
+                        <GroupBox Header="Testing purposes only">
                             <StackPanel>
+                                <CheckBox
+                                    x:Name="chkAltShowWarnings"
+                                    Margin="0,5,0,0"
+                                    Content="Show excessive warnings"
+                                    IsChecked="{Binding AltShowWarnings}" />
                                 <CheckBox
                                     x:Name="chkAltShowAlpha"
                                     Margin="0,5,0,0"

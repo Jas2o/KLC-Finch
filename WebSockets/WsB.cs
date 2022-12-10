@@ -10,8 +10,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using static LibKaseya.Enums;
 
-namespace KLC {
-    public class WsB {
+namespace KLC
+{
+    public class WsB
+    {
 
         private readonly LiveConnectSession Session;
 
@@ -25,7 +27,8 @@ namespace KLC {
         private int clientPortControlAgent;
         private int clientPortRemoteControl;
 
-        public WsB(LiveConnectSession session, int portB) {
+        public WsB(LiveConnectSession session, int portB)
+        {
             Session = session;
 
             //B - Find a free port me
@@ -61,18 +64,28 @@ namespace KLC {
             });
         }
 
-        private void ServerB_MessageReceived(IWebSocketConnection socket, string message) {
+        private void ServerB_MessageReceived(IWebSocketConnection socket, string message)
+        {
             string path = socket.ConnectionInfo.Path.Replace("?Y2", "");
-            switch (path) {
+            switch (path)
+            {
                 case "/control/agent":
-                    if (message.Contains("RemoteControl") && Session.ModuleRemoteControl != null) {
+                    if (message.Contains("RemoteControl") && Session.ModuleRemoteControl != null)
+                    {
                         ////{"extendedError":2,"id":"5c419d84-20d7-448a-9605-73df69c52261","p2pConnectionId":"4bc14e73-b863-4586-a0fe-ea331f83ac25","result":false,"type":"RemoteControl"}
                         Session.ModuleRemoteControl.Disconnect(path); //Should be session ID but meh
-                    } else if (message.Contains("RDP_StateRequest")) {
-                        ControlAgentSendRDP_StateSet();
-                    } else if (message.Contains("RDP_StateSet"))
+                    }
+                    else if (message.Contains("RDP_StateRequest"))
                     {
-                        Session.ModuleForwarding = new Forwarding(Session, Session.agent.NetIPAddress, 3389);
+                        ControlAgentSendRDP_StateSet();
+                    }
+                    else if (message.Contains("RDP_StateSet"))
+                    {
+                        if (StateRequestLastMode == RC.NativeRDP)
+                        {
+                            StateRequestLastMode = RC.Private;
+                            Session.ModuleForwarding = new Forwarding(Session, Session.agent.NetIPAddress, 3389);
+                        }
                     }
                     else
                         App.ShowUnhandledExceptionFromSrc(message, "Websocket B Control Agent");
@@ -130,30 +143,40 @@ namespace KLC {
             }
         }
 
-        private void ServerB_BinaryReceived(IWebSocketConnection socket, byte[] data) {
+        private void ServerB_BinaryReceived(IWebSocketConnection socket, byte[] data)
+        {
             string path = socket.ConnectionInfo.Path.Replace("?Y2", "");
 
             //Session.Parent.LogText("B MSG " + e.IpPor);
             //if (eB.HttpRequest.Url.PathAndQuery == "/control/agent") {
 
 
-            if (path == "/app/files/download") {
+            if (path == "/app/files/download")
+            {
                 if (Session.ModuleFileExplorer != null)
                     Session.ModuleFileExplorer.HandleDownload(data);
-            } else if (path == "/app/files/upload") {
-                if (Session.ModuleFileExplorer != null) {
+            }
+            else if (path == "/app/files/upload")
+            {
+                if (Session.ModuleFileExplorer != null)
+                {
                     Session.ModuleFileExplorer.HandleUpload(data);
                 }
             }
-            else if(path == "/app/staticimage") {
+            else if (path == "/app/staticimage")
+            {
                 if (Session.ModuleStaticImage != null)
                     Session.ModuleStaticImage.HandleBytes(data);
-            } else if (socket.ConnectionInfo.ClientPort == clientPortRemoteControl) {
+            }
+            else if (socket.ConnectionInfo.ClientPort == clientPortRemoteControl)
+            {
                 //string sessionId = path.Replace("/app/remotecontrol/", "");
                 //e.g. /app/remotecontrol/3c3757ca-72f5-4a1a-ac51-5c457e731fd0
                 if (Session.ModuleRemoteControl != null)
                     Session.ModuleRemoteControl.HandleBytesFromRC(data);
-            } else {
+            }
+            else
+            {
                 Console.WriteLine("ServerB Binary Unhandled: " + path);
             }
 
@@ -169,27 +192,33 @@ namespace KLC {
             */
         }
 
-        private void ServerB_ClientDisconnected(IWebSocketConnection socket) {
+        private void ServerB_ClientDisconnected(IWebSocketConnection socket)
+        {
 #if DEBUG
             Console.WriteLine("B Close " + socket.ConnectionInfo.Path);
 #endif
 
-            if(socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
-                if (App.alternative != null) {
+            if (socket.ConnectionInfo.Path.StartsWith("/control/agent"))
+            {
+                if (App.winStandalone != null)
+                {
                     Session.Callback?.Invoke(EPStatus.DisconnectedWsB);
                     //App.alternative.Disconnect(Session.RandSessionGuid, 1);
                 }
             }
-            
-            if (socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/") || socket.ConnectionInfo.Path.StartsWith("/control/agent")) {
-                if (Session.ModuleRemoteControl != null) {
+
+            if (socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/") || socket.ConnectionInfo.Path.StartsWith("/control/agent"))
+            {
+                if (Session.ModuleRemoteControl != null)
+                {
                     string sessionId = socket.ConnectionInfo.Path.Replace("/app/remotecontrol/", "").Replace("?Y2", "");
                     Session.ModuleRemoteControl.Disconnect(sessionId);
                 }
             }
         }
 
-        private void ServerB_ClientConnected(IWebSocketConnection socket) {
+        private void ServerB_ClientConnected(IWebSocketConnection socket)
+        {
             //Module = e.HttpRequest.Url.PathAndQuery.Split('/')[2];
 #if DEBUG
             Console.WriteLine("B Connect (server port: " + PortB + ") " + socket.ConnectionInfo.Path);
@@ -199,7 +228,8 @@ namespace KLC {
             int clientPort = socket.ConnectionInfo.ClientPort;
 
             string path = socket.ConnectionInfo.Path.Replace("?Y2", "");
-            switch (path) {
+            switch (path)
+            {
                 case "/control/agent":
                     ServerBsocketControlAgent = socket;
                     clientPortControlAgent = clientPort;
@@ -260,12 +290,15 @@ namespace KLC {
                     break;
 
                 default:
-                    if(socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/")) {
+                    if (socket.ConnectionInfo.Path.StartsWith("/app/remotecontrol/"))
+                    {
                         ServerBsocketRemoteControl = socket;
 
                         clientPortRemoteControl = clientPort;
                         Session.ModuleRemoteControl.SetSocket(socket, clientPort);
-                    } else {
+                    }
+                    else
+                    {
                         Console.WriteLine("Unexpected: " + socket.ConnectionInfo.Path);
                     }
                     break;
@@ -273,27 +306,32 @@ namespace KLC {
 
         }
 
-        public bool ControlAgentIsReady() {
+        public bool ControlAgentIsReady()
+        {
             return (ServerBsocketControlAgent != null);
         }
 
-        public void Close() {
-            foreach(IWebSocketConnection socket in ServerBsocket)
+        public void Close()
+        {
+            foreach (IWebSocketConnection socket in ServerBsocket)
                 socket.Close();
             //ServerBsocketControlAgent.Close();
 
             ServerB.ListenerSocket.Close();
         }
 
-        public void Send(IWebSocketConnection socket, byte[] data) {
+        public void Send(IWebSocketConnection socket, byte[] data)
+        {
             socket.Send(data);
         }
 
-        public void Send(IWebSocketConnection socket, string message) {
+        public void Send(IWebSocketConnection socket, string message)
+        {
             socket.Send(message);
         }
 
-        public string StartModuleRemoteControl(RC mode) {
+        public string StartModuleRemoteControl(RC mode)
+        {
             string guidGenSessionId = Guid.NewGuid().ToString();
             string guidGenSessionTokenId = Session.Eirc.session_token_id;// Guid.NewGuid().ToString();
             string guidGenId = Guid.NewGuid().ToString();
@@ -312,7 +350,7 @@ namespace KLC {
                     sessionType = "1-Click";
                     break;
             }
-            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.Auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":null,\"RecordSession\":null,\"RemoteControlNotify\":1,\"RequireRcNote\":null,\"RequiteFTPNote\":null,\"TerminateNotify\":null,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + sessionType + "\"},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
+            string json1 = "{\"data\":{\"rcPolicy\":{\"AdminGroupId\":" + Session.Auth.RoleId + ",\"AgentGuid\":\"" + Session.agentGuid + "\",\"AskText\":\"\",\"Attributes\":null,\"DisablePermanentOption\": null,\"DisallowFileTransfers\": 0,\"EmailAddr\":null,\"JotunUserAcceptance\":null,\"NotifyText\":\"\",\"OneClickAccess\":0,\"RecordSession\":0,\"RemoteControlNotify\":1,\"RequireRcNote\":0,\"RequiteFTPNote\":0,\"TerminateNotify\":0,\"TerminateText\":\"\"},\"sessionId\":\"" + guidGenSessionId + "\",\"sessionTokenId\":\"" + guidGenSessionTokenId + "\",\"sessionType\":\"" + sessionType + "\", \"startSessionRecording\": false},\"id\":\"" + guidGenId + "\",\"p2pConnectionId\":\"" + guidGenP2pConnectionId + "\",\"type\":\"RemoteControl\"}";
 
             if (ServerBsocketControlAgent == null)
                 //throw new Exception("Agent offline?");
@@ -365,15 +403,18 @@ namespace KLC {
             */
         }
 
-        public void ControlAgentSendTask(string module) {
+        public void ControlAgentSendTask(string module)
+        {
             string randTaskUUID2 = Guid.NewGuid().ToString(); //Kaseya use a generic UUID v4 generator
             string randSessionGuid = Guid.NewGuid().ToString(); //Not sure if okay to be random
 
-            JObject jMain = new JObject {
+            JObject jMain = new JObject
+            {
                 ["type"] = "Task",
                 ["id"] = randTaskUUID2,
                 ["p2pConnectionId"] = randSessionGuid,
-                ["data"] = new JObject {
+                ["data"] = new JObject
+                {
                     ["moduleId"] = module,
                     ["url"] = "https://KASEYAVSAHOST/api/v1.5/endpoint/download/packages/" + module + "/9.5.0.1075/content"
                 }
@@ -384,15 +425,18 @@ namespace KLC {
             //else throw new Exception("Agent offline?");
         }
 
-        public void ControlAgentSendStaticImage(int height, int width) {
+        public void ControlAgentSendStaticImage(int height, int width)
+        {
             string randTaskUUID2 = Guid.NewGuid().ToString(); //Kaseya use a generic UUID v4 generator
             string randSessionGuid = Guid.NewGuid().ToString(); //Not sure if okay to be random
 
-            JObject jMain = new JObject {
+            JObject jMain = new JObject
+            {
                 ["type"] = "StaticImage",
                 ["id"] = randTaskUUID2,
                 ["p2pConnectionId"] = randSessionGuid,
-                ["data"] = new JObject {
+                ["data"] = new JObject
+                {
                     ["height"] = height,
                     ["width"] = width
                 }
@@ -404,8 +448,11 @@ namespace KLC {
                 throw new Exception("Agent offline?");
         }
 
-        public void ControlAgentSendRDP_StateRequest()
+        private RC StateRequestLastMode;
+        public void ControlAgentSendRDP_StateRequest(RC mode)
         {
+            StateRequestLastMode = mode;
+
             JObject jMain = new JObject
             {
                 ["type"] = "RDP_StateRequest",
@@ -419,7 +466,8 @@ namespace KLC {
         {
             JObject jMain = new JObject
             {
-                ["data"] = new JObject {
+                ["data"] = new JObject
+                {
                     ["save_GPO"] = "no",
                     ["save_NLA"] = "no",
                     ["save_PF"] = "no",

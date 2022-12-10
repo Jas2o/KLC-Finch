@@ -64,6 +64,10 @@ namespace KLC_Finch {
             hookHandler = HookFunc;
             hookID = SetHook(hookHandler);
             IsActive = true;
+
+#if (DEBUG)
+            Console.WriteLine("KeyHook added.");
+#endif
         }
 
         /// <summary>
@@ -72,6 +76,10 @@ namespace KLC_Finch {
         public void Uninstall() {
             IsActive = false;
             UnhookWindowsHookEx(hookID);
+
+#if (DEBUG)
+            Console.WriteLine("KeyHook removed.");
+#endif
         }
 
         public bool IsActive { get; private set; }

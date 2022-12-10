@@ -168,6 +168,8 @@ namespace KLC_Finch {
             txtDebugRight.Visibility = (App.Settings.DisplayOverlayMouse ? Visibility.Visible : Visibility.Collapsed);
             txtZoom.Visibility = (App.Settings.DisplayOverlayPanZoom ? Visibility.Visible : Visibility.Collapsed);
 
+            txtRcDisconnected.Visibility = (state.connectionStatus == ConnectionStatus.Disconnected ? Visibility.Visible : Visibility.Collapsed);
+
             switch (state.connectionStatus) {
                 case ConnectionStatus.FirstConnectionAttempt:
                     txtRcFrozen.Visibility = Visibility.Collapsed;
@@ -188,7 +190,7 @@ namespace KLC_Finch {
                 case ConnectionStatus.Disconnected:
                     txtRcControlOff1.Visibility = txtRcControlOff2.Visibility = txtRcNotify.Visibility = Visibility.Collapsed;
                     txtRcFrozen.Visibility = Visibility.Collapsed;
-                    txtRcDisconnected.Visibility = Visibility.Visible;
+                    //txtRcDisconnected.Visibility = Visibility.Visible;
                     rcBorderBG.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Maroon);
 
                     /*

@@ -273,7 +273,7 @@ namespace KLC_Finch {
                 dialog.Buttons.Add(tdbYes);
                 dialog.Buttons.Add(tdbCancel);
 
-                TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                TaskDialogButton button = dialog.ShowDialog((WindowAlternative)Window.GetWindow(this));
                 if (button == tdbYes) {
                     richCommand.Visibility = Visibility.Hidden;
                     txtCommand.Visibility = Visibility.Visible;
@@ -288,12 +288,6 @@ namespace KLC_Finch {
                         txtCommand.AppendText(line.TrimEnd() + "\n");
 
                     txtCommand.ScrollToEnd();
-
-                    /*
-                    richCommand.Document.Blocks.Clear();
-                    richCommand.Document.Blocks.Add(new Paragraph(new Run(vtController.GetText(0, start, vtController.VisibleColumns, vtController.BottomRow).Trim())));
-                    richCommand.ScrollToEnd();
-                    */
                 }
             }
 

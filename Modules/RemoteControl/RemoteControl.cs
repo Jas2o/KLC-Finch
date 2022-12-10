@@ -3,6 +3,7 @@ using LibKaseya;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net;
@@ -15,11 +16,13 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using static LibKaseya.Enums;
 
-namespace KLC_Finch {
+namespace KLC_Finch
+{
 
-    public class RemoteControl : IRemoteControl {
+    public class RemoteControl : IRemoteControl
+    {
         public WindowViewerV3 Viewer;
-        private readonly RC mode;
+        public RC mode { get; private set; }
         private readonly KLC.LiveConnectSession session;
         private bool captureScreen;
         private int clientB;
@@ -38,7 +41,8 @@ namespace KLC_Finch {
         private System.Timers.Timer timerHeartbeat;
         private UploadRC fileUpload;
 
-        public RemoteControl(KLC.LiveConnectSession session, RC mode) {
+        public RemoteControl(KLC.LiveConnectSession session, RC mode)
+        {
             this.session = session;
             this.mode = mode;
 
@@ -51,12 +55,22 @@ namespace KLC_Finch {
         //public bool UseYUVShader { get; set; }
         public DecodeMode DecodeMode { get; set; }
         public bool IsMac { get; set; }
+        //public RCstate state { get; set; }
+        public bool IsPrivate
+        {
+            get
+            {
+                return (mode != RC.Shared);
+            }
+        }
 
-        public void CaptureNextScreen() {
+        public void CaptureNextScreen()
+        {
             captureScreen = true;
         }
 
-        public void ChangeScreen(string screen_id, int clientH, int clientW) {
+        public void ChangeScreen(string screen_id, int clientH, int clientW)
+        {
             //{"downscale_limit":4,"monitorId":354484717,"screen_height":636,"screen_width":986}
             JObject json = new JObject
             {
@@ -69,42 +83,49 @@ namespace KLC_Finch {
             //activeScreenID = screen_id;
         }
 
-        public void ChangeTSSession(string session_id) {
+        public void ChangeTSSession(string session_id)
+        {
             string sendjson = "{\"sessionId\":" + session_id + "}"; //Intentionally using a string as int/biginteger
             SendJson(Enums.KaseyaMessageTypes.UpdateTerminalSessionId, sendjson);
         }
 
-        public void CloseViewer() {
+        public void CloseViewer()
+        {
             Disconnect(rcSessionId);
             if (Viewer != null)
                 Viewer.Close();
         }
 
-        public void Connect() {
-            if (App.viewer != null) {
-                App.viewer.Close();
-                App.viewer = null;
+        public void Connect()
+        {
+            if (App.winStandaloneViewer != null)
+            {
+                App.winStandaloneViewer.Close();
+                App.winStandaloneViewer = null;
             }
 
             IsMac = session.agent.OSTypeProfile == Agent.OSProfile.Mac;
-            Viewer = App.viewer = new WindowViewerV3(App.Settings.Renderer, this, session.agent.OSTypeProfile, session.agent.UserLast);
+            Viewer = App.winStandaloneViewer = new WindowViewerV3(App.Settings.Renderer, this, session.agent.OSTypeProfile, session.agent.UserLast);
             Viewer.SetTitle(session.agent.Name, mode);
             Viewer.SetApprovalAndSpecialNote(session.RCNotify, session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
             Viewer.Show();
 
-            if (session != null) {
+            if (session != null)
+            {
                 rcSessionId = session.WebsocketB.StartModuleRemoteControl(mode);
                 Viewer.SetSessionID(rcSessionId);
             }
 
-            if (rcSessionId != null) {
+            if (rcSessionId != null)
+            {
                 timerHeartbeat = new System.Timers.Timer(1000);
                 timerHeartbeat.Elapsed += SendHeartbeat;
                 timerHeartbeat.Start();
             }
         }
 
-        public void Disconnect(string sessionId) {
+        public void Disconnect(string sessionId)
+        {
             decoderCT.Cancel();
 
             try
@@ -118,7 +139,8 @@ namespace KLC_Finch {
                     }
                 }
             }
-            catch (Exception) {
+            catch (Exception)
+            {
                 //For some reason, decoder can be null after being checked that it wasn't null.
             }
 
@@ -130,15 +152,17 @@ namespace KLC_Finch {
                 Viewer.NotifySocketClosed(sessionId);
         }
 
-        public unsafe void HandleBytesFromRC(byte[] bytes) {
+        public unsafe void HandleBytesFromRC(byte[] bytes)
+        {
             byte type = bytes[0];
 
-            if (type == 0x27) {
+            if (type == 0x27) //(byte)Enums.KaseyaMessageTypes.SessionApproved
+            {
                 Viewer.ClearApproval();
 
                 /*
                 //This does not appear to fix the API logs (as opposed to VSA logs) issue
-                RestClient K_Client = new RestClient("https://" + LibKaseya.Kaseya.DefaultServer);
+                RestClient K_Client = new RestClient("https://" + session.agent.VSA);
                 RestRequest request = new RestRequest("api/v1.0/assetmgmt/agent/" + session.agentGuid + "/KLCAuditLogEntry", Method.PUT);
                 request.AddHeader("Authorization", "Bearer " + session.shorttoken);
                 request.AddParameter("Content-Type", "application/json");
@@ -146,19 +170,24 @@ namespace KLC_Finch {
                 IRestResponse response = K_Client.Execute(request);
                 */
             }
-            else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported) {
+            else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported)
+            {
                 App.ShowUnhandledExceptionFromSrc("SessionNotSupported", "Remote Control");
                 Disconnect(rcSessionId);
                 //Viewer.NotifySocketClosed(rcSessionId);
                 //serverB.Close();
                 //Private session failed, this is supposed to prompt the user if they want to use a Shared session
-            } else if (type == (byte)Enums.KaseyaMessageTypes.PrivateSessionDisconnected) {
+            }
+            else if (type == (byte)Enums.KaseyaMessageTypes.PrivateSessionDisconnected)
+            {
                 //Console.WriteLine("PrivateSessionDisconnected");
 
                 Disconnect(rcSessionId);
                 //Viewer.NotifySocketClosed(rcSessionId);
                 //serverB.Close();
-            } else {
+            }
+            else if(bytes.Length > 1)
+            {
                 int jsonLength = BitConverter.ToInt32(bytes, 1).SwapEndianness();
                 string jsonstr = Encoding.UTF8.GetString(bytes, 5, jsonLength);
                 dynamic json = JsonConvert.DeserializeObject(jsonstr);
@@ -168,14 +197,16 @@ namespace KLC_Finch {
                 byte[] remaining = new byte[remLength];
 
                 //Console.WriteLine(jsonstr);
-                if (remLength > 0) {
+                if (remLength > 0)
+                {
                     Array.Copy(bytes, remStart, remaining, 0, remLength);
                     //string remainingHex = BitConverter.ToString(bytes, remStart, remLength).Replace("-", "");
                     //string remainingstr = Encoding.UTF8.GetString(bytes, 5 + jsonLength, remLength);
                     //Console.WriteLine(remainingHex);
                 }
 
-                if (type == (byte)Enums.KaseyaMessageTypes.HostDesktopConfiguration) {
+                if (type == (byte)Enums.KaseyaMessageTypes.HostDesktopConfiguration)
+                {
                     //Console.WriteLine("HostDesktopConfiguration");
 
                     //Shared Jason
@@ -193,13 +224,21 @@ namespace KLC_Finch {
                         Viewer.SetControlEnabled(true, true);
                     else
                         Viewer.SetControlEnabled(true, false);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.HostTerminalSessionsList) {
+
+                    //--
+
+                    //This is for whatever reason related to drop upload working later.
+                    SendJson(KaseyaMessageTypes.EnableFileTransfer, "{}");
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.HostTerminalSessionsList)
+                {
                     //Console.WriteLine("HostTerminalSessionsList");
                     //{"default_session":4294967294,"sessions":[{"session_id":4294967294,"session_name":"Console JH-TEST-2016\\Hackerman"},{"session_id":1,"session_name":"JH-TEST-2016\\TestUser"}]}
 
                     string default_session = json["default_session"].ToString();
                     Viewer.ClearTSSessions();
-                    foreach (dynamic session in json["sessions"]) {
+                    foreach (dynamic session in json["sessions"])
+                    {
                         string session_id = session["session_id"].ToString(); //int or BigInteger
                         string session_name = (string)session["session_name"];
 
@@ -208,7 +247,9 @@ namespace KLC_Finch {
                     }
 
                     //Viewer.SetActiveTSSession(default_session);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.CursorImage) {
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.CursorImage)
+                {
                     //Only provided when the cursor image changes, can be from cher end user or remote controller.
                     //{"height":32,"hotspotX":0,"hotspotY":0,"screenPosX":433,"screenPosY":921,"width":32}
 
@@ -227,17 +268,23 @@ namespace KLC_Finch {
                     //Console.WriteLine(jsonstr + " = " + remaining.Length);
                     //Console.WriteLine("Hotspot: " + cursorHotspotX + ", " + cursorHotspotY);
                     Viewer.LoadCursor(cursorX, cursorY, cursorWidth, cursorHeight, cursorHotspotX, cursorHotspotY, remaining);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.Ping) {
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.Ping)
+                {
                     long receivedEpoch = (long)json["timestamp"];
                     Viewer.UpdateLatency(DateTimeOffset.Now.ToUnixTimeMilliseconds() - receivedEpoch);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.Video) {
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.Video)
+                {
                     //Just send it anyway, otherwise Kaseya gets sad and stops sending frames
                     //PostFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
                     //Moved to after decode
 
-                    if (DecodeMode == DecodeMode.BitmapRGB) {
+                    if (DecodeMode == DecodeMode.BitmapRGB)
+                    {
                         Bitmap b1 = null;
-                        try {
+                        try
+                        {
                             if (decoder == null)
                             {
                                 decoder = new VP8.Decoder(); //Due to Soft Reconnect
@@ -251,17 +298,24 @@ namespace KLC_Finch {
                                     b1 = decoder.Decode(remaining, 0, IsMac);
                                 }
                             }
-                        } catch (Exception ex) {
+                        }
+                        catch (Exception ex)
+                        {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
-                        } finally {
-                            if (b1 != null && !Viewer.GetStatePowerSaving()) {
+                        }
+                        finally
+                        {
+                            if (b1 != null && !Viewer.GetStatePowerSaving())
+                            {
                                 Viewer.LoadTexture(b1.Width, b1.Height, b1);
 
-                                if (captureScreen) {
+                                if (captureScreen)
+                                {
                                     captureScreen = false;
 
                                     //This may cause AV to think we're malware
-                                    Thread tc = new Thread(() => {
+                                    Thread tc = new Thread(() =>
+                                    {
                                         System.Windows.Forms.Clipboard.SetImage(b1);
                                     });
                                     tc.SetApartmentState(ApartmentState.STA);
@@ -274,10 +328,13 @@ namespace KLC_Finch {
                                 b1.Dispose();
                             }
                         }
-                    } else {
+                    }
+                    else
+                    {
                         //YUV or Y
 
-                        try {
+                        try
+                        {
                             int rawWidth = 0;
                             int rawHeight = 0;
                             int rawStride = 0;
@@ -309,16 +366,19 @@ namespace KLC_Finch {
                             }
                             */
 
-                            if (rawWidth != 0 && rawHeight != 0 && !Viewer.GetStatePowerSaving()) {
+                            if (rawWidth != 0 && rawHeight != 0 && !Viewer.GetStatePowerSaving())
+                            {
                                 Viewer.LoadTextureRaw(rawYUV, rawWidth, rawHeight, rawStride);
 
-                                if (captureScreen) {
+                                if (captureScreen)
+                                {
                                     captureScreen = false;
 
                                     Bitmap b1 = decoder.RawToBitmap(rawYUV, rawWidth, rawHeight, rawStride);
 
                                     //This may cause AV to think we're malware
-                                    Thread tc = new Thread(() => {
+                                    Thread tc = new Thread(() =>
+                                    {
                                         System.Windows.Forms.Clipboard.SetImage(b1);
                                     });
                                     tc.SetApartmentState(ApartmentState.STA);
@@ -328,76 +388,96 @@ namespace KLC_Finch {
                                     Thread.Sleep(1);
                                 }
                             }
-                        } catch (Exception ex) {
+                        }
+                        catch (Exception ex)
+                        {
                             Console.WriteLine("RC VP8 decode error: " + ex.ToString());
                         }
                     }
 
                     PostFrameAcknowledgementMessage((ulong)json["sequence_number"], (ulong)json["timestamp"]);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.Clipboard) {
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.Clipboard)
+                {
                     //string remainingHex = BitConverter.ToString(bytes, remStart, remLength).Replace("-", "");
                     string remainingstr = Encoding.UTF8.GetString(remaining); // bytes, 5 + jsonLength, remLength);
                     Viewer.ReceiveClipboard(remainingstr);
                     //Console.WriteLine("Clipboard: " + jsonstr + " // " + remainingstr);
-                } else if (type == (byte)Enums.KaseyaMessageTypes.DropUploadLastChunk) {
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferLastChunk)
+                {
                     //string remainingstr = Encoding.UTF8.GetString(remaining);
-                    string chunkStr = (string)json["chunk"];
-                    int chunk = 0;
-                    if (chunkStr.Length > 0) {
-                        chunk = int.Parse(chunkStr);
+                    int chunk = json["chunk"];
+                    string name = json["name"];
 
-                        if (fileUpload.Chunk == chunk)
-                            fileUpload.Chunk++;
+                    if (name.Length == 0)
+                    {
+                        JObject jInfo = new JObject
+                        {
+                            ["name"] = fileUpload.fileName,
+                            ["size"] = fileUpload.GetFileSize()
+                        };
+                        SendJson(Enums.KaseyaMessageTypes.FileTransferInfo, jInfo.ToString(Formatting.None));
                     }
+                    else if (fileUpload.Chunk == chunk)
+                        fileUpload.Chunk++;
 
-                    JObject jInfo = new JObject {
-                        ["chunk"] = fileUpload.Chunk.ToString(),
-                        ["mime_type"] = "application/octet-stream",
-                        ["name"] = fileUpload.fileName
+                    //--
+
+                    JObject jChunk = new JObject
+                    {
+                        ["chunk"] = fileUpload.Chunk,
+                        ["name"] = fileUpload.fileName,
+                        ["size"] = fileUpload.GetFileSize()
                     };
-                    string sendjson = jInfo.ToString();
-                    if (chunkStr.Length == 0) {
-                        //fileUpload.Open();
-                        SendJson(Enums.KaseyaMessageTypes.DropUploadFileInfo, sendjson);
-                    }
+                    //Will also have the chunk after the header
+                    string sendjson = jChunk.ToString(Formatting.None);
 
                     //--
 
                     byte[] contentBuffer = fileUpload.ReadBlock();
-                    if (contentBuffer.Length == 0) {
-                        SendJson(Enums.KaseyaMessageTypes.DropUploadFileComplete, sendjson);
-                        if (fileUpload.showExplorer) {
-                            //This appears to be optional if you want the file explorer to open, which will happen inside RDP.
-                            SendJson(Enums.KaseyaMessageTypes.DropUploadComplete, "{}");
-                        }
+                    if (contentBuffer.Length == 0)
+                    {
+                        //SendJson(Enums.KaseyaMessageTypes.DropUploadFileComplete, sendjson); //Removed?
+                        SendJson(Enums.KaseyaMessageTypes.FileTransferUploadComplete, "{}");
                         fileUpload.Close();
                         fileUpload = null;
-                    } else {
+                    }
+                    else
+                    {
                         byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
                         int jsonLen = jsonBuffer.Length;
                         int totalLen = jsonLen + contentBuffer.Length;
 
                         byte[] tosend = new byte[totalLen + 5];
-                        tosend[0] = (byte)Enums.KaseyaMessageTypes.DropUploadFileChunk;
+                        tosend[0] = (byte)Enums.KaseyaMessageTypes.FileTransferChunk;
                         byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
                         Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
                         Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
                         Array.Copy(contentBuffer, 0, tosend, 5 + jsonLen, contentBuffer.Length);
 
-                        if (serverB != null && serverB.IsAvailable) {
+                        if (serverB != null && serverB.IsAvailable)
+                        {
                             serverB.Send(tosend);
                             //Console.WriteLine("UploadLastChunk: " + jsonstr);
                         }
                     }
-                } else {
-                    Console.WriteLine("Unhandled message type: " + type);
                 }
+                else
+                {
+                    Debug.WriteLine("Unhandled message type: " + type + " len " + jsonLength);
+                }
+            }
+            else
+            {
+                Debug.WriteLine("Unhandled message type: " + type);
             }
         }
 
-        public void Reconnect() {
-            Visibility visBefore = App.alternative.Visibility;
-            App.alternative.Visibility = Visibility.Visible;
+        public void Reconnect()
+        {
+            Visibility visBefore = App.winStandalone.Visibility;
+            App.winStandalone.Visibility = Visibility.Visible;
 
             WindowState tempState = Viewer.WindowState;
             Viewer.WindowState = WindowState.Normal;
@@ -414,36 +494,44 @@ namespace KLC_Finch {
             Viewer.Height = tempHeight;
             Viewer.WindowState = tempState;
 
-            App.alternative.Visibility = visBefore;
+            App.winStandalone.Visibility = visBefore;
         }
 
-        public void SendAutotype(string text) {
+        public void SendAutotype(string text)
+        {
             SendAutotype(text, 0);
         }
 
-        public void SendAutotype(string text, int speedPreset) {
+        public void SendAutotype(string text, int speedPreset)
+        {
             //Finch/Hawk method
-            if (session.agent.OSTypeProfile == Agent.OSProfile.Mac) {
+            if (session.agent.OSTypeProfile == Agent.OSProfile.Mac)
+            {
                 speedPreset = 2;
                 MITM.SendText(serverB, text, speedPreset);
                 //SendPasteClipboard(text);
-            } else {
+            }
+            else
+            {
                 MITM.SendText(serverB, text, speedPreset);
             }
         }
 
-        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB) {
+        public void SendBlackScreenBlockInput(bool blackOutScreen, bool blockMouseKB)
+        {
             //Kaseya method, 9.5.7817.8820
             //{"black_out_screen":0,"block_mouse_keyboard":1}
 
-            JObject json = new JObject {
+            JObject json = new JObject
+            {
                 ["black_out_screen"] = (blackOutScreen ? 1 : 2),
                 ["block_mouse_keyboard"] = (blockMouseKB ? 1 : 2)
             };
             SendJson(Enums.KaseyaMessageTypes.BlackScreenBlockInput, json.ToString());
         }
 
-        public void SendClipboard(string content) {
+        public void SendClipboard(string content)
+        {
             string sendjson = "{\"mime_type\":\"UTF-8\"}";
             byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
             byte[] contentBuffer = System.Text.Encoding.UTF8.GetBytes(content);
@@ -462,7 +550,8 @@ namespace KLC_Finch {
                 serverB.Send(tosend);
         }
 
-        public void SendKeyDown(int KaseyaKeycode, int USBKeycode) {
+        public void SendKeyDown(int KaseyaKeycode, int USBKeycode)
+        {
             //8220020000001b
             //0300000081
             //E²}Â@,7 ÐyJ¾ P'Fu	~{"keyboard_layout_handle":"0","keyboard_layout_local":false,"lock_states":2,"pressed":true,"usb_keycode":458775,"virtual_key":84}
@@ -474,7 +563,8 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Keyboard, sendjson);
         }
 
-        public void SendKeyUp(int KaseyaKeycode, int USBKeycode) {
+        public void SendKeyUp(int KaseyaKeycode, int USBKeycode)
+        {
             //8220020000001b
             //0300000081
             //E²}Â@,7 ÐyJ¾ P'Fu	~{"keyboard_layout_handle":"0","keyboard_layout_local":false,"lock_states":2,"pressed":true,"usb_keycode":458775,"virtual_key":84}
@@ -486,7 +576,8 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Keyboard, sendjson);
         }
 
-        public void SendMouseDown(MouseButtons button) {
+        public void SendMouseDown(MouseButtons button)
+        {
             //WinForms
             if (mouseDown)
                 return;
@@ -501,7 +592,8 @@ namespace KLC_Finch {
             mouseDown = true;
         }
 
-        public void SendMouseDown(MouseButton button) {
+        public void SendMouseDown(MouseButton button)
+        {
             //WPF
             if (mouseDown)
                 return;
@@ -513,7 +605,8 @@ namespace KLC_Finch {
             mouseDown = true;
         }
 
-        public void SendMousePosition(int x, int y) {
+        public void SendMousePosition(int x, int y)
+        {
             //8220020000001b
             //EJm@T¤T¯Ê(ªÌ/QP'ia {"type":1,"x":1799,"y":657}
 
@@ -521,7 +614,8 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Mouse, sendjson);
         }
 
-        public void SendMouseUp(MouseButtons button) {
+        public void SendMouseUp(MouseButtons button)
+        {
             //WinForms
             if (!mouseDown)
                 return;
@@ -536,7 +630,8 @@ namespace KLC_Finch {
             mouseDown = false;
         }
 
-        public void SendMouseUp(MouseButton button) {
+        public void SendMouseUp(MouseButton button)
+        {
             //WPF
             if (!mouseDown)
                 return;
@@ -551,7 +646,8 @@ namespace KLC_Finch {
             mouseDown = false;
         }
 
-        public void SendMouseWheel(int delta) {
+        public void SendMouseWheel(int delta)
+        {
             //8220020000001b
             //EJm@T¤T¯Ê(ªÌ/QP'ia {"type":1,"x":1799,"y":657}
 
@@ -569,11 +665,13 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Mouse, sendjson);
         }
 
-        public void SendPanicKeyRelease() {
+        public void SendPanicKeyRelease()
+        {
             if (serverB == null || !serverB.IsAvailable)
                 return;
 
-            foreach (int jskey in KeycodeV2.ModifiersJS) {
+            foreach (int jskey in KeycodeV2.ModifiersJS)
+            {
                 KeycodeV2 key = KeycodeV2.List.Find(x => x.JavascriptKeyCode == jskey);
                 serverB.Send(MITM.GetSendKey(key, false));
             }
@@ -581,46 +679,62 @@ namespace KLC_Finch {
             //Needs to be updated to include Fn for Mac.
         }
 
-        public void SendPasteClipboard(string text) {
+        public void SendPasteClipboard(string text)
+        {
             //Kaseya method, 9.5.7765.16499
             //Has a limit of 255 characters, apparently.
-            JObject json = new JObject {
+            JObject json = new JObject
+            {
                 ["content_to_paste"] = text
             };
             SendJson(Enums.KaseyaMessageTypes.PasteClipboard, json.ToString());
         }
 
-        public void SendSecureAttentionSequence() {
+        public void SendSecureAttentionSequence()
+        {
             //Control+Alt+Delete
             //This doesn't seem to work in private sessions
 
             SendJson(Enums.KaseyaMessageTypes.SecureAttentionSequence, "{}");
         }
 
-        public void SetSocket(IWebSocketConnection ServerBsocket, int ipPort) {
+        public void SetSocket(IWebSocketConnection ServerBsocket, int ipPort)
+        {
             this.serverB = ServerBsocket;
             this.clientB = ipPort;
         }
 
-        public void ShowCursor(bool enabled) {
+        public void ShowCursor(bool enabled)
+        {
             //Kaseya method, 9.5.7765.16499
-            JObject json = new JObject {
+            JObject json = new JObject
+            {
                 ["enabled"] = enabled
             };
             SendJson(Enums.KaseyaMessageTypes.ShowCursor, json.ToString());
         }
 
-        public void UpdateScreens(string jsonstr) {
+        public void UpdateScreens(string jsonstr)
+        {
             //Do nothing
         }
 
-        public void UploadDrop(string file, Progress<int> progress, bool showExplorer) {
-            if (fileUpload == null) {
-                fileUpload = new UploadRC(file, showExplorer, progress);
+        public void UploadDrop(string file, Progress<int> progress)
+        {
+            if (fileUpload == null)
+            {
+                fileUpload = new UploadRC(file, progress);
                 bool ableToOpen = fileUpload.Open();
                 if (ableToOpen)
-                    SendJson(Enums.KaseyaMessageTypes.DropUploadStart, "{}");
-                else {
+                {
+                    JObject json = new JObject
+                    {
+                        ["total_size"] = fileUpload.GetFileSize()
+                    };
+                    SendJson(Enums.KaseyaMessageTypes.FileTransferStart, json.ToString(Formatting.None));
+                }
+                else
+                {
                     if (progress != null)
                         ((IProgress<int>)progress).Report(100);
                     fileUpload = null;
@@ -628,7 +742,8 @@ namespace KLC_Finch {
             }
         }
 
-        private static int GetNewPort() {
+        private static int GetNewPort()
+        {
             TcpListener tcpListener = new TcpListener(IPAddress.Parse("127.0.0.1"), 0);
             tcpListener.Start();
             int port = ((IPEndPoint)tcpListener.LocalEndpoint).Port;
@@ -637,7 +752,8 @@ namespace KLC_Finch {
             return port;
         }
 
-        private static int SwapEndianness(int value) {
+        private static int SwapEndianness(int value)
+        {
             var b1 = (value >> 0) & 0xff;
             var b2 = (value >> 8) & 0xff;
             var b3 = (value >> 16) & 0xff;
@@ -646,19 +762,24 @@ namespace KLC_Finch {
             return b1 << 24 | b2 << 16 | b3 << 8 | b4 << 0;
         }
 
-        private void PostFrameAcknowledgementMessage(ulong sequence_number, ulong timestamp) {
-            if (timestamp > lastFrameAckTimestamp) {
+        private void PostFrameAcknowledgementMessage(ulong sequence_number, ulong timestamp)
+        {
+            if (timestamp > lastFrameAckTimestamp)
+            {
                 lastFrameAckSeq = sequence_number;
                 lastFrameAckTimestamp = timestamp;
 
                 string sendjson = "{\"last_processed_sequence_number\":" + lastFrameAckSeq + ",\"most_recent_timestamp\":" + lastFrameAckTimestamp + "}";
                 SendJson(Enums.KaseyaMessageTypes.FrameAcknowledgement, sendjson);
-            } else {
+            }
+            else
+            {
                 //Console.WriteLine("Frame Ack out of order");
             }
         }
 
-        private void SendHeartbeat(object sender, ElapsedEventArgs e) {
+        private void SendHeartbeat(object sender, ElapsedEventArgs e)
+        {
             if (serverB == null || !serverB.IsAvailable)
                 return;
 
@@ -666,7 +787,8 @@ namespace KLC_Finch {
             SendJson(Enums.KaseyaMessageTypes.Ping, sendjson);
         }
 
-        private void SendJson(Enums.KaseyaMessageTypes messageType, string sendjson) {
+        private void SendJson(Enums.KaseyaMessageTypes messageType, string sendjson)
+        {
             byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
             int jsonLen = jsonBuffer.Length;
 
@@ -702,5 +824,14 @@ namespace KLC_Finch {
                 Disconnect(rcSessionId);
         }
         */
+
+        public void UpdateScreensHack()
+        {
+            if (session.ModuleStaticImage == null)
+            {
+                session.ModuleStaticImage = new StaticImage(session, null);
+            }
+            session.ModuleStaticImage.ReconnectHack();
+        }
     }
 }

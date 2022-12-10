@@ -145,7 +145,7 @@ namespace KLC_Finch
                 dialog.Buttons.Add(tdbCancel);
 
                 System.Media.SystemSounds.Beep.Play(); //Custom doesn't beep
-                TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                TaskDialogButton button = dialog.ShowDialog(window);
                 if (button == tdbDelete)
                     moduleRegistry.DeleteKey(key);
             }
@@ -195,7 +195,7 @@ namespace KLC_Finch
                     dialog.Buttons.Add(tdbDelete);
                     dialog.Buttons.Add(tdbCancel);
 
-                    TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                    TaskDialogButton button = dialog.ShowDialog(window);
                     if (button == tdbDelete)
                         moduleRegistry.DeleteValue(rv.Name);
                 }
@@ -208,7 +208,7 @@ namespace KLC_Finch
 
                     TaskDialogButton tdbOk = new TaskDialogButton(ButtonType.Ok);
                     dialog.Buttons.Add(tdbOk);
-                    TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                    //TaskDialogButton button = dialog.ShowDialog(window);
                 }
             }
         }
@@ -290,9 +290,11 @@ namespace KLC_Finch
             if (moduleRegistry == null)
                 return;
 
-            WindowRegistryInt wri = new WindowRegistryInt();
+            WindowRegistryInt wri = new WindowRegistryInt
+            {
+                Owner = window
+            };
             bool accept = (bool)wri.ShowDialog();
-            wri.Owner = window;
             if (accept)
             {
                 RegistryValue rv = new RegistryValue(wri.ReturnName, (int)wri.ReturnValue);

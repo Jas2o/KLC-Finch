@@ -776,6 +776,26 @@ namespace KLC_Finch {
             GL.BufferData<Vector2>(BufferTarget.ArrayBuffer, (IntPtr)(Vector2.SizeInBytes * vertBufferTop.Length), vertBufferTop, BufferUsageHint.StaticDraw);
         }
 
+        private Color ConnectionStatusToColor()
+        {
+            switch (state.connectionStatus)
+            {
+                case ConnectionStatus.FirstConnectionAttempt:
+                    return Color.SlateGray;
+
+                case ConnectionStatus.Connected:
+                    if (state.ControlEnabled)
+                        return Color.FromArgb(255, 20, 20, 20);
+                    else
+                        return Color.MidnightBlue;
+
+                case ConnectionStatus.Disconnected:
+                    return Color.Maroon;
+            }
+
+            return Color.BlueViolet;
+        }
+
         private void Render() {
             glControl.MakeCurrent();
 
@@ -808,26 +828,26 @@ namespace KLC_Finch {
             }
             //}
 
-            switch (state.connectionStatus) {
-                case ConnectionStatus.FirstConnectionAttempt:
-                    GL.ClearColor(System.Drawing.Color.SlateGray);
-                    break;
-
-                case ConnectionStatus.Connected:
-                    if (state.ControlEnabled)
-                        GL.ClearColor(Color.FromArgb(255, 20, 20, 20));
-                    else
-                        GL.ClearColor(System.Drawing.Color.MidnightBlue);
-                    break;
-
-                case ConnectionStatus.Disconnected:
-                    GL.ClearColor(System.Drawing.Color.Maroon);
-                    break;
-            }
-
+            Color bgColor = ConnectionStatusToColor();
+            GL.ClearColor(bgColor);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             if (state.UseMultiScreen) {
+                if (!state.UseMultiScreenPanZoom)
+                {
+                    GL.Disable(EnableCap.Texture2D);
+                    GL.Begin(PrimitiveType.Polygon);
+                    GL.Color3(bgColor);
+                    //GL.Vertex2(state.virtualViewNeed.Left - 50, state.virtualViewNeed.Top - 50);
+                    //GL.Vertex2(state.virtualViewNeed.Right + 50, state.virtualViewNeed.Top - 50);
+                    GL.Vertex2(state.virtualViewNeed.Left - 50, state.virtualViewNeed.Bottom - (state.virtualViewNeed.Height / 2) - 50);
+                    GL.Vertex2(state.virtualViewNeed.Right + 50, state.virtualViewNeed.Bottom - (state.virtualViewNeed.Height / 2) - 50);
+                    GL.Color3(Color.Black);
+                    GL.Vertex2(state.virtualViewNeed.Right + 50, state.virtualViewNeed.Bottom + 50);
+                    GL.Vertex2(state.virtualViewNeed.Left - 50, state.virtualViewNeed.Bottom + 50);
+                    GL.End();
+                }
+
                 foreach (RCScreen screen in state.ListScreen) {
                     if (screen.Texture != null) {
                         Color multiplyColor;

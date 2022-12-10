@@ -41,21 +41,21 @@ namespace KLC {
 
         public WindowAlternative.StatusCallback Callback;
 
-        public LiveConnectSession(string shortToken, string agentID, WindowAlternative.StatusCallback callback = null) {
+        public LiveConnectSession(string vsa, string shortToken, string agentID, WindowAlternative.StatusCallback callback = null) {
             agentGuid = agentID;
             shorttoken = shortToken;
             Callback = callback;
-            Kaseya.LoadToken(shortToken);
-            agent = new Agent(agentGuid);
+            Kaseya.LoadToken(vsa, shortToken);
+            agent = new Agent(vsa, agentGuid);
 
-            Auth = KaseyaAuth.ApiAuthX(shorttoken, Kaseya.DefaultServer);
+            Auth = KaseyaAuth.ApiAuthX(shorttoken, vsa);
             if (Auth == null)
             {
                 Callback?.Invoke(Enums.EPStatus.AuthFailed);
                 return;
             }
             shortToken = Auth.Token; //Works fine without this line, but it's something KLC does.
-            Eal = Api15.EndpointsAdminLogin(shorttoken);
+            Eal = Api15.EndpointsAdminLogin(vsa, shorttoken);
 
             JObject rcNotifyPolicy = agent.GetRemoteControlNotifyPolicyFromAPI();
             if (rcNotifyPolicy["Result"] != null) {
@@ -67,7 +67,14 @@ namespace KLC {
             ////dynamic agentSettings = agent.GetAgentSettingsInfoFromAPI(shorttoken);
             ////dynamic auditSummary = agent.GetAgentAuditSummaryFromAPI(shorttoken);
 
-            Eirc = Api15.EndpointsInitiateRemoteControl(shorttoken, agentGuid);
+            try
+            {
+                Eirc = Api15.EndpointsInitiateRemoteControl(vsa, shorttoken, agentGuid);
+            } catch(Exception)
+            {
+                Callback?.Invoke(Enums.EPStatus.UnableToStartSession);
+                return;
+            }
             RandSessionGuid = Guid.NewGuid().ToString();
 
             //jsonAgentSettings = Api10.AssetmgmtAgentSettings(shorttoken, agentGuid);
@@ -92,6 +99,8 @@ namespace KLC {
         }
 
         public void Close() {
+            //if (ModuleRemoteControl != null)
+                //ModuleRemoteControl.Disconnect();
             if (WebsocketB != null)
                 WebsocketB.Close();
             if (WebsocketA != null)

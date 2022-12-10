@@ -15,11 +15,13 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace KLC_Finch {
+namespace KLC_Finch
+{
     /// <summary>
     /// Interaction logic for WindowRCTest.xaml
     /// </summary>
-    public partial class WindowRCTest : Window {
+    public partial class WindowRCTest : Window
+    {
 
         //private readonly int width = 800;
         //private readonly int height = 1080;
@@ -35,40 +37,48 @@ namespace KLC_Finch {
         private readonly RemoteControlTest rcTest;
         private WindowViewerV3 myViewer;
 
-        public WindowRCTest() {
+        public WindowRCTest()
+        {
             InitializeComponent();
             txtInputJson.Text = exampleDefault;
             cmbRenderer.SelectedIndex = App.Settings.Renderer;
 
-            if (App.viewer != null) {
-                App.viewer.Close();
-                App.viewer = null;
+            if (App.winStandaloneViewer != null)
+            {
+                App.winStandaloneViewer.Close();
+                App.winStandaloneViewer = null;
             }
 
             rcTest = new RemoteControlTest();
         }
 
-        private void BtnTemplateDefault_Click(object sender, RoutedEventArgs e) {
+        private void BtnTemplateDefault_Click(object sender, RoutedEventArgs e)
+        {
             txtInputJson.Text = exampleDefault;
         }
 
-        private void BtnTemplate1_Click(object sender, RoutedEventArgs e) {
+        private void BtnTemplate1_Click(object sender, RoutedEventArgs e)
+        {
             //L-NB39
             txtInputJson.Text = example1;
         }
 
-        private void BtnTemplate2_Click(object sender, RoutedEventArgs e) {
+        private void BtnTemplate2_Click(object sender, RoutedEventArgs e)
+        {
             //Monitor-2
             txtInputJson.Text = example2;
         }
 
-        private void BtnTemplate3_Click(object sender, RoutedEventArgs e) {
+        private void BtnTemplate3_Click(object sender, RoutedEventArgs e)
+        {
             //NB at home
             txtInputJson.Text = example3;
         }
 
-        private void BtnTest_Click(object sender, RoutedEventArgs e) {
-            try {
+        private void BtnTest_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
                 dynamic json = JsonConvert.DeserializeObject(txtInputJson.Text);
                 string jsonstr = KLC.Util.JsonPrettify(txtInputJson.Text);
                 txtInputJson.Text = jsonstr;
@@ -76,8 +86,8 @@ namespace KLC_Finch {
                 if (myViewer != null && myViewer.Visibility == Visibility.Visible)
                     myViewer.Close();
                 LibKaseya.Agent.OSProfile profile = (bool)chkMac.IsChecked ? LibKaseya.Agent.OSProfile.Mac : LibKaseya.Agent.OSProfile.Other;
-                myViewer = App.viewer = new WindowViewerV3(cmbRenderer.SelectedIndex, rcTest, profile);
-                if(profile == LibKaseya.Agent.OSProfile.Mac)
+                myViewer = App.winStandaloneViewer = new WindowViewerV3(cmbRenderer.SelectedIndex, rcTest, profile);
+                if (profile == LibKaseya.Agent.OSProfile.Mac)
                     myViewer.SetTitle("Test Mac", LibKaseya.Enums.RC.Private);
                 else
                     myViewer.SetTitle("Test", LibKaseya.Enums.RC.Private);
@@ -85,11 +95,14 @@ namespace KLC_Finch {
                 myViewer.UpdateScreenLayout(json, txtInputJson.Text);
 
                 rcTest.LoopStart(myViewer);
-            } catch(Exception) {
+            }
+            catch (Exception)
+            {
             }
         }
 
-        private void ChkRetina_Changed(object sender, RoutedEventArgs e) {
+        private void ChkRetina_Changed(object sender, RoutedEventArgs e)
+        {
             rcTest.SetRetina((bool)ChkRetina.IsChecked);
         }
 

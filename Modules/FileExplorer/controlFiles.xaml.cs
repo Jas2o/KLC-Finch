@@ -16,72 +16,88 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace KLC_Finch {
+namespace KLC_Finch
+{
     /// <summary>
     /// Interaction logic for controlFiles.xaml
     /// </summary>
-    public partial class controlFiles : UserControl {
+    public partial class controlFiles : UserControl
+    {
 
         private WindowAlternative window;
         private FileExplorer moduleFileExplorer;
         private Modules.FilesData filesData;
 
-        public controlFiles() {
+        public controlFiles()
+        {
             filesData = new Modules.FilesData();
             this.DataContext = filesData;
             InitializeComponent();
         }
 
-        private void btnFilesPathUp_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesPathUp_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer != null)
                 moduleFileExplorer.GoUp();
         }
 
-        public void btnFilesPathJump_Click(object sender, RoutedEventArgs e) {
+        public void btnFilesPathJump_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer != null)
                 moduleFileExplorer.GoTo(txtFilesPath.Text);
         }
 
-        private void btnFilesStart_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesStart_Click(object sender, RoutedEventArgs e)
+        {
             KLC.LiveConnectSession session = ((WindowAlternative)Window.GetWindow(this)).session;
-            if (session != null && session.WebsocketB.ControlAgentIsReady()) {
+            if (session != null && session.WebsocketB.ControlAgentIsReady())
+            {
                 btnFilesStart.IsEnabled = false;
                 window = ((WindowAlternative)Window.GetWindow(this));
 
                 moduleFileExplorer = new FileExplorer(session);
-                moduleFileExplorer.LinkToUI(listFilesFolders, txtFilesPath, progressBar, progressText, btnFilesDownload, btnFilesUpload, filesData);
+                moduleFileExplorer.LinkToUI(listFilesFolders, txtFilesPath, lblTransfer, lblCurrentFile, progressBar, progressText, listDownloads, listUploads, btnFilesDownload, btnFilesUpload, filesData);
                 session.ModuleFileExplorer = moduleFileExplorer;
             }
         }
 
-        private void listFilesFolders_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
-            if (listFilesFolders.SelectedIndex > -1) {
+        private void listFilesFolders_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (listFilesFolders.SelectedIndex > -1)
+            {
                 string selectedkey = listFilesFolders.SelectedItem.ToString();
 
                 moduleFileExplorer.SelectPath(selectedkey);
             }
         }
 
-        private void btnFilesDownload_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesDownload_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer == null || dgvFilesFiles.SelectedItems.Count == 0)
                 return;
 
-            if(dgvFilesFiles.SelectedItems.Count == 1) {
+            if (dgvFilesFiles.SelectedItems.Count == 1)
+            {
                 string selectedFile = ((KLCFile)dgvFilesFiles.SelectedItem).Name;
 
-                if (selectedFile != null && selectedFile.Length > 0) {
+                if (selectedFile != null && selectedFile.Length > 0)
+                {
                     SaveFileDialog saveFileDialog = new SaveFileDialog();
                     saveFileDialog.Title = "KLC-Finch: Download file '" + selectedFile + "'";
                     saveFileDialog.FileName = selectedFile;
                     if (saveFileDialog.ShowDialog() == true)
                         moduleFileExplorer.Download(selectedFile, saveFileDialog.FileName);
                 }
-            } else {
+            }
+            else
+            {
                 VistaFolderBrowserDialog folderDialog = new VistaFolderBrowserDialog();
                 folderDialog.UseDescriptionForTitle = true;
                 folderDialog.Description = "KLC-Finch: Download multiple files";
-                if (folderDialog.ShowDialog() == true) {
-                    foreach (object selectedItem in dgvFilesFiles.SelectedItems) {
+                if (folderDialog.ShowDialog() == true)
+                {
+                    foreach (object selectedItem in dgvFilesFiles.SelectedItems)
+                    {
                         string selectedFile = ((KLCFile)selectedItem).Name;
 
                         if (selectedFile != null && selectedFile.Length > 0)
@@ -91,14 +107,16 @@ namespace KLC_Finch {
             }
         }
 
-        private void btnFilesUpload_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesUpload_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer == null || moduleFileExplorer.GetSelectedPathLength() == 0)
                 return;
 
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Multiselect = true;
             openFileDialog.Title = "KLC-Finch: Upload file";
-            if (openFileDialog.ShowDialog() == true) {
+            if (openFileDialog.ShowDialog() == true)
+            {
                 foreach (string fileName in openFileDialog.FileNames)
                     moduleFileExplorer.Upload(fileName);
                 //btnFilesDownload.IsEnabled = !isValid;
@@ -107,22 +125,26 @@ namespace KLC_Finch {
             }
         }
 
-        private void btnFilesFolderCreate_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesFolderCreate_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer == null)
                 return;
 
             WindowInputStringConfirm wrk = new WindowInputStringConfirm("Create Folder", "", "");
             wrk.Owner = window;
             bool accept = (bool)wrk.ShowDialog();
-            if (accept) {
+            if (accept)
+            {
                 moduleFileExplorer.CreateFolder(wrk.ReturnName);
             }
         }
 
-        private void btnFilesFolderRename_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesFolderRename_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer == null)
                 return;
-            if (listFilesFolders.SelectedIndex > -1) {
+            if (listFilesFolders.SelectedIndex > -1)
+            {
                 string selectedkey = listFilesFolders.SelectedItem.ToString();
                 KLCFile lookup = moduleFileExplorer.GetKLCFolder(selectedkey);
                 if (lookup == null)
@@ -131,13 +153,15 @@ namespace KLC_Finch {
                 WindowInputStringConfirm wrk = new WindowInputStringConfirm("Rename Folder", selectedkey, selectedkey);
                 wrk.Owner = window;
                 bool accepted = (bool)wrk.ShowDialog();
-                if (accepted) {
+                if (accepted)
+                {
                     moduleFileExplorer.RenameFileOrFolder(selectedkey, wrk.ReturnName);
                 }
             }
         }
 
-        private void btnFilesFolderDelete_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesFolderDelete_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer == null || listFilesFolders.SelectedItem == null)
                 return;
 
@@ -165,19 +189,21 @@ namespace KLC_Finch {
                 dialog.Buttons.Add(tdbCancel);
 
                 System.Media.SystemSounds.Beep.Play(); //Custom doesn't beep
-                TaskDialogButton button = dialog.ShowDialog(App.alternative);
+                TaskDialogButton button = dialog.ShowDialog(window);
                 if (button == tdbDelete)
                     moduleFileExplorer.DeleteFolder(lookup);
             }
         }
 
-        private void btnFilesFileRename_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesFileRename_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer == null || dgvFilesFiles.SelectedItem == null)
                 return;
 
             string valueNameOld = ((KLCFile)dgvFilesFiles.SelectedItem).Name;
 
-            if (valueNameOld != null && valueNameOld.Length > 0) {
+            if (valueNameOld != null && valueNameOld.Length > 0)
+            {
                 WindowInputStringConfirm wrk = new WindowInputStringConfirm("Rename File", valueNameOld, valueNameOld);
                 wrk.Owner = window;
                 bool accepted = (bool)wrk.ShowDialog();
@@ -186,7 +212,8 @@ namespace KLC_Finch {
             }
         }
 
-        private void btnFilesFileDelete_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesFileDelete_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer == null || dgvFilesFiles.SelectedItems.Count == 0)
                 return;
 
@@ -195,7 +222,8 @@ namespace KLC_Finch {
             for (int i = 1; i < dgvFilesFiles.SelectedItems.Count; i++)
                 sb.Append(", " + ((KLCFile)dgvFilesFiles.SelectedItems[i]).Name);
 
-            using (TaskDialog dialog = new TaskDialog()) {
+            using (TaskDialog dialog = new TaskDialog())
+            {
                 string word = (dgvFilesFiles.SelectedItems.Count == 1 ? "file" : "files");
                 dialog.WindowTitle = "KLC-Finch: Files";
                 dialog.MainInstruction = string.Format("Delete {0} {1}?", dgvFilesFiles.SelectedItems.Count, word);
@@ -212,33 +240,39 @@ namespace KLC_Finch {
                 dialog.Buttons.Add(tdbDelete);
                 dialog.Buttons.Add(tdbCancel);
 
-                TaskDialogButton button = dialog.ShowDialog(App.alternative);
-                if (button == tdbDelete) {
+                TaskDialogButton button = dialog.ShowDialog(window);
+                if (button == tdbDelete)
+                {
                     foreach (object selectedItem in dgvFilesFiles.SelectedItems)
                         moduleFileExplorer.DeleteFile((KLCFile)selectedItem);
                 }
             }
         }
 
-        private void DestructiveDialog_VerificationClicked(object sender, EventArgs e) {
+        private void DestructiveDialog_VerificationClicked(object sender, EventArgs e)
+        {
             TaskDialog td = (TaskDialog)sender;
             td.Buttons[0].Enabled = td.IsVerificationChecked;
         }
 
-        private void txtFilesPath_PreviewKeyDown(object sender, KeyEventArgs e) {
+        private void txtFilesPath_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
             if (moduleFileExplorer == null)
                 return;
 
-            if (e.Key == Key.Enter) {
+            if (e.Key == Key.Enter)
+            {
                 moduleFileExplorer.GoTo(txtFilesPath.Text);
                 e.Handled = true;
             }
         }
 
-        private void btnFilesFolderDownload_Click(object sender, RoutedEventArgs e) {
+        private void btnFilesFolderDownload_Click(object sender, RoutedEventArgs e)
+        {
             if (moduleFileExplorer == null)
                 return;
-            if (listFilesFolders.SelectedIndex > -1) {
+            if (listFilesFolders.SelectedIndex > -1)
+            {
                 string selectedkey = listFilesFolders.SelectedItem.ToString();
                 KLCFile lookup = moduleFileExplorer.GetKLCFolder(selectedkey);
                 if (lookup == null)
@@ -253,40 +287,72 @@ namespace KLC_Finch {
             }
         }
 
-        private void dgvFilesFiles_SelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e) {
-            if(dgvFilesFiles.SelectedItems.Count == 1) {
+        private void dgvFilesFiles_SelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e)
+        {
+            if (dgvFilesFiles.SelectedItems.Count == 1)
+            {
                 btnFilesFileRename.IsEnabled = true;
                 txtFilesSelected.Content = "1 file selected";
-            } else {
+            }
+            else
+            {
                 btnFilesFileRename.IsEnabled = false;
                 txtFilesSelected.Content = dgvFilesFiles.SelectedItems.Count + " files selected";
             }
         }
 
-        private void ContextShortcutsKRCTransferFiles_Click(object sender, RoutedEventArgs e) {
-            if (moduleFileExplorer != null) {
-                if(window.session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac)
+        private void ContextShortcutsKRCTransferFiles_Click(object sender, RoutedEventArgs e)
+        {
+            if (moduleFileExplorer != null)
+            {
+                if (window.session.agent.OSTypeProfile == LibKaseya.Agent.OSProfile.Mac)
                     txtFilesPath.Text = "/Library/Kaseya/kworking/KRCTransferFiles/";
                 else
-                    txtFilesPath.Text = "C:\\kworking\\System\\KRCTransferFiles";
+                    txtFilesPath.Text = "C:\\kworking\\KRCTransferFiles";
                 moduleFileExplorer.GoTo(txtFilesPath.Text);
             }
         }
 
-        private void BtnShortcuts_Click(object sender, RoutedEventArgs e) {
+        private void BtnShortcuts_Click(object sender, RoutedEventArgs e)
+        {
             btnShortcuts.ContextMenu.IsOpen = true;
         }
 
-        private void UserControl_Loaded(object sender, RoutedEventArgs e) {
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
             if (!this.IsVisible)
                 return;
 
-            if (App.Settings.AltModulesStartAuto) {
-                if (btnFilesStart.IsEnabled) {
+            if (App.Settings.AltModulesStartAuto)
+            {
+                if (btnFilesStart.IsEnabled)
+                {
                     btnFilesStart_Click(sender, e);
                     btnFilesStart.Visibility = Visibility.Collapsed;
                 }
             }
+        }
+
+        private void btnClearHistory_Click(object sender, RoutedEventArgs e)
+        {
+            listDownloads.Items.Clear();
+            listUploads.Items.Clear();
+        }
+
+        private void listDownloads_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (listDownloads.SelectedItem == null)
+                return;
+            string tag = (listDownloads.SelectedItem as ListBoxItem).Tag as string;
+            System.Diagnostics.Process.Start("explorer.exe", string.Format("/select,\"{0}\"", tag));
+        }
+
+        private void listUploads_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (listUploads.SelectedItem == null)
+                return;
+            string tag = (listUploads.SelectedItem as ListBoxItem).Tag as string;
+            System.Diagnostics.Process.Start("explorer.exe", string.Format("/select,\"{0}\"", tag));
         }
     }
 }
