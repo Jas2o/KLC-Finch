@@ -16,6 +16,7 @@ namespace KLC_Finch {
 
     /// <summary>
     /// Interaction logic for RCvOpenGL.xaml
+    /// OpenGLWPF does not work with RenderDoc for debugging.
     /// </summary>
     public partial class RCvOpenGLWPF : RCv {
 
@@ -79,9 +80,7 @@ namespace KLC_Finch {
 
             state.UseMultiScreenOverview = false;
 
-            //MainCamera.Rotation = 0f;
-            MainCamera.Position = Vector2.Zero;
-            MainCamera.Scale = new Vector2(1f, 1f);
+            ResetCamera();
             //DebugKeyboard();
 
             if (App.Settings.MultiAltFit) {
@@ -134,8 +133,7 @@ namespace KLC_Finch {
             //--
 
             //MainCamera.Rotation = 0f;
-            MainCamera.Position = Vector2.Zero;
-            MainCamera.Scale = new Vector2(1f, 1f);
+            ResetCamera();
             //DebugKeyboard();
 
             state.virtualViewWant = state.virtualCanvas;
@@ -360,6 +358,26 @@ namespace KLC_Finch {
             GL.UseProgram(program);
         }
 
+        private System.Drawing.Color ConnectionStatusToColor()
+        {
+            switch (state.connectionStatus)
+            {
+                case ConnectionStatus.FirstConnectionAttempt:
+                    return System.Drawing.Color.SlateGray;
+
+                case ConnectionStatus.Connected:
+                    if (state.ControlEnabled)
+                        return System.Drawing.Color.FromArgb(255, 20, 20, 20);
+                    else
+                        return System.Drawing.Color.MidnightBlue;
+
+                case ConnectionStatus.Disconnected:
+                    return System.Drawing.Color.Maroon;
+            }
+
+            return System.Drawing.Color.BlueViolet;
+        }
+
         private void GlControl_Render(TimeSpan obj) {
             if (state.UseMultiScreen)
                 RenderStartMulti();
@@ -390,25 +408,10 @@ namespace KLC_Finch {
             }
             //}
 
-            switch (state.connectionStatus) {
-                case ConnectionStatus.FirstConnectionAttempt:
-                    GL.ClearColor(System.Drawing.Color.SlateGray);
-                    break;
-
-                case ConnectionStatus.Connected:
-                    if (state.ControlEnabled)
-                        GL.ClearColor(System.Drawing.Color.FromArgb(255, 20, 20, 20));
-                    else
-                        GL.ClearColor(System.Drawing.Color.MidnightBlue);
-                    break;
-
-                case ConnectionStatus.Disconnected:
-                    GL.ClearColor(System.Drawing.Color.Maroon);
-                    break;
-            }
-
+            System.Drawing.Color bgColor = ConnectionStatusToColor();
+            GL.ClearColor(bgColor);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            GL.Finish();
+            GL.Finish(); //Why is this here?
 
             if (state.UseMultiScreen) {
                 for (int i = 0; i < state.ListScreen.Count; i++) {
@@ -494,6 +497,21 @@ namespace KLC_Finch {
             }
 
             GL.Finish();
+        }
+
+        private void GLResetShaderAndTextures()
+        {
+            //For whatever reason, this is only a problem for OpenGLWPF
+
+            GL.UseProgram(0);
+            GL.ActiveTexture(TextureUnit.Texture0);
+            GL.BindTexture(TextureTarget.Texture2D, 0);
+            GL.ActiveTexture(TextureUnit.Texture1);
+            GL.BindTexture(TextureTarget.Texture2D, 0);
+            GL.ActiveTexture(TextureUnit.Texture2);
+            GL.BindTexture(TextureTarget.Texture2D, 0);
+            GL.ActiveTexture(TextureUnit.Texture3);
+            GL.BindTexture(TextureTarget.Texture2D, 0);
         }
 
         private void GlControl_SizeChanged(object sender, SizeChangedEventArgs e) {
@@ -792,6 +810,13 @@ namespace KLC_Finch {
             GL.Viewport(0, 0, (int)glControl.FrameBufferWidth, (int)glControl.FrameBufferHeight);
             MainCamera.ApplyTransform();
             GL.MatrixMode(MatrixMode.Modelview);
+        }
+
+        public override void ResetCamera()
+        {
+            //MainCamera.Rotation = 0f;
+            MainCamera.Position = Vector2.Zero;
+            MainCamera.Scale = new Vector2(1f, 1f);
         }
     }
 }

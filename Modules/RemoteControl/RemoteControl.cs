@@ -39,16 +39,22 @@ namespace KLC_Finch
         private string rcSessionId;
         private IWebSocketConnection serverB;
         private System.Timers.Timer timerHeartbeat;
-        private UploadRC fileUpload;
+
+        public Modules.RemoteControl.Transfer.RCFile Files { get; private set; }
+        //private UploadRC fileUpload;
+        //private DownloadRC fileDownload;
 
         public RemoteControl(KLC.LiveConnectSession session, RC mode)
         {
             this.session = session;
             this.mode = mode;
+			IsMac = (session.agent.OSTypeProfile == Agent.OSProfile.Mac);
 
             decoderCT = new CancellationTokenSource();
             decoder = new VP8.Decoder();
             //decoder2 = new Vpx.Net.VP8Codec(); //Test
+
+            Files = new Modules.RemoteControl.Transfer.RCFile(IsMac);
         }
 
         //public WindowViewerV2 Viewer;
@@ -72,7 +78,7 @@ namespace KLC_Finch
         public void ChangeScreen(string screen_id, int clientH, int clientW)
         {
             //{"downscale_limit":4,"monitorId":354484717,"screen_height":636,"screen_width":986}
-            JObject json = new JObject
+            JObject json = new()
             {
                 ["downscale_limit"] = 1, //Kaseya default is 4
                 ["monitorId"] = int.Parse(screen_id), //Intentionally using a string as int/biginteger
@@ -186,7 +192,20 @@ namespace KLC_Finch
                 //Viewer.NotifySocketClosed(rcSessionId);
                 //serverB.Close();
             }
-            else if(bytes.Length > 1)
+            else if (type == (byte)Enums.KaseyaMessageTypes.FileCopy)
+            {
+                Viewer.SetHasFileTransferWaiting(true);
+            }
+            else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferComplete)
+            {
+                Files.FileTransferDownloadComplete();
+                Viewer.SetHasFileTransferWaiting(false);
+            }
+            else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferUNEXPECTEDComplete)
+            {
+                Debug.WriteLine("Unexpected");
+            }
+            else if (bytes.Length > 1)
             {
                 int jsonLength = BitConverter.ToInt32(bytes, 1).SwapEndianness();
                 string jsonstr = Encoding.UTF8.GetString(bytes, 5, jsonLength);
@@ -314,7 +333,7 @@ namespace KLC_Finch
                                     captureScreen = false;
 
                                     //This may cause AV to think we're malware
-                                    Thread tc = new Thread(() =>
+                                    Thread tc = new(() =>
                                     {
                                         System.Windows.Forms.Clipboard.SetImage(b1);
                                     });
@@ -377,7 +396,7 @@ namespace KLC_Finch
                                     Bitmap b1 = decoder.RawToBitmap(rawYUV, rawWidth, rawHeight, rawStride);
 
                                     //This may cause AV to think we're malware
-                                    Thread tc = new Thread(() =>
+                                    Thread tc = new(() =>
                                     {
                                         System.Windows.Forms.Clipboard.SetImage(b1);
                                     });
@@ -406,61 +425,117 @@ namespace KLC_Finch
                 }
                 else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferLastChunk)
                 {
+                    //Upload
                     //string remainingstr = Encoding.UTF8.GetString(remaining);
                     int chunk = json["chunk"];
                     string name = json["name"];
-
-                    if (name.Length == 0)
-                    {
-                        JObject jInfo = new JObject
-                        {
-                            ["name"] = fileUpload.fileName,
-                            ["size"] = fileUpload.GetFileSize()
-                        };
-                        SendJson(Enums.KaseyaMessageTypes.FileTransferInfo, jInfo.ToString(Formatting.None));
-                    }
-                    else if (fileUpload.Chunk == chunk)
-                        fileUpload.Chunk++;
-
                     //--
-
-                    JObject jChunk = new JObject
-                    {
-                        ["chunk"] = fileUpload.Chunk,
-                        ["name"] = fileUpload.fileName,
-                        ["size"] = fileUpload.GetFileSize()
-                    };
-                    //Will also have the chunk after the header
-                    string sendjson = jChunk.ToString(Formatting.None);
-
-                    //--
-
-                    byte[] contentBuffer = fileUpload.ReadBlock();
-                    if (contentBuffer.Length == 0)
-                    {
-                        //SendJson(Enums.KaseyaMessageTypes.DropUploadFileComplete, sendjson); //Removed?
-                        SendJson(Enums.KaseyaMessageTypes.FileTransferUploadComplete, "{}");
-                        fileUpload.Close();
-                        fileUpload = null;
-                    }
-                    else
-                    {
-                        byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
-                        int jsonLen = jsonBuffer.Length;
-                        int totalLen = jsonLen + contentBuffer.Length;
-
-                        byte[] tosend = new byte[totalLen + 5];
-                        tosend[0] = (byte)Enums.KaseyaMessageTypes.FileTransferChunk;
-                        byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
-                        Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
-                        Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
-                        Array.Copy(contentBuffer, 0, tosend, 5 + jsonLen, contentBuffer.Length);
-
-                        if (serverB != null && serverB.IsAvailable)
+                    try {
+                        byte[] contentBuffer = Files.activeUpload.ReadBlock();
+                        if (contentBuffer.Length == 0)
                         {
-                            serverB.Send(tosend);
-                            //Console.WriteLine("UploadLastChunk: " + jsonstr);
+                            Files.activeUpload.Status = "Uploaded";
+                            Files.activeUpload.Close();
+
+                            bool couldDequeue = Files.queueUpload.TryDequeue(out Files.activeUpload);
+                            if (couldDequeue)
+                            {
+                                Files.activeUpload.Open();
+                                Files.StartUploadUI();
+                            }
+                            else
+                                Files.activeUpload = null; //Probably already null
                         }
+
+                        if (Files.activeUpload == null)
+                        {
+                            SendJson(Enums.KaseyaMessageTypes.FileTransferComplete, "{}");
+                            Files.FileTransferUploadComplete();
+                        }
+                        else
+                        {
+                            Files.UploadChunkUI();
+
+                            if (name == Files.activeUpload.fileName)
+                            {
+                                Files.activeUpload.Chunk++;
+                            }
+
+                            if (Files.activeUpload.Chunk == 0)
+                            {
+                                JObject jInfo = new()
+                                {
+                                    ["name"] = Files.activeUpload.fileName,
+                                    ["size"] = Files.activeUpload.bytesExpected
+                                };
+                                SendJson(Enums.KaseyaMessageTypes.FileTransferInfo, jInfo.ToString(Formatting.None));
+                            }
+
+                            //--
+
+                            JObject jChunk = new()
+                            {
+                                ["chunk"] = Files.activeUpload.Chunk,
+                                ["name"] = Files.activeUpload.fileName,
+                                ["size"] = Files.activeUpload.bytesExpected
+                            };
+                            //Will also have the chunk after the header
+                            string sendjson = jChunk.ToString(Formatting.None);
+
+                            //--
+
+                            byte[] jsonBuffer = System.Text.Encoding.UTF8.GetBytes(sendjson);
+                            int jsonLen = jsonBuffer.Length;
+                            int totalLen = jsonLen + contentBuffer.Length;
+
+                            byte[] tosend = new byte[totalLen + 5];
+                            tosend[0] = (byte)Enums.KaseyaMessageTypes.FileTransferChunk;
+                            byte[] tosendPrefix = BitConverter.GetBytes(jsonLen).Reverse().ToArray();
+                            Array.Copy(tosendPrefix, 0, tosend, 1, tosendPrefix.Length);
+                            Array.Copy(jsonBuffer, 0, tosend, 5, jsonLen);
+                            Array.Copy(contentBuffer, 0, tosend, 5 + jsonLen, contentBuffer.Length);
+
+                            if (serverB != null && serverB.IsAvailable)
+                            {
+                                serverB.Send(tosend);
+                                //Console.WriteLine("UploadLastChunk: " + jsonstr);
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        //Probably means the upload was cancelled
+                    }
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferStart)
+                {
+                    //Download
+                    //{"total_size":18884}
+                    //This number can be bigger than in FileTransferInfo if there is multiple files.
+
+                    Files.DownloadTotalSize = json["total_size"];
+                    SendJson(KaseyaMessageTypes.FileTransferLastChunk, "{}");
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferInfo)
+                {
+                    //Download
+                    //{"name":"Test Export.csv","size":18884}
+                    string dName = json["name"];
+                    long dSize = json["size"];
+
+                    Files.StartDownload(dName, dSize);
+                }
+                else if (type == (byte)Enums.KaseyaMessageTypes.FileTransferChunk)
+                {
+                    //Download
+                    try
+                    {
+                        Files.DownloadChunk(remaining);
+                        SendJson(KaseyaMessageTypes.FileTransferLastChunk, jsonstr);
+                    }
+                    catch (Exception)
+                    {
+                        //Probably means the download was cancelled
                     }
                 }
                 else
@@ -522,7 +597,7 @@ namespace KLC_Finch
             //Kaseya method, 9.5.7817.8820
             //{"black_out_screen":0,"block_mouse_keyboard":1}
 
-            JObject json = new JObject
+            JObject json = new()
             {
                 ["black_out_screen"] = (blackOutScreen ? 1 : 2),
                 ["block_mouse_keyboard"] = (blockMouseKB ? 1 : 2)
@@ -683,7 +758,7 @@ namespace KLC_Finch
         {
             //Kaseya method, 9.5.7765.16499
             //Has a limit of 255 characters, apparently.
-            JObject json = new JObject
+            JObject json = new()
             {
                 ["content_to_paste"] = text
             };
@@ -707,7 +782,7 @@ namespace KLC_Finch
         public void ShowCursor(bool enabled)
         {
             //Kaseya method, 9.5.7765.16499
-            JObject json = new JObject
+            JObject json = new()
             {
                 ["enabled"] = enabled
             };
@@ -719,32 +794,60 @@ namespace KLC_Finch
             //Do nothing
         }
 
-        public void UploadDrop(string file, Progress<int> progress)
+        public void FileTransferUpload(string[] files)
         {
-            if (fileUpload == null)
+            if (Files.activeUpload == null)
             {
-                fileUpload = new UploadRC(file, progress);
-                bool ableToOpen = fileUpload.Open();
+                Files.UploadQueueSize = 0;
+                foreach (string file in files)
+                {
+                    UploadRC urc = new UploadRC(file);
+                    Files.queueUpload.Enqueue(urc);
+                    Files.HistoryAddUpload(urc);
+                    Files.UploadQueueSize += urc.bytesExpected;
+                }
+
+                Files.activeUpload = Files.queueUpload.Dequeue();
+                bool ableToOpen = Files.activeUpload.Open();
+                Files.StartUploadUI();
                 if (ableToOpen)
                 {
-                    JObject json = new JObject
+                    JObject json = new()
                     {
-                        ["total_size"] = fileUpload.GetFileSize()
+                        ["total_size"] = Files.UploadQueueSize
                     };
                     SendJson(Enums.KaseyaMessageTypes.FileTransferStart, json.ToString(Formatting.None));
                 }
                 else
                 {
-                    if (progress != null)
-                        ((IProgress<int>)progress).Report(100);
-                    fileUpload = null;
+                    Files.activeUpload.Status = "Upload aborted";
+                    Files.activeUpload = null;
+                    Files.queueUpload.Clear();
+                    //Files.HistoryClearUpload();
+                    Files.UploadQueueSize = 0;
+                    //FileTransferDownloadCancel();
                 }
             }
         }
 
+        public void FileTransferDownload()
+        {
+            SendJson(KaseyaMessageTypes.ReceiveFile, "{}");
+        }
+
+        public void FileTransferUploadCancel()
+        {
+            SendJson(KaseyaMessageTypes.FileTransferAEPError, "{\"error_msg\":\"Admin canceled file sending\"}");
+        }
+
+        public void FileTransferDownloadCancel()
+        {
+            SendJson(KaseyaMessageTypes.FileTransferDownloadCancel, "{\"error_msg\":\"Admin canceled file receiving\"}");
+        }
+
         private static int GetNewPort()
         {
-            TcpListener tcpListener = new TcpListener(IPAddress.Parse("127.0.0.1"), 0);
+            TcpListener tcpListener = new(IPAddress.Parse("127.0.0.1"), 0);
             tcpListener.Start();
             int port = ((IPEndPoint)tcpListener.LocalEndpoint).Port;
             tcpListener.Stop();
@@ -827,10 +930,7 @@ namespace KLC_Finch
 
         public void UpdateScreensHack()
         {
-            if (session.ModuleStaticImage == null)
-            {
-                session.ModuleStaticImage = new StaticImage(session, null);
-            }
+            session.ModuleStaticImage ??= new StaticImage(session, null);
             session.ModuleStaticImage.ReconnectHack();
         }
     }

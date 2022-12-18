@@ -32,12 +32,12 @@
         </Grid.RowDefinitions>
         <ToolBarTray IsLocked="True">
             <ToolBar x:Name="toolBar" ToolBarTray.IsLocked="True">
-                <ext:DropdownButton
+                <Button
                     x:Name="toolMachineNote"
                     Content="Note"
                     FontWeight="Bold"
                     ToolTip="Special Instructions for this Machine">
-                    <ext:DropdownButton.DropdownMenu>
+                    <Button.ContextMenu>
                         <ContextMenu>
                             <MenuItem x:Name="toolMachineNoteText" Header="Text" />
                             <MenuItem
@@ -45,8 +45,8 @@
                                 Click="ToolMachineNoteLink_Click"
                                 Header="Link" />
                         </ContextMenu>
-                    </ext:DropdownButton.DropdownMenu>
-                </ext:DropdownButton>
+                    </Button.ContextMenu>
+                </Button>
                 <Button
                     x:Name="toolSendCtrlAltDel"
                     Click="ToolSendCtrlAltDel_Click"
@@ -62,22 +62,22 @@
                     Click="ToolKeyWin_Click"
                     Content="Win" />
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-                <ext:DropdownButton
+                <Button
                     x:Name="toolTSSession"
                     Content="Session"
                     Visibility="Collapsed">
-                    <ext:DropdownButton.DropdownMenu>
+                    <Button.ContextMenu>
                         <ContextMenu />
-                    </ext:DropdownButton.DropdownMenu>
-                </ext:DropdownButton>
-                <ext:DropdownButton
+                    </Button.ContextMenu>
+                </Button>
+                <Button
                     x:Name="toolScreen"
                     Click="ToolScreen_Click"
                     Content="Screen">
-                    <ext:DropdownButton.DropdownMenu>
+                    <Button.ContextMenu>
                         <ContextMenu />
-                    </ext:DropdownButton.DropdownMenu>
-                </ext:DropdownButton>
+                    </Button.ContextMenu>
+                </Button>
                 <Button
                     x:Name="toolScreenMode"
                     VerticalAlignment="Stretch"
@@ -151,14 +151,30 @@
                         <TextBlock>
                             Send to Client<LineBreak /><LineBreak /><Run Name="toolClipboardSendText" /></TextBlock>
                     </Button.ToolTip>
-                    <Image Source="/KLC-Finch;component/Resources/tray-arrow-down.png" StretchDirection="DownOnly" />
+                    <Image Source="/KLC-Finch;component/Resources/tray-arrow-down-low.png" StretchDirection="DownOnly" />
                 </Button>
                 <Button x:Name="toolClipboardGet" Click="ToolClipboardGet_Click">
                     <Button.ToolTip>
                         <TextBlock>
                             Get from Client<LineBreak /><LineBreak /><Run Name="toolClipboardGetText" /></TextBlock>
                     </Button.ToolTip>
-                    <Image Source="/KLC-Finch;component/Resources/tray-arrow-up.png" StretchDirection="DownOnly" />
+                    <Image Source="/KLC-Finch;component/Resources/tray-arrow-up-low.png" StretchDirection="DownOnly" />
+                </Button>
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+                <Button
+                    x:Name="ToolFileTransfer"
+                    Click="ToolFileTransfer_Click"
+                    ToolTip="File Transfer">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/KLC-Finch;component/Resources/file-arrow-up-down-outline2.png" StretchDirection="DownOnly" />
+                        <Label
+                            x:Name="ToolFileTransferLabel"
+                            Padding="0"
+                            VerticalAlignment="Center"
+                            Content="!"
+                            IsEnabled="false"
+                            Visibility="{Binding Path=HasFileTransferWaiting, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
                 </Button>
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
                 <Button
@@ -173,8 +189,8 @@
                     VerticalAlignment="Stretch"
                     Click="ToolOptions_Click"
                     Content="Settings" />
-                <ext:DropdownButton x:Name="toolLatency" Content="Latency">
-                    <ext:DropdownButton.DropdownMenu>
+                <Button x:Name="toolLatency" Content="Latency">
+                    <Button.ContextMenu>
                         <ContextMenu>
                             <MenuItem
                                 x:Name="toolVersion"
@@ -224,8 +240,8 @@
                                 Click="ToolReconnect_Click"
                                 Header="Soft Reconnect" />
                         </ContextMenu>
-                    </ext:DropdownButton.DropdownMenu>
-                </ext:DropdownButton>
+                    </Button.ContextMenu>
+                </Button>
             </ToolBar>
 
             <!--<ToolBar Band="1">

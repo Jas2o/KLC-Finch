@@ -1,0 +1,231 @@
+﻿<Window
+    x:Class="KLC_Finch.WinRCFileTransfer"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:KLC_Finch"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="KLC-Finch: RC File Transfer"
+    Width="450"
+    MinHeight="240"
+    Background="{DynamicResource {x:Static SystemColors.ControlDarkDarkBrushKey}}"
+    Loaded="Window_Loaded"
+    ResizeMode="CanResize"
+    SizeToContent="Height"
+    Topmost="True"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <CollectionViewSource x:Key="GridDownload" Source="{Binding HistoryDownload}" />
+        <CollectionViewSource x:Key="GridUpload" Source="{Binding HistoryUpload}" />
+    </Window.Resources>
+    <Grid Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Expander
+            x:Name="expDownload"
+            Grid.Row="1"
+            Padding="0,0,0,5"
+            Collapsed="expDownload_Collapsed"
+            Foreground="White"
+            Header="Download"
+            IsExpanded="True">
+            <Grid Background="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}">
+                <StackPanel Margin="5,5,5,5">
+                    <!--<Label
+                    x:Name="lblTransfer"
+                    Height="27"
+                    Margin="0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top"
+                    Content="{Binding TextTransferDownload, Mode=OneWay, FallbackValue=Transfer}" />
+                    <Label
+                        x:Name="lblCurrentFile"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Top"
+                        Content="{Binding TextCurrentFileDownload, Mode=OneWay, FallbackValue=Idle}" />-->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="30" />
+                            <RowDefinition Height="10" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="80" />
+                        </Grid.ColumnDefinitions>
+                        <ProgressBar
+                            x:Name="progressBarDownload"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="{Binding ProgressValueDownload, Mode=OneWay, FallbackValue=0}" />
+                        <TextBlock
+                            x:Name="progressTextDownload"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Foreground="Black"
+                            Text="{Binding ProgressTextDownload, Mode=OneWay, FallbackValue=0%}" />
+
+                        <Button
+                            x:Name="btnCancelDownload"
+                            Grid.Column="2"
+                            Click="btnCancelDownload_Click"
+                            Content="Cancel" />
+
+                        <Button
+                            x:Name="btnAcceptDownload"
+                            Grid.Row="2"
+                            Click="btnAcceptDownload_Click"
+                            Content="Accept Download" />
+
+                        <Button
+                            x:Name="btnClearDownloadHistory"
+                            Grid.Row="2"
+                            Grid.Column="2"
+                            Click="btnClearDownloadHistory_Click"
+                            Content="Clear history" />
+                    </Grid>
+
+                    <Label
+                        Name="lblLocalDest"
+                        Padding="0,5,0,0"
+                        Content="Local destination: %userprofile%\Documents\KRCTransferFiles\"
+                        MouseDoubleClick="LblLocalDest_MouseDoubleClick"
+                        MouseEnter="lblLocalDest_MouseEnter"
+                        MouseLeave="lblLocalDest_MouseLeave"
+                        ToolTip="Double-click to copy path."
+                        ToolTipService.InitialShowDelay="0" />
+                    <Label Padding="0,0,0,0" Content="Double-click history to open File Explorer to completed download:" />
+                    <DataGrid
+                        x:Name="dgvDownload"
+                        MinHeight="100"
+                        Margin="0,5,0,0"
+                        AlternatingRowBackground="#FFE6E6E6"
+                        AutoGenerateColumns="False"
+                        IsReadOnly="True"
+                        ItemsSource="{Binding Source={StaticResource GridDownload}}"
+                        MouseDoubleClick="dgvDownload_MouseDoubleClick"
+                        SelectionMode="Single">
+                        <DataGrid.Resources>
+                            <local:FormatKbSizeConverter x:Key="FormatKbSizeConverter" />
+                            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{Binding Path=Color, Source={x:Static SystemColors.HighlightBrush}}" />
+                            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White" />
+                        </DataGrid.Resources>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding Status}" Header="Status" />
+                            <DataGridTextColumn Binding="{Binding bytesExpected, Converter={StaticResource FormatKbSizeConverter}}" Header="Size" />
+                            <DataGridTextColumn Binding="{Binding fileName}" Header="File" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <!--<ListBox
+                    x:Name="listDownloads"
+                    MinHeight="20"
+                    Margin="0,5,0,0"
+                    DisplayMemberPath="fileName"
+                    ItemsSource="{Binding Source={StaticResource HDownload}}"
+                    MouseDoubleClick="listDownloads_MouseDoubleClick" />-->
+                </StackPanel>
+            </Grid>
+        </Expander>
+        <Expander
+            x:Name="expUpload"
+            Grid.Row="2"
+            Padding="0,0,0,5"
+            Collapsed="expUpload_Collapsed"
+            Foreground="White"
+            Header="Upload"
+            IsExpanded="True">
+            <Grid Background="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}">
+                <StackPanel Margin="5,5,5,5">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="30" />
+                            <RowDefinition Height="10" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="80" />
+                        </Grid.ColumnDefinitions>
+                        <ProgressBar
+                            x:Name="progressBarUpload"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="{Binding ProgressValueUpload, Mode=OneWay, FallbackValue=0}" />
+                        <TextBlock
+                            x:Name="progressTextUpload"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Foreground="Black"
+                            Text="{Binding ProgressTextUpload, Mode=OneWay, FallbackValue=0%}" />
+
+                        <Button
+                            x:Name="btnCancelUpload"
+                            Grid.Column="2"
+                            Click="btnCancelUpload_Click"
+                            Content="Cancel" />
+
+                        <Button
+                            x:Name="btnUpload"
+                            Grid.Row="2"
+                            Content="Drop into RC window"
+                            IsEnabled="false" />
+
+                        <Button
+                            x:Name="btnClearUploadHistory"
+                            Grid.Row="2"
+                            Grid.Column="2"
+                            Click="btnClearUploadHistory_Click"
+                            Content="Clear history" />
+                    </Grid>
+                    <Label
+                        Name="lblRemoteDest"
+                        Margin="0,5,0,0"
+                        Padding="0,0,0,0"
+                        Content="{Binding RemoteDestination, Mode=OneWay, FallbackValue=DESTINATION}"
+                        ContentStringFormat="Remote destination: {0}"
+                        MouseDoubleClick="LblRemoteDest_MouseDoubleClick"
+                        MouseEnter="lblRemoteDest_MouseEnter"
+                        MouseLeave="lblRemoteDest_MouseLeave"
+                        ToolTip="Double-click to copy path."
+                        ToolTipService.InitialShowDelay="0" />
+                    <Label Padding="0,0,0,0" Content="Double-click history to open File Explorer to source upload:" />
+                    <DataGrid
+                        x:Name="dgvUpload"
+                        MinHeight="100"
+                        Margin="0,5,0,0"
+                        AlternatingRowBackground="#FFE6E6E6"
+                        AutoGenerateColumns="False"
+                        IsReadOnly="True"
+                        ItemsSource="{Binding Source={StaticResource GridUpload}}"
+                        MouseDoubleClick="dgvUpload_MouseDoubleClick"
+                        SelectionMode="Single">
+                        <DataGrid.Resources>
+                            <local:FormatKbSizeConverter x:Key="FormatKbSizeConverter" />
+                            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{Binding Path=Color, Source={x:Static SystemColors.HighlightBrush}}" />
+                            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White" />
+                        </DataGrid.Resources>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding Status}" Header="Status" />
+                            <DataGridTextColumn Binding="{Binding bytesExpected, Converter={StaticResource FormatKbSizeConverter}}" Header="Size" />
+                            <DataGridTextColumn Binding="{Binding fileName}" Header="File" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <!--<ListBox
+                    x:Name="listUploads"
+                    MinHeight="20"
+                    Margin="0,5,0,0"
+                    DisplayMemberPath="fileName"
+                    ItemsSource="{Binding Source={StaticResource HUpload}}"
+                    MouseDoubleClick="listUploads_MouseDoubleClick" />-->
+                </StackPanel>
+            </Grid>
+        </Expander>
+    </Grid>
+</Window>

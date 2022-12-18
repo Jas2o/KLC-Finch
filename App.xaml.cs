@@ -69,7 +69,7 @@ namespace KLC_Finch {
         }
 
         [STAThread]
-        private void ShowUnhandledException(Exception e, string unhandledExceptionType) {
+        private static void ShowUnhandledException(Exception e, string unhandledExceptionType) {
             new WindowException(e, unhandledExceptionType).Show(); //Removed: , Debugger.IsAttached
         }
 

@@ -582,5 +582,9 @@ namespace KLC_Finch {
                     CameraToCurrentScreen();
             }
         }
+
+        public override void ResetCamera()
+        {
+        }
     }
 }

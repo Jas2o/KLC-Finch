@@ -100,6 +100,7 @@ namespace KLC_Finch
         private bool useMultiScreenPanZoom;
         private bool useMultiScreenFixAvailable;
         private bool ssClipboardSync;
+        private bool hasFileTransferWaiting;
 
         public void SetTitle(string title, RC mode)
         {
@@ -141,6 +142,8 @@ namespace KLC_Finch
 
             NotifyPropertyChanged("SsClipboardSync");
             NotifyPropertyChanged("SsClipboardSyncReceiveOnly");
+
+            NotifyPropertyChanged("HasFileTransferWaiting");
         }
 
         public bool ControlEnabled
@@ -248,7 +251,17 @@ namespace KLC_Finch
             get { return !ssClipboardSync; }
         }
 
-        /*
+        public bool HasFileTransferWaiting
+        {
+            get { return hasFileTransferWaiting; }
+            set
+            {
+                hasFileTransferWaiting = value;
+                NotifyPropertyChanged("HasFileTransferWaiting");
+            }
+        }
+
+		/*
         public void UpdateScreenLayout(dynamic json)
         {
             screenStatus = ScreenStatus.Preparing;

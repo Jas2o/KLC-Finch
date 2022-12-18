@@ -80,9 +80,7 @@ namespace KLC_Finch {
             state.UseMultiScreenOverview = false;
             state.UseMultiScreenPanZoom = false;
 
-            //MainCamera.Rotation = 0f;
-            MainCamera.Position = Vector2.Zero;
-            MainCamera.Scale = new Vector2(1f, 1f);
+            ResetCamera();
             //DebugKeyboard();
 
             if (App.Settings.MultiAltFit) {
@@ -135,9 +133,7 @@ namespace KLC_Finch {
 
             //--
 
-            //MainCamera.Rotation = 0f;
-            MainCamera.Position = Vector2.Zero;
-            MainCamera.Scale = new Vector2(1f, 1f);
+            ResetCamera();
             //DebugKeyboard();
 
             state.virtualViewWant = state.virtualCanvas;
@@ -1098,6 +1094,13 @@ namespace KLC_Finch {
             GL.Viewport(0, 0, glControl.Width, glControl.Height);
             MainCamera.ApplyTransform();
             GL.MatrixMode(MatrixMode.Modelview);
+        }
+
+        public override void ResetCamera()
+        {
+            //MainCamera.Rotation = 0f;
+            MainCamera.Position = Vector2.Zero;
+            MainCamera.Scale = new Vector2(1f, 1f);
         }
     }
 }

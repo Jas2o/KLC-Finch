@@ -8,6 +8,7 @@ namespace KLC_Finch {
     public interface IRemoteControl {
         DecodeMode DecodeMode { get; set; }
         public bool IsMac { get; set; }
+        public Modules.RemoteControl.Transfer.RCFile Files { get; }
 
         void CaptureNextScreen();
 
@@ -51,7 +52,10 @@ namespace KLC_Finch {
 
         void UpdateScreens(string jsonstr);
 
-        void UploadDrop(string file, Progress<int> progress);
+        void FileTransferUpload(string[] files);
+        void FileTransferUploadCancel();
+        void FileTransferDownload();
+        void FileTransferDownloadCancel();
 
         void UpdateScreensHack();
     }

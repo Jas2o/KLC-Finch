@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 
 namespace KLC_Finch.Modules {
     public class ProcessValue : IComparable {
@@ -21,7 +20,7 @@ namespace KLC_Finch.Modules {
             CPU = (int)Math.Ceiling(double.Parse((string)p["CPU"]));
 
             //2022-11-12
-            if(p["GpuUtilization"] != null)
+            if (p["GpuUtilization"] != null)
                 GpuUtilization = (int)Math.Ceiling(double.Parse((string)p["GpuUtilization"]));
             if (p["DiskUtilization"] != null)
                 DiskUtilization = ulong.Parse((string)p["DiskUtilization"]);

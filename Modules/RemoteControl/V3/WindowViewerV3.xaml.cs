@@ -7,7 +7,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
@@ -47,9 +49,6 @@ namespace KLC_Finch {
         private TSSession currentTSSession = null;
         private double fpsLast;
         private bool keyDownWin;
-        private Progress<int> progress;
-        private ProgressDialog progressDialog;
-        private int progressValue;
         private IRemoteControl rc;
         private RCv rcv;
         private bool requiredApproval;
@@ -57,6 +56,8 @@ namespace KLC_Finch {
         private bool ssKeyHookAllow;
         private RCstate state;
         private bool supportOpenGL;
+
+        private WinRCFileTransfer winRCFileTransfer;
 
         public WindowViewerV3()
         {
@@ -775,13 +776,6 @@ namespace KLC_Finch {
             }
         }
 
-        private void ProgressDialog_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e) {
-            while (progressValue < 100) {
-                progressDialog.ReportProgress(progressValue);
-                System.Threading.Thread.Sleep(100);
-            }
-        }
-
         private bool SwitchToLegacyRendering() {
             if (rcv.SwitchToLegacy()) {
                 return true;
@@ -1114,6 +1108,11 @@ namespace KLC_Finch {
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+            if (winRCFileTransfer != null && winRCFileTransfer.IsVisible)
+                winRCFileTransfer.Close();
+
+            timerHealth.Elapsed -= CheckHealth;
+
             if (keyHook.IsActive)
                 keyHook.Uninstall();
 
@@ -1140,21 +1139,50 @@ namespace KLC_Finch {
             }
         }
 
-        private void Window_Drop(object sender, DragEventArgs e) {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
-                if (progressDialog != null && progressDialog.IsBusy)
-                    return;
+        private void Window_Drop(object sender, DragEventArgs e)
+        {
+            if (rc == null)
+                return;
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                //if (progressDialog != null && progressDialog.IsBusy)
+                //return;
+
+                if (winRCFileTransfer != null)
+                    winRCFileTransfer.Topmost = false;
 
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
                 bool doUpload = false;
                 //bool showExplorer = false;
-                using (TaskDialog dialog = new TaskDialog()) {
-                    dialog.WindowTitle = "KLC-Finch: Upload File";
-                    dialog.MainInstruction = "Upload dropped file to KRCTransferFiles?";
+                using (TaskDialog dialog = new TaskDialog())
+                {
+                    if (files.Length > 1)
+                    {
+                        dialog.WindowTitle = "KLC-Finch: Upload Multiple Files";
+                        dialog.MainInstruction = "Upload " + files.Length + " dropped files to KRCTransferFiles?";
+                    }
+                    else
+                    {
+                        dialog.WindowTitle = "KLC-Finch: Upload File";
+                        dialog.MainInstruction = "Upload dropped file to KRCTransferFiles?";
+                    }
                     dialog.MainIcon = TaskDialogIcon.Information;
                     dialog.CenterParent = true;
-                    dialog.Content = files[0];
+
+                    long totalSize = 0;
+                    StringBuilder sb = new StringBuilder();
+                    foreach (string file in files)
+                    {
+                        sb.AppendLine(System.IO.Path.GetFileName(file));
+                        FileInfo fi = new FileInfo(file);
+                        totalSize += fi.Length;
+                    }
+                    StringBuilder totalSb = new StringBuilder(32);
+                    FormatKbSizeConverter.StrFormatByteSizeW(totalSize, totalSb, totalSb.Capacity);
+                    dialog.Content = totalSb.ToString() + "\r\n\r\n" + sb.ToString();
+
                     //dialog.VerificationText = "Open file explorer when complete";
                     //dialog.IsVerificationChecked = true;
 
@@ -1163,28 +1191,20 @@ namespace KLC_Finch {
                     dialog.Buttons.Add(tdbYes);
                     dialog.Buttons.Add(tdbCancel);
 
-                    TaskDialogButton button = dialog.ShowDialog(this);
+                    Window parent = (Window)App.winStandaloneViewer;
+                    TaskDialogButton button = dialog.ShowDialog(parent);
                     doUpload = (button == tdbYes);
                     //showExplorer = dialog.IsVerificationChecked;
                 }
 
-                if (doUpload) {
-                    progressValue = 0;
-                    progress = new Progress<int>(newValue => {
-                        progressValue = newValue;
-                    });
-                    progressDialog = new ProgressDialog {
-                        //ProgressBarStyle = ProgressBarStyle.MarqueeProgressBar,
-                        WindowTitle = "KLC-Finch: Upload File",
-                        Text = "Uploading to KRCTransferFiles...",
-                        Description = "Source file: " + files[0],
-                        ShowCancelButton = false,
-                        ShowTimeRemaining = true
-                    };
-                    progressDialog.DoWork += new DoWorkEventHandler(ProgressDialog_DoWork);
-                    progressDialog.Show();
+                if (winRCFileTransfer != null)
+                    winRCFileTransfer.Topmost = true;
 
-                    rc.UploadDrop(files[0], progress);
+                if (doUpload)
+                {
+                    ShowFileTransfer();
+                    //winRCFileTransfer.GoToTabUpload();
+                    rc.FileTransferUpload(files);
                 }
             }
         }
@@ -1360,6 +1380,51 @@ namespace KLC_Finch {
             } else {
                 rcv.ParentStateChange(true);
             }
+        }
+
+        private void ShowFileTransfer()
+        {
+            if (winRCFileTransfer == null || !winRCFileTransfer.IsVisible)
+            {
+                winRCFileTransfer = new(rc)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+                winRCFileTransfer.Show();
+            }
+
+            Window win = App.winStandaloneViewer;
+            System.Windows.Point point = rcv.TransformToAncestor(win).Transform(new System.Windows.Point(0, 0));
+
+            if (win.WindowState == WindowState.Maximized)
+            {
+                IntPtr handle = new System.Windows.Interop.WindowInteropHelper(win).Handle;
+                System.Windows.Forms.Screen screen = System.Windows.Forms.Screen.FromHandle(handle);
+
+                point.X += (screen.WorkingArea.Width / 2);
+                point.X -= (winRCFileTransfer.Width / 2);
+
+                winRCFileTransfer.Left = screen.WorkingArea.Left + point.X + 2;
+                winRCFileTransfer.Top = screen.WorkingArea.Top + SystemParameters.CaptionHeight + point.Y + 10;
+            }
+            else
+            {
+                point.X += (win.Width / 2);
+                point.X -= (winRCFileTransfer.Width / 2);
+
+                winRCFileTransfer.Left = win.Left + point.X + 8;
+                winRCFileTransfer.Top = win.Top + SystemParameters.CaptionHeight + point.Y + 15;
+            }
+        }
+
+        private void ToolFileTransfer_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFileTransfer();
+        }
+
+        public void SetHasFileTransferWaiting(bool v)
+        {
+            state.HasFileTransferWaiting = v;
         }
 
         /*

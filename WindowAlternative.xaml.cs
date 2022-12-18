@@ -34,6 +34,14 @@ namespace KLC_Finch
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Standalone
+        /// </summary>
+        /// <param name="agentID"></param>
+        /// <param name="vsa"></param>
+        /// <param name="shortToken"></param>
+        /// <param name="directToRemoteControl"></param>
+        /// <param name="directToMode"></param>
         public WindowAlternative(string agentID, string vsa, string shortToken, OnConnect directAction = OnConnect.NoAction, RC directToMode = RC.Shared)
         {
             InitializeComponent();
@@ -81,9 +89,17 @@ namespace KLC_Finch
                 }
             }
 
+            ProgressDialog dialog = new ProgressDialog();
+            dialog.WindowTitle = "KLC-Finch";
+            dialog.Description = "Waiting for VSA...";
+            dialog.ShowCancelButton = false;
+            dialog.ProgressBarStyle = ProgressBarStyle.MarqueeProgressBar;
+            dialog.Show();
+
             //HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
             StatusCallback callback = new StatusCallback(StatusUpdate);
             session = new KLC.LiveConnectSession(vsa, shortToken, agentID, callback);
+            dialog.Dispose();
             if (session.Eirc == null)
             {
                 session = null;
@@ -114,6 +130,11 @@ namespace KLC_Finch
                     case 1:
                         txtDisconnected.Text = "Endpoint Disconnected (Web Socket B)";
                         borderDisconnected.Background = new SolidColorBrush(Colors.Maroon);
+                        break;
+                        
+                    case 2:
+                        txtDisconnected.Text = "Manual Disconnection";
+                        borderDisconnected.Background = new SolidColorBrush(Colors.DimGray);
                         break;
                 }
 
@@ -353,7 +374,10 @@ namespace KLC_Finch
         private void btnRCPrivate_Click(object sender, RoutedEventArgs e)
         {
             if (session == null || session.WebsocketB == null || !session.WebsocketB.ControlAgentIsReady())
+            {
+                directAction = OnConnect.NoAction;
                 return;
+            }
             if (session.ModuleRemoteControl != null)
                 session.ModuleRemoteControl.CloseViewer();
 

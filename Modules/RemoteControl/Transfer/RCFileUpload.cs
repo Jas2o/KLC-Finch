@@ -1,43 +1,74 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Windows.Markup;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace KLC_Finch {
-    public class UploadRC {
-        public List<string> Path { get; private set; }
-        public string fileName { get; private set; }
+    public class UploadRC : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
 
-        private Progress<int> progress;
-        private string readLocation;
+        //public List<string> Path { get; private set; }
+        public string fileName { get; private set; }
+        public string readLocation { get; private set; }
+
         private FileStream filestream;
         private long bytesRead;
-
+        public long bytesExpected { get; private set; }
+        public int Percentage { get; private set; }
+        //public string Status { get; set; }
         public int Chunk;
 
-        public UploadRC(string readLocation, Progress<int> progress = null) {
+        public UploadRC(string readLocation) {
             fileName = System.IO.Path.GetFileName(readLocation);
             this.readLocation = readLocation;
-            this.progress = progress;
+            bytesExpected = new FileInfo(readLocation).Length;
+            Status = "Queued";
             Chunk = 0;
 
             //filestream = new FileStream(readLocation, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             Console.WriteLine("File upload RC start: " + fileName);
         }
 
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private string status;
+        public string Status
+        {
+            get { return status; }
+            set
+            {
+                status = value;
+                NotifyPropertyChanged("Status");
+            }
+        }
+
         public bool Open() {
             try {
                 filestream = new FileStream(readLocation, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                Status = "Uploading...";
             } catch(Exception) {
                 return false;
             }
             return true;
         }
 
+        /*
         public long GetFileSize() {
             return new FileInfo(readLocation).Length;
         }
+        */
 
         public byte[] ReadBlock() {
+            if (filestream == null)
+                throw new NullReferenceException();
+
             byte[] data;
             long difference = (filestream.Length - filestream.Position);
             if (difference < 4194304)
@@ -47,21 +78,17 @@ namespace KLC_Finch {
             filestream.Read(data, 0, data.Length);
             bytesRead += data.Length;
 
-            if (progress != null) {
-                int value = (int)((filestream.Position / (Double)filestream.Length) * 100.0);
-                ((IProgress<int>)progress).Report(value);
-            }
+            Percentage = (int)((filestream.Position / (Double)bytesExpected) * 100.0);
 
             Console.WriteLine("File upload RC read " + data.Length + " bytes");
             return data;
         }
 
         public void Close() {
+            Status = "Uploaded";
             filestream.Close();
             Console.WriteLine("File upload RC complete: " + fileName + "(" + bytesRead + " bytes)");
-            if (progress != null) {
-                ((IProgress<int>)progress).Report(100);
-            }
+            Percentage = 100;
         }
     }
 }

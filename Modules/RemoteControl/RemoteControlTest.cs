@@ -12,6 +12,15 @@ namespace KLC_Finch
         //public bool UseYUVShader { get { return false; } set { } }
         public DecodeMode DecodeMode { get; set; }
         public bool IsMac { get; set; }
+		public Modules.RemoteControl.Transfer.RCFile Files { get; private set; }
+		
+		public bool IsPrivate
+        {
+            get
+            {
+                return false;
+            }
+        }
 
         private string screenStr;
         private Thread threadTest;
@@ -208,7 +217,22 @@ namespace KLC_Finch
             //throw new NotImplementedException();
         }
 
-        public void UploadDrop(string v, Progress<int> progress)
+        public void FileTransferUpload(string[] files)
+        {
+            //throw new NotImplementedException();
+        }
+
+        public void FileTransferUploadCancel()
+        {
+            //throw new NotImplementedException();
+        }
+
+        public void FileTransferDownload()
+        {
+            //throw new NotImplementedException();
+        }
+
+        public void FileTransferDownloadCancel()
         {
             //throw new NotImplementedException();
         }
@@ -227,5 +251,6 @@ namespace KLC_Finch
         {
             //throw new NotImplementedException();
         }
+
     }
 }
