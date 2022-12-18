@@ -3,8 +3,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:ext="clr-namespace:System.Windows.Controls.Extensions"
-    xmlns:local="clr-namespace:KLC_Finch"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="WindowViewer V3"
     Width="1000"
@@ -24,18 +22,30 @@
     mc:Ignorable="d">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <Style x:Key="PathDownArrow" TargetType="{x:Type Path}">
+            <Setter Property="Width" Value="5" />
+            <Setter Property="Height" Value="5" />
+            <Setter Property="Margin" Value="5,-10,3,-10" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Data" Value="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z " />
+            <Setter Property="Fill" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" />
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition />
         </Grid.RowDefinitions>
-        <ToolBarTray IsLocked="True">
-            <ToolBar x:Name="toolBar" ToolBarTray.IsLocked="True">
+        <Border Padding="4" Background="#FFBCD5FF">
+            <WrapPanel>
                 <Button
                     x:Name="toolMachineNote"
-                    Content="Note"
+                    Click="toolButtonContext"
+                    ContextMenuService.IsEnabled="False"
                     FontWeight="Bold"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
                     ToolTip="Special Instructions for this Machine">
                     <Button.ContextMenu>
                         <ContextMenu>
@@ -46,55 +56,85 @@
                                 Header="Link" />
                         </ContextMenu>
                     </Button.ContextMenu>
+                    <StackPanel Orientation="Horizontal">
+                        <Label
+                            x:Name="lblMachineNote"
+                            Padding="0"
+                            Content="Note" />
+                        <Path Style="{StaticResource PathDownArrow}" />
+                    </StackPanel>
                 </Button>
                 <Button
                     x:Name="toolSendCtrlAltDel"
                     Click="ToolSendCtrlAltDel_Click"
                     Content="Ctrl+Alt+Del"
-                    IsEnabled="{Binding Path=ControlEnabled}" />
+                    IsEnabled="{Binding ControlEnabled}"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" />
                 <Button
                     x:Name="toolToggleControl"
                     Click="ToolToggleControl_Click"
-                    Content="{Binding ControlEnabledText, Mode=OneWay, FallbackValue='Control Enabled'}"
-                    FontWeight="{Binding ControlEnabledTextWeight, Mode=OneWay, FallbackValue=Normal}" />
+                    Content="{Binding ControlEnabledText, FallbackValue=Control Enabled, Mode=OneWay}"
+                    FontWeight="{Binding ControlEnabledTextWeight, FallbackValue=Normal, Mode=OneWay}"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" />
                 <Button
                     x:Name="toolKeyWin"
                     Click="ToolKeyWin_Click"
-                    Content="Win" />
+                    Content="Win"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" />
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
                 <Button
                     x:Name="toolTSSession"
-                    Content="Session"
+                    Click="toolButtonContext"
+                    ContextMenuService.IsEnabled="False"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
                     Visibility="Collapsed">
                     <Button.ContextMenu>
                         <ContextMenu />
                     </Button.ContextMenu>
+                    <StackPanel Orientation="Horizontal">
+                        <Label
+                            x:Name="lblTSSession"
+                            Padding="0"
+                            Content="Session" />
+                        <Path Style="{StaticResource PathDownArrow}" />
+                    </StackPanel>
                 </Button>
                 <Button
                     x:Name="toolScreen"
                     Click="ToolScreen_Click"
-                    Content="Screen">
+                    ContextMenuService.IsEnabled="False"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}">
                     <Button.ContextMenu>
                         <ContextMenu />
                     </Button.ContextMenu>
+                    <StackPanel Orientation="Horizontal">
+                        <Label
+                            x:Name="lblScreen"
+                            Padding="0"
+                            Content="Screen" />
+                        <Path Style="{StaticResource PathDownArrow}" />
+                    </StackPanel>
                 </Button>
                 <Button
                     x:Name="toolScreenMode"
                     VerticalAlignment="Stretch"
                     Click="ToolScreenMode_Click"
-                    Content="{Binding ScreenModeText, Mode=OneWay, FallbackValue='Multi'}" />
+                    Content="{Binding ScreenModeText, FallbackValue=Multi, Mode=OneWay}"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" />
                 <Button
                     x:Name="toolScreenOverview"
                     VerticalAlignment="Stretch"
                     Click="ToolScreenOverview_Click"
                     Content="Overview"
-                    FontWeight="{Binding UseMultiScreenOverviewTextWeight, Mode=OneWay, FallbackValue=Normal}"
-                    Visibility="{Binding Path=UseMultiScreen, Converter={StaticResource BoolToVis}, FallbackValue=Visible}" />
+                    FontWeight="{Binding UseMultiScreenOverviewTextWeight, FallbackValue=Normal, Mode=OneWay}"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                    Visibility="{Binding UseMultiScreen, Converter={StaticResource BoolToVis}, FallbackValue=Visible}" />
                 <Button
                     x:Name="toolPanZoom"
                     Click="toolPanZoom_Click"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
                     ToolTip="Pan/Zoom Mode, allows movement (Scroll/WASD) when control is disabled."
-                    Visibility="{Binding Path=UseMultiScreen, Converter={StaticResource BoolToVis}}">
+                    Visibility="{Binding UseMultiScreen, Converter={StaticResource BoolToVis}}">
                     <StackPanel Orientation="Horizontal">
                         <Image Source="/KLC-Finch;component/Resources/magnify-expand.png" StretchDirection="DownOnly" />
                         <Label
@@ -102,37 +142,46 @@
                             Padding="0"
                             VerticalAlignment="Center"
                             Content="Pan/Zoom"
-                            FontWeight="{Binding ControlEnabledTextWeight, Mode=OneWay, FallbackValue=Normal}"
+                            FontWeight="{Binding ControlEnabledTextWeight, FallbackValue=Normal, Mode=OneWay}"
                             IsEnabled="false"
-                            Visibility="{Binding Path=UseMultiScreenPanZoom, Converter={StaticResource BoolToVis}}" />
+                            Visibility="{Binding UseMultiScreenPanZoom, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
+                </Button>
+                <Button
+                    x:Name="toolShowMouse"
+                    Click="ToolShowMouse_Click"
+                    Opacity="0.5"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                    ToolTip="Show Remote Mouse">
+                    <Image Source="/KLC-Finch;component/Resources/cursor-default-outline.png" StretchDirection="DownOnly" />
                 </Button>
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
                 <Button
                     x:Name="toolClipboardSync"
                     Click="ToolClipboardSync_Click"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
                     ToolTip="Clipboard Synced"
-                    Visibility="{Binding Path=SsClipboardSync, Converter={StaticResource BoolToVis}}">
+                    Visibility="{Binding SsClipboardSync, Converter={StaticResource BoolToVis}}">
                     <Image Source="/KLC-Finch;component/Resources/sync.png" StretchDirection="DownOnly" />
                 </Button>
                 <Button
                     x:Name="toolClipboardReceiveOnly"
                     Click="ToolClipboardSync_Click"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
                     ToolTip="Clipboard Receive Only"
-                    Visibility="{Binding Path=SsClipboardSyncReceiveOnly, Converter={StaticResource BoolToVis}}">
+                    Visibility="{Binding SsClipboardSyncReceiveOnly, Converter={StaticResource BoolToVis}}">
                     <Image
                         Width="24"
                         Height="24"
                         Source="/KLC-Finch;component/Resources/sync-half.png"
                         StretchDirection="DownOnly" />
                 </Button>
-                <Button x:Name="toolClipboardAutotype" Click="ToolClipboardAutotype_Click">
+                <Button
+                    x:Name="toolClipboardAutotype"
+                    Click="ToolClipboardAutotype_Click"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}">
                     <Button.ToolTip>
-                        <TextBlock>
-                            Autotype<LineBreak /><LineBreak />
-                            Middle mouse button<LineBreak />
-                            Ctrl+Shift+V<LineBreak />
-                            Ctrl+`</TextBlock>
+                        <TextBlock><Run Text="Autotype" /><LineBreak /><LineBreak /><Run Text="Middle mouse button" /><LineBreak /><Run Text="Ctrl+Shift+V" /><LineBreak /><Run Text="Ctrl+`" /></TextBlock>
                     </Button.ToolTip>
                     <Image Source="/KLC-Finch;component/Resources/clipboard-arrow-down-outline.png" StretchDirection="DownOnly" />
                 </Button>
@@ -140,23 +189,26 @@
                     x:Name="toolClipboardPaste"
                     Click="ToolClipboardPaste_Click"
                     Opacity="0.5"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
                     ToolTip="Kaseya's Paste Clipboard">
                     <Image Source="/KLC-Finch;component/Resources/clipboard-arrow-down-outline.png" StretchDirection="DownOnly" />
                 </Button>
                 <Button
                     x:Name="toolClipboardSend"
                     Click="ToolClipboardSend_Click"
-                    MouseEnter="ToolClipboardSend_MouseEnter">
+                    MouseEnter="ToolClipboardSend_MouseEnter"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}">
                     <Button.ToolTip>
-                        <TextBlock>
-                            Send to Client<LineBreak /><LineBreak /><Run Name="toolClipboardSendText" /></TextBlock>
+                        <TextBlock><Run Text="Send to Client" /><LineBreak /><LineBreak /><Run x:Name="toolClipboardSendText" /></TextBlock>
                     </Button.ToolTip>
                     <Image Source="/KLC-Finch;component/Resources/tray-arrow-down-low.png" StretchDirection="DownOnly" />
                 </Button>
-                <Button x:Name="toolClipboardGet" Click="ToolClipboardGet_Click">
+                <Button
+                    x:Name="toolClipboardGet"
+                    Click="ToolClipboardGet_Click"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}">
                     <Button.ToolTip>
-                        <TextBlock>
-                            Get from Client<LineBreak /><LineBreak /><Run Name="toolClipboardGetText" /></TextBlock>
+                        <TextBlock><Run Text="Get from Client" /><LineBreak /><LineBreak /><Run x:Name="toolClipboardGetText" /></TextBlock>
                     </Button.ToolTip>
                     <Image Source="/KLC-Finch;component/Resources/tray-arrow-up-low.png" StretchDirection="DownOnly" />
                 </Button>
@@ -164,6 +216,7 @@
                 <Button
                     x:Name="ToolFileTransfer"
                     Click="ToolFileTransfer_Click"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
                     ToolTip="File Transfer">
                     <StackPanel Orientation="Horizontal">
                         <Image Source="/KLC-Finch;component/Resources/file-arrow-up-down-outline2.png" StretchDirection="DownOnly" />
@@ -173,13 +226,14 @@
                             VerticalAlignment="Center"
                             Content="!"
                             IsEnabled="false"
-                            Visibility="{Binding Path=HasFileTransferWaiting, Converter={StaticResource BoolToVis}}" />
+                            Visibility="{Binding HasFileTransferWaiting, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
                 </Button>
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
                 <Button
                     x:Name="toolShowAlternative"
                     Click="ToolShowAlternative_Click"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
                     ToolTip="Show Alternative">
                     <Image Source="/KLC-Finch;component/Resources/application.png" StretchDirection="DownOnly" />
                 </Button>
@@ -188,8 +242,12 @@
                     Height="30"
                     VerticalAlignment="Stretch"
                     Click="ToolOptions_Click"
-                    Content="Settings" />
-                <Button x:Name="toolLatency" Content="Latency">
+                    Content="Settings"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" />
+                <Button
+                    Click="toolButtonContext"
+                    ContextMenuService.IsEnabled="False"
+                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}">
                     <Button.ContextMenu>
                         <ContextMenu>
                             <MenuItem
@@ -219,10 +277,6 @@
                                 Header="[PrtScr] Screenshot to Clipboard" />
                             <Separator />
                             <MenuItem
-                                x:Name="toolShowMouse"
-                                Click="ToolShowMouse_Click"
-                                Header="Show Remote Mouse" />
-                            <MenuItem
                                 x:Name="toolBlockScreen"
                                 Click="ToolBlockScreen_Click"
                                 Header="Block Out Screen" />
@@ -241,44 +295,16 @@
                                 Header="Soft Reconnect" />
                         </ContextMenu>
                     </Button.ContextMenu>
+                    <StackPanel Orientation="Horizontal">
+                        <Label
+                            x:Name="toolLatency"
+                            Padding="0"
+                            Content="Latency" />
+                        <Path Style="{StaticResource PathDownArrow}" />
+                    </StackPanel>
                 </Button>
-            </ToolBar>
-
-            <!--<ToolBar Band="1">
-                <Label Content="Keys:" />
-                <Button
-                    x:Name="toolKeyPos1"
-                    Click="toolKeyPos1_Click"
-                    Content="Control" />
-                <Button
-                    x:Name="toolKeyPos2"
-                    Click="toolKeyPos2_Click"
-                    Content="Win/Command" />
-                <Button
-                    x:Name="toolKeyPos3"
-                    Click="toolKeyPos3_Click"
-                    Content="Alt/Option" />
-                <Button
-                    x:Name="toolKeyShift"
-                    Click="toolKeyShift_Click"
-                    Content="Shift" />
-                <Label Content="USB:" />
-                <TextBox
-                    x:Name="txtKeyCustom"
-                    Width="40"
-                    BorderBrush="Black" />
-                <Button
-                    x:Name="btnKeyCustomD"
-                    BorderBrush="Black"
-                    Click="btnKeyCustomD_Click"
-                    Content="Down" />
-                <Button
-                    x:Name="btnKeyCustomU"
-                    BorderBrush="Black"
-                    Click="btnKeyCustomU_Click"
-                    Content="Up" />
-            </ToolBar>-->
-        </ToolBarTray>
+            </WrapPanel>
+        </Border>
 
         <Border
             x:Name="placeholder"

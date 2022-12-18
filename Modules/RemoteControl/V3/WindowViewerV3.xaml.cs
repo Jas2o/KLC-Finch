@@ -88,8 +88,7 @@ namespace KLC_Finch {
 
             supportOpenGL = !SystemParameters.IsRemoteSession;
             //supportOpenGL = System.Windows.Media.RenderCapability.IsPixelShaderVersionSupported(1, 0) || System.Windows.Media.RenderCapability.IsPixelShaderVersionSupportedInSoftware(1, 0);
-            if (!supportOpenGL)
-                renderer = 2;
+            //if (!supportOpenGL) renderer = 2;
 
             switch (renderer) {
                 case 0:
@@ -100,6 +99,7 @@ namespace KLC_Finch {
                     break;
                 case 2:
                     rcv = new RCvCanvas(rc, state);
+                    toolShowMouse.Visibility = Visibility.Collapsed;
                     break;
             }
             placeholder.Child = rcv;
@@ -145,12 +145,12 @@ namespace KLC_Finch {
                 };
                 item.Click += new RoutedEventHandler(ToolTSSession_ItemClicked);
 
-                toolTSSession.DropdownMenu.Items.Add(item);
+                toolTSSession.ContextMenu.Items.Add(item);
                 toolTSSession.Visibility = Visibility.Visible;
 
                 if (currentTSSession == null) {
                     currentTSSession = newTSSession;
-                    toolTSSession.Content = currentTSSession.session_name;
+                    lblTSSession.Content = currentTSSession.session_name;
                 }
             });
         }
@@ -164,7 +164,7 @@ namespace KLC_Finch {
             currentTSSession = null;
 
             Dispatcher.Invoke((Action)delegate {
-                toolTSSession.DropdownMenu.Items.Clear();
+                toolTSSession.ContextMenu.Items.Clear();
             });
         }
 
@@ -224,10 +224,11 @@ namespace KLC_Finch {
             rcv.CameraFromClickedScreen(screen, moveCamera);
 
             Dispatcher.Invoke((Action)delegate {
-                toolScreen.Content = screen.screen_name;
+                lblScreen.Content = screen.screen_name;
                 toolScreen.ToolTip = screen.StringResPos();
 
-                foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
+                foreach (MenuItem item in toolScreen.ContextMenu.Items)
+                {
                     item.IsChecked = (item.Header.ToString() == screen.ToString());
                 }
             });
@@ -482,7 +483,7 @@ namespace KLC_Finch {
                 toolMachineNote.Visibility = Visibility.Collapsed;
 
             if (machineShowToolTip > 0 && Enum.IsDefined(typeof(controlDashboard.Badge), machineShowToolTip))
-                toolMachineNote.Content = Enum.GetName(typeof(controlDashboard.Badge), machineShowToolTip);
+                lblMachineNote.Content = Enum.GetName(typeof(controlDashboard.Badge), machineShowToolTip);
 
             toolMachineNoteText.Header = machineNote;
             toolMachineNoteText.Visibility = (machineNote.Length == 0 ? Visibility.Collapsed : Visibility.Visible);
@@ -526,10 +527,10 @@ namespace KLC_Finch {
                 rcv.CameraToCurrentScreen();
 
             Dispatcher.Invoke((Action)delegate {
-                toolScreen.Content = state.CurrentScreen.screen_name;
+                lblScreen.Content = state.CurrentScreen.screen_name;
                 toolScreen.ToolTip = state.CurrentScreen.StringResPos();
 
-                foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
+                foreach (MenuItem item in toolScreen.ContextMenu.Items) {
                     item.IsChecked = (item.Header.ToString() == state.CurrentScreen.ToString());
                 }
             });
@@ -595,7 +596,7 @@ namespace KLC_Finch {
             state.connectionStatus = ConnectionStatus.Connected;
 
             Dispatcher.Invoke((Action)delegate {
-                toolScreen.DropdownMenu.Items.Clear();
+                toolScreen.ContextMenu.Items.Clear();
 
                 foreach (dynamic screen in json["screens"]) {
                     string screen_id = screen["screen_id"].ToString(); //int or BigInteger
@@ -615,7 +616,7 @@ namespace KLC_Finch {
                     };
                     item.Click += new RoutedEventHandler(ToolScreen_ItemClicked);
 
-                    toolScreen.DropdownMenu.Items.Add(item);
+                    toolScreen.ContextMenu.Items.Add(item);
 
                     //Private and Mac seem to bug out if you change screens, cause there's only one screen
                     toolScreen.Opacity = (state.ListScreen.Count > 1 ? 1.0 : 0.6);
@@ -627,7 +628,7 @@ namespace KLC_Finch {
                         state.legacyVirtualWidth = state.CurrentScreen.rect.Width;
                         state.virtualRequireViewportUpdate = true;
 
-                        toolScreen.Content = state.CurrentScreen.screen_name;
+                        lblScreen.Content = state.CurrentScreen.screen_name;
                         toolScreen.ToolTip = state.CurrentScreen.StringResPos();
                     }
                 }
@@ -934,6 +935,9 @@ namespace KLC_Finch {
         }
 
         private void ToolScreen_Click(object sender, RoutedEventArgs e) {
+            if (winScreens == null)
+                return;
+
             TimeSpan span = DateTime.Now - winScreens.TimeDeactivated;
             if (Settings.ScreenSelectNew) {
                 if (span.TotalMilliseconds < 500)
@@ -941,7 +945,15 @@ namespace KLC_Finch {
                 else
                     winScreens.Show();
             }
-            //Otherwise the old menu is shown
+
+            if (!winScreens.IsVisible)
+            {
+                //Otherwise the old menu is shown
+                (sender as Button).ContextMenu.IsEnabled = true;
+                (sender as Button).ContextMenu.PlacementTarget = (sender as Button);
+                (sender as Button).ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                (sender as Button).ContextMenu.IsOpen = true;
+            }
         }
 
         private void ToolScreen_ItemClicked(object sender, RoutedEventArgs e) {
@@ -955,9 +967,9 @@ namespace KLC_Finch {
             if (state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
 
-            toolScreen.Content = state.CurrentScreen.screen_name;
+            lblScreen.Content = state.CurrentScreen.screen_name;
             toolScreen.ToolTip = state.CurrentScreen.StringResPos();
-            foreach (MenuItem item in toolScreen.DropdownMenu.Items) {
+            foreach (MenuItem item in toolScreen.ContextMenu.Items) {
                 item.IsChecked = (item == source);
             }
         }
@@ -1032,8 +1044,16 @@ namespace KLC_Finch {
         }
 
         private void ToolShowMouse_Click(object sender, RoutedEventArgs e) {
-            toolShowMouse.IsChecked = !toolShowMouse.IsChecked;
-            rc.ShowCursor(toolShowMouse.IsChecked);
+            if (toolShowMouse.Opacity == 0.5)
+            {
+                toolShowMouse.Opacity = 1;
+                rc.ShowCursor(true);
+            }
+            else
+            {
+                toolShowMouse.Opacity = 0.5;
+                rc.ShowCursor(false);
+            }
         }
 
         private void ToolToggleControl_Click(object sender, RoutedEventArgs e) {
@@ -1054,9 +1074,9 @@ namespace KLC_Finch {
 
             state.UseMultiScreen = Settings.StartMultiScreen;
 
-            toolTSSession.Content = currentTSSession.session_name;
+            lblTSSession.Content = currentTSSession.session_name;
 
-            foreach (MenuItem item in toolTSSession.DropdownMenu.Items) {
+            foreach (MenuItem item in toolTSSession.ContextMenu.Items) {
                 item.IsChecked = (item == source);
             }
         }
@@ -1425,6 +1445,14 @@ namespace KLC_Finch {
         public void SetHasFileTransferWaiting(bool v)
         {
             state.HasFileTransferWaiting = v;
+        }
+
+        private void toolButtonContext(object sender, RoutedEventArgs e)
+        {
+            (sender as Button).ContextMenu.IsEnabled = true;
+            (sender as Button).ContextMenu.PlacementTarget = (sender as Button);
+            (sender as Button).ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            (sender as Button).ContextMenu.IsOpen = true;
         }
 
         /*

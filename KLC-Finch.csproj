@@ -41,6 +41,7 @@
     <Resource Include="Resources\apps.png" />
     <Resource Include="Resources\auto-fix.png" />
     <Resource Include="Resources\clipboard-arrow-down-outline.png" />
+    <Resource Include="Resources\cursor-default-outline.png" />
     <Resource Include="Resources\file-arrow-up-down-outline.png" />
     <Resource Include="Resources\file-arrow-up-down-outline2.png" />
     <Resource Include="Resources\fit-to-page-outline.png" />
@@ -90,6 +91,7 @@
     <Compile Remove="WebSockets\Unused\WsY1.cs" />
     <Compile Remove="WebSockets\Unused\WsY2.cs" />
     <Compile Remove="WebSockets\Unused\WsZ.cs" />
+    <None Remove="Resources\cursor-default-outline.png" />
     <None Remove="Resources\file-arrow-up-down-outline.png" />
     <None Remove="Resources\file-arrow-up-down-outline2.png" />
     <None Remove="Resources\tray-arrow-down-low.png" />
@@ -103,6 +105,19 @@
     <Reference Include="VP8.NET">
       <HintPath>..\VP8.NET\bin\Win64\Release\VP8.NET.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="..\LibKaseya\LibKaseya.projitems" Label="Shared" />
   <Import Project="..\LibKaseyaAuth\LibKaseyaAuth.projitems" Label="Shared" />

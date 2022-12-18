@@ -132,10 +132,10 @@ namespace KLC_Finch
 
         public void Disconnect(string sessionId)
         {
-            decoderCT.Cancel();
-
             try
             {
+                decoderCT.Cancel();
+
                 if (decoder != null)
                 {
                     lock (decoderCT)
