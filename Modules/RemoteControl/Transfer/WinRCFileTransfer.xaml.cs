@@ -24,13 +24,36 @@ namespace KLC_Finch
         {
             if (rc.IsMac)
                 btnAcceptDownload.Content = "Accept (Mac unsupported)";
-            /*
-            if (rc.Files.activeUpload == null)
-                expUpload.IsExpanded = false;
 
-            if (rc.Files.activeDownload == null)
-                expDownload.IsExpanded = false;
-            */
+            rc.Files.Callback = new WinRCFileCallback(RCFileCallback);
+        }
+
+        private void RCFileCallback(int action)
+        {
+            Application.Current.Dispatcher.Invoke((Action)delegate
+            {
+                switch (action)
+                {
+                    case 0:
+                        this.Close();
+                        break;
+                    case 1:
+                        OnlyShowDownload();
+                        break;
+                    case 2:
+                        OnlyShowUpload();
+                        break;
+                    default:
+                        Debug.WriteLine("Unexpected");
+                        break;
+                }
+            });
+        }
+
+        public void OnlyShowDownload()
+        {
+            expDownload.IsExpanded = true;
+            expUpload.IsExpanded = false;
         }
 
         public void OnlyShowUpload()
@@ -127,5 +150,7 @@ namespace KLC_Finch
         {
             lblLocalDest.Foreground = Brushes.Black;
         }
+
+        public delegate void WinRCFileCallback(int action);
     }
 }

@@ -2,11 +2,8 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Tasks;
-using static System.Windows.Forms.AxHost;
 
 namespace KLC_Finch.Modules.RemoteControl.Transfer
 {
@@ -32,6 +29,7 @@ namespace KLC_Finch.Modules.RemoteControl.Transfer
         private int progressValueDownload;
 
         private int progressValueUpload;
+        public WinRCFileTransfer.WinRCFileCallback Callback;
 
         public RCFile(bool IsMac)
         {
@@ -139,12 +137,16 @@ namespace KLC_Finch.Modules.RemoteControl.Transfer
             }
             ProgressValueDownload = 0;
             ProgressTextDownload = "";
+
+            Callback.Invoke(0); //Close
         }
 
         public void FileTransferUploadComplete()
         {
             ProgressValueUpload = 0;
             ProgressTextUpload = "";
+
+            Callback.Invoke(0); //Close
         }
         public void HistoryAddDownload()
         {
@@ -205,6 +207,8 @@ namespace KLC_Finch.Modules.RemoteControl.Transfer
             activeDownload.Start(dName, dSize);
             ProgressValueDownload = 0;
             ProgressTextDownload = "";
+
+            Callback.Invoke(1); //Start download
         }
 
         public void StartUploadUI()
@@ -214,6 +218,8 @@ namespace KLC_Finch.Modules.RemoteControl.Transfer
             ProgressValueUpload = 0;
             ProgressTextUpload = "";
             //HideWhenDone = true;
+
+            Callback.Invoke(2); //Start upload
         }
         public void UploadCancelled()
         {
