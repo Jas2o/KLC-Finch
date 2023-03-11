@@ -71,6 +71,7 @@ namespace KLC_Finch {
 
             txtSizeWidth.Text = "1370";
             txtSizeHeight.Text = "800";
+            settings.Downscale = 0;
 
             DataContext = null;
             DataContext = settings;
@@ -98,6 +99,7 @@ namespace KLC_Finch {
 
             txtSizeWidth.Text = "1370";
             txtSizeHeight.Text = "800";
+            settings.Downscale = 2;
 
             DataContext = null;
             DataContext = settings;

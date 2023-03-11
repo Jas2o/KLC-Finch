@@ -12,7 +12,7 @@ namespace KLC_Finch {
 
         void CaptureNextScreen();
 
-        void ChangeScreen(string screen_id, int clientH, int clientW);
+        void ChangeScreen(string screen_id, int clientH, int clientW, int downscale);
 
         void ChangeTSSession(string session_id);
 

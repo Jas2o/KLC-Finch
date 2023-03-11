@@ -43,18 +43,16 @@
                 Click="ToolDump_Click"
                 Foreground="White"
                 Header="Dump" />
-            <Separator Width="10" />
             <MenuItem
                 x:Name="toolUpdate"
                 Click="ToolUpdate_Click"
                 Foreground="White"
                 Header="Update Screen Layout" />
-            <Separator Width="10" />
-            <MenuItem
+            <!--<MenuItem
                 x:Name="toolReflow"
                 Click="ToolReflow_Click"
                 Foreground="White"
-                Header="Reflow X" />
+                Header="Reflow X" />-->
             <MenuItem
                 x:Name="toolReset"
                 Click="toolReset_Click"

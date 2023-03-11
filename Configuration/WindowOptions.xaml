@@ -330,22 +330,44 @@
                             </StackPanel>
                         </GroupBox>
                         <GroupBox Header="Initial Window Size">
-                            <StackPanel Orientation="Horizontal">
-                                <Label Content="W:" />
-                                <TextBox
-                                    x:Name="txtSizeWidth"
-                                    Grid.Column="1"
-                                    Width="50"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center" />
-                                <Label Content="H:" />
-                                <TextBox
-                                    x:Name="txtSizeHeight"
-                                    Grid.Row="1"
-                                    Grid.Column="1"
-                                    Width="50"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center" />
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Content="W:" />
+                                    <TextBox
+                                        x:Name="txtSizeWidth"
+                                        Grid.Column="1"
+                                        Width="50"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center" />
+                                    <Label Content="H:" />
+                                    <TextBox
+                                        x:Name="txtSizeHeight"
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        Width="50"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center" />
+                                </StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <Label
+                                        Padding="0,5,5,5"
+                                        Content="Down-scale:"
+                                        ToolTip="Values closer to 1x keep higher video stream quality."
+                                        ToolTipService.ShowDuration="12000" />
+                                    <ComboBox
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        SelectedIndex="{Binding Downscale}">
+                                        <ComboBoxItem>1x - Finch default</ComboBoxItem>
+                                        <ComboBoxItem>2x - Kaseya min</ComboBoxItem>
+                                        <ComboBoxItem>4x - Kaseya default</ComboBoxItem>
+                                        <ComboBoxItem>8x - Kaseya max</ComboBoxItem>
+                                    </ComboBox>
+                                </Grid>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>

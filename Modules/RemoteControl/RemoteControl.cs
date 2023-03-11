@@ -75,18 +75,23 @@ namespace KLC_Finch
             captureScreen = true;
         }
 
-        public void ChangeScreen(string screen_id, int clientH, int clientW)
+        public void ChangeScreen(string screen_id, int clientH, int clientW, int downscale)
         {
-            //{"downscale_limit":4,"monitorId":354484717,"screen_height":636,"screen_width":986}
-            JObject json = new()
+            try
             {
-                ["downscale_limit"] = 1, //Kaseya default is 4
-                ["monitorId"] = int.Parse(screen_id), //Intentionally using a string as int/biginteger
-                ["screen_height"] = clientH,
-                ["screen_width"] = clientW
-            };
-            SendJson(Enums.KaseyaMessageTypes.UpdateMonitorId, json.ToString());
-            //activeScreenID = screen_id;
+                //{"downscale_limit":4,"monitorId":354484717,"screen_height":636,"screen_width":986}
+                JObject json = new()
+                {
+                    ["downscale_limit"] = downscale, //Kaseya default is 4
+                    ["monitorId"] = int.Parse(screen_id), //Intentionally using a string as int/biginteger
+                    ["screen_height"] = clientH,
+                    ["screen_width"] = clientW
+                };
+                SendJson(Enums.KaseyaMessageTypes.UpdateMonitorId, json.ToString());
+                //activeScreenID = screen_id;
+            } catch(Exception)
+            {
+            }
         }
 
         public void ChangeTSSession(string session_id)

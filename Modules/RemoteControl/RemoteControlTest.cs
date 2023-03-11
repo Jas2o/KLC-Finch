@@ -123,7 +123,7 @@ namespace KLC_Finch
             screenStr = jsonstr;
         }
 
-        public void ChangeScreen(string screen_id, int clientH, int clientW)
+        public void ChangeScreen(string screen_id, int clientH, int clientW, int downscale)
         {
             //Console.WriteLine("ChangeScreen: " + screen_id);
             //screenCurrent = screenList.Find(x => x.screen_id == screen_id);

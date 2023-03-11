@@ -219,7 +219,7 @@ namespace KLC_Finch {
         public void FromGlChangeScreen(RCScreen screen, bool moveCamera = true) {
             state.previousScreen = state.CurrentScreen;
             state.CurrentScreen = screen;
-            rc.ChangeScreen(state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
+            ChangeScreen(state.CurrentScreen.screen_id);
 
             rcv.CameraFromClickedScreen(screen, moveCamera);
 
@@ -521,7 +521,7 @@ namespace KLC_Finch {
         public void SetScreen(string id) {
             state.previousScreen = state.CurrentScreen;
             state.CurrentScreen = state.ListScreen.First(x => x.screen_id == id);
-            rc.ChangeScreen(state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
+            ChangeScreen(state.CurrentScreen.screen_id);
 
             if (state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
@@ -775,6 +775,22 @@ namespace KLC_Finch {
             } else {
                 state.SsClipboardSync = (Settings.ClipboardSync == 1);
             }
+
+            switch(Settings.Downscale)
+            {
+                case 1: //x2
+                    state.QualityDownscale = 2;
+                    break;
+                case 2:
+                    state.QualityDownscale = 4;
+                    break;
+                case 3:
+                    state.QualityDownscale = 8;
+                    break;
+                default:
+                    state.QualityDownscale = 1;
+                    break;
+            }
         }
 
         private bool SwitchToLegacyRendering() {
@@ -962,7 +978,7 @@ namespace KLC_Finch {
 
             state.previousScreen = state.CurrentScreen;
             state.CurrentScreen = state.ListScreen.First(x => x.screen_name == screen_selected[0]);
-            rc.ChangeScreen(state.CurrentScreen.screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight);
+            ChangeScreen(state.CurrentScreen.screen_id);
 
             if (state.UseMultiScreen)
                 rcv.CameraToCurrentScreen();
@@ -1453,6 +1469,39 @@ namespace KLC_Finch {
             (sender as Button).ContextMenu.PlacementTarget = (sender as Button);
             (sender as Button).ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
             (sender as Button).ContextMenu.IsOpen = true;
+        }
+
+        private void ChangeScreen(string screen_id)
+        {
+            if (rc == null || state.connectionStatus != ConnectionStatus.Connected)
+                return;
+
+            if(state.QualityWidth == 0 || state.QualityHeight == 0)
+            {
+                rc.ChangeScreen(screen_id, (int)rcv.ActualWidth, (int)rcv.ActualHeight, state.QualityDownscale);
+            } else
+            {
+                rc.ChangeScreen(screen_id, state.QualityWidth, state.QualityHeight, state.QualityDownscale); 
+            }
+        }
+
+        private void ToolStreamQuality_Click(object sender, RoutedEventArgs e)
+        {
+            QualityCallback callback = new QualityCallback(QualityUpdate);
+            WindowStreamQuality winStreamQuality = new WindowStreamQuality(callback, state.QualityDownscale, state.QualityWidth, state.QualityHeight)
+            {
+                Owner = this
+            };
+            winStreamQuality.ShowDialog();
+        }
+
+        public delegate void QualityCallback(int downscale, int width, int height);
+        public void QualityUpdate(int downscale, int width, int height)
+        {
+            state.QualityDownscale = downscale;
+            state.QualityWidth = width;
+            state.QualityHeight = height;
+            ChangeScreen(state.CurrentScreen.screen_id);
         }
 
         /*

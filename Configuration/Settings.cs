@@ -49,5 +49,6 @@ namespace KLC_Finch {
         //RC: Initial Window Size
         public uint RemoteControlWidth { get; set; } = 1370;  //The same as Kaseya
         public uint RemoteControlHeight { get; set; } = 800;
+        public int Downscale { get; set; } = 0;
     }
 }

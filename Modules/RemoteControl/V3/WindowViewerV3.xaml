@@ -264,6 +264,10 @@
                                 Header="OpenGL Info" />
                             <Separator />
                             <MenuItem
+                                x:Name="toolStreamQuality"
+                                Click="ToolStreamQuality_Click"
+                                Header="Adjust Stream Quality" />
+                            <MenuItem
                                 x:Name="toolUpdateScreenLayout"
                                 Click="ToolUpdateScreenLayout_Click"
                                 Header="Update Screen Layout" />

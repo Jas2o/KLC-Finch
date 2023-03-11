@@ -58,6 +58,10 @@ namespace KLC_Finch
         public readonly List<TSSession> listTSSession = new List<TSSession>();
         public TSSession currentTSSession = null;
 
+        public int QualityDownscale = 1;
+        public int QualityWidth = 0;
+        public int QualityHeight = 0;
+
         public RCstate()
         {
             ListScreen = new List<RCScreen>();

@@ -102,7 +102,10 @@ namespace KLC_Finch
         {
             if (winRCTest != null)
                 winRCTest.Close();
-            winRCTest = new WindowRCTest();
+            winRCTest = new WindowRCTest()
+            {
+                Owner = this
+            };
             winRCTest.Show();
         }
 

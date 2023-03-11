@@ -61,7 +61,6 @@ namespace KLC_Finch {
 
             txtUtilisationRAM.Text = "RAM: " + session.agent.RAMinGB + " GB";
             DisplayRCNotify(session.RCNotify);
-            DisplayRCNotify(session.RCNotify);
             DisplayMachineNote(session.agent.MachineShowToolTip, session.agent.MachineNote, session.agent.MachineNoteLink);
         }
 
