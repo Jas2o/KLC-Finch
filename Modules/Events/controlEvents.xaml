@@ -68,6 +68,27 @@
                 Width="100"
                 VerticalAlignment="Center"
                 TextChanged="txtFilter_TextChanged" />
+            <CheckBox
+                x:Name="chkEventsFilterInfo"
+                Margin="5,0,5,0"
+                VerticalAlignment="Center"
+                Checked="chkEventsFilter_CheckedChanged"
+                Content="Info"
+                Unchecked="chkEventsFilter_CheckedChanged" />
+            <CheckBox
+                x:Name="chkEventsFilterWarn"
+                Margin="5,0,5,0"
+                VerticalAlignment="Center"
+                Checked="chkEventsFilter_CheckedChanged"
+                Content="Warn"
+                Unchecked="chkEventsFilter_CheckedChanged" />
+            <CheckBox
+                x:Name="chkEventsFilterError"
+                Margin="5,0,5,0"
+                VerticalAlignment="Center"
+                Checked="chkEventsFilter_CheckedChanged"
+                Content="Error"
+                Unchecked="chkEventsFilter_CheckedChanged" />
         </StackPanel>
         <DataGrid
             x:Name="dgvEventsValues"
@@ -93,6 +114,28 @@
                 <!--<DataGridTextColumn Binding="{Binding User}" Header="User"/>
                 <DataGridTextColumn Binding="{Binding Computer}" Header="Computer"/>-->
             </DataGrid.Columns>
+            <DataGrid.CellStyle>
+                <Style TargetType="DataGridCell">
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding EventTypeDisplay}" Value="Warning" />
+                                <Condition Binding="{Binding Column.Header, RelativeSource={RelativeSource Self}}" Value="Level" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FFFFD225" />
+                            <Setter Property="Foreground" Value="Black" />
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding EventTypeDisplay}" Value="Error" />
+                                <Condition Binding="{Binding Column.Header, RelativeSource={RelativeSource Self}}" Value="Level" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FFff6961" />
+                            <Setter Property="Foreground" Value="Black" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.CellStyle>
         </DataGrid>
         <GridSplitter Grid.Row="2" HorizontalAlignment="Stretch" />
         <TextBox

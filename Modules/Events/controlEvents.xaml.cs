@@ -98,12 +98,7 @@ namespace KLC_Finch {
         }
 
         private void txtFilter_TextChanged(object sender, TextChangedEventArgs e) {
-            ListCollectionView collectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(dgvEventsValues.ItemsSource);
-            collectionView.Filter = new Predicate<object>(x =>
-                ((Modules.EventValue)x).EventMessage.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                ((Modules.EventValue)x).SourceName.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0
-            );
-            //collectionView.Refresh();
+            Filter();
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e) {
@@ -115,6 +110,44 @@ namespace KLC_Finch {
                     btnEventsStart_Click(sender, e);
                     btnEventsStart.Visibility = Visibility.Collapsed;
                 }
+            }
+        }
+
+        private void chkEventsFilter_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            Filter();
+        }
+
+        private void Filter()
+        {
+            string text = txtFilter.Text;
+            bool info = (bool)chkEventsFilterInfo.IsChecked;
+            bool warn = (bool)chkEventsFilterWarn.IsChecked;
+            bool error = (bool)chkEventsFilterError.IsChecked;
+
+            if (info || warn || error)
+            {
+                ListCollectionView collectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(dgvEventsValues.ItemsSource);
+                collectionView.Filter = new Predicate<object>(x =>
+                    (
+                        ((Modules.EventValue)x).EventMessage.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        ((Modules.EventValue)x).SourceName.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0
+                    ) && (
+                        (error && ((Modules.EventValue)x).EventType == 1) ||
+                        (warn && ((Modules.EventValue)x).EventType == 2) ||
+                        (info && ((Modules.EventValue)x).EventType == 4) ||
+                        (info && ((Modules.EventValue)x).EventType == 0)
+                    )
+                );
+            }
+            else
+            {
+                ListCollectionView collectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(dgvEventsValues.ItemsSource);
+                collectionView.Filter = new Predicate<object>(x =>
+                    ((Modules.EventValue)x).EventMessage.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    ((Modules.EventValue)x).SourceName.IndexOf(txtFilter.Text, StringComparison.OrdinalIgnoreCase) >= 0
+                );
+                //collectionView.Refresh();
             }
         }
     }
