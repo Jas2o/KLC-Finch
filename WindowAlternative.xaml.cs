@@ -97,8 +97,9 @@ namespace KLC_Finch
             dialog.Show();
 
             //HasConnected callback = (directToRemoteControl ? new HasConnected(ConnectDirect) : new HasConnected(ConnectNotDirect));
-            StatusCallback callback = new StatusCallback(StatusUpdate);
-            session = new KLC.LiveConnectSession(vsa, shortToken, agentID, callback);
+            StatusCallback callbackS = new StatusCallback(StatusUpdate);
+            ErrorCallback callbackE = new ErrorCallback(ErrorUpdate);
+            session = new KLC.LiveConnectSession(vsa, shortToken, agentID, callbackS, callbackE);
             dialog.Dispose();
             if (session.Eirc == null)
             {
@@ -248,6 +249,16 @@ namespace KLC_Finch
 
             if (status == EPStatus.Connected && directAction != OnConnect.NoAction)
                 directAction = OnConnect.NoAction;
+        }
+
+        public delegate void ErrorCallback(string error);
+        public void ErrorUpdate(string error)
+        {
+            Application.Current.Dispatcher.Invoke((Action)delegate
+            {
+                txtError.Text = error;
+                borderError.Visibility = Visibility.Visible;
+            });
         }
 
         /*
@@ -516,5 +527,15 @@ namespace KLC_Finch
             MessageBox.Show(logs, "KLC-Finch: Remote Control Logs");
         }
 
+        private void btnErrorDismiss_Click(object sender, RoutedEventArgs e)
+        {
+            borderError.Visibility = Visibility.Collapsed;
+        }
+
+        private void txtError_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if(e.ClickCount == 2)
+                Clipboard.SetDataObject(txtError.Text);
+        }
     }
 }

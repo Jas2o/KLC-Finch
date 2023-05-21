@@ -17,6 +17,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Border x:Name="borderStatus" Background="Gray">
@@ -180,5 +181,28 @@
             </TabItem>
         </TabControl>
 
+        <Border
+            x:Name="borderError"
+            Grid.Row="2"
+            Background="Maroon"
+            Visibility="Collapsed">
+            <Grid>
+                <TextBlock
+                    x:Name="txtError"
+                    Margin="0,2"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Foreground="White"
+                    MouseDown="txtError_MouseDown"
+                    Text="Error text would display here." />
+                <Button
+                    x:Name="btnErrorDismiss"
+                    Width="20"
+                    Margin="2,2,2,2"
+                    HorizontalAlignment="Right"
+                    Click="btnErrorDismiss_Click"
+                    Content="X" />
+            </Grid>
+        </Border>
     </Grid>
 </Window>

@@ -113,7 +113,7 @@ namespace KLC_Finch {
                 toolBlockMouseKB.Visibility = Visibility.Collapsed;
                 if (Settings.MacSwapCtrlWin)
                     toolKeyWin.Visibility = Visibility.Collapsed;
-                toolBlockScreen.Visibility = Visibility.Collapsed; //Does this even work for Windows?
+                toolBlockScreen.Visibility = Visibility.Collapsed;
             }
 
             SetControlEnabled(false, true); //Just for the visual

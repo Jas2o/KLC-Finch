@@ -24,8 +24,10 @@ namespace KLC_Finch.Modules {
 
         private string lastLogType;
         //private int scan = -1;
+        private WindowAlternative.ErrorCallback CallbackE;
 
         public Events(KLC.LiveConnectSession session, EventsData eventsData, ComboBox cmbLogTypes=null) {
+            CallbackE = session.CallbackE;
             this.eventsData = eventsData;
             this.cmbLogTypes = cmbLogTypes;
             //this.cmbLogTypesExtended = cmbLogTypesExtended;
@@ -80,14 +82,14 @@ namespace KLC_Finch.Modules {
                             eventsData.EventsAdd(new EventValue(e));
                         }
                     } else if (temp["errors"] != null) {
-                        App.ShowUnhandledExceptionFromSrc(temp["errors"].ToString(), "Events: error");
+                        CallbackE("Events: " + temp["errors"].ToString());
                     }
 
                     //if (scan > -1) Scan();
                     break;
 
                 default:
-                    App.ShowUnhandledExceptionFromSrc(temp["errors"].ToString(), "Events: unhandled");
+                    CallbackE("Events unhandled: " + temp["errors"].ToString());
                     //txtBox.AppendText("Events message received: " + message + "\r\n\r\n");
                     break;
             }

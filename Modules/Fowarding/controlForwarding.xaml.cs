@@ -59,7 +59,7 @@ namespace KLC_Finch
             Session.ModuleForwarding.Close();
             Session.ModuleForwarding = null;
 
-            Session.Callback(LibKaseya.Enums.EPStatus.NativeRDPEnded);
+            Session.CallbackS(LibKaseya.Enums.EPStatus.NativeRDPEnded);
             txtAccess.Text = "";
             btnForwardingEnd.IsEnabled = false;
             btnForwardingStart.IsEnabled = true;

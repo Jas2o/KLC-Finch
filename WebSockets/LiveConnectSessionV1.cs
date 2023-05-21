@@ -39,19 +39,21 @@ namespace KLC {
         public Toolbox ModuleToolbox;
         public Forwarding ModuleForwarding;
 
-        public WindowAlternative.StatusCallback Callback;
+        public WindowAlternative.StatusCallback CallbackS;
+        public WindowAlternative.ErrorCallback CallbackE;
 
-        public LiveConnectSession(string vsa, string shortToken, string agentID, WindowAlternative.StatusCallback callback = null) {
+        public LiveConnectSession(string vsa, string shortToken, string agentID, WindowAlternative.StatusCallback callbackS = null, WindowAlternative.ErrorCallback callbackE = null) {
             agentGuid = agentID;
             shorttoken = shortToken;
-            Callback = callback;
+            CallbackS = callbackS;
+            CallbackE = callbackE;
             Kaseya.LoadToken(vsa, shortToken);
             agent = new Agent(vsa, agentGuid);
 
             Auth = KaseyaAuth.ApiAuthX(shorttoken, vsa);
             if (Auth == null)
             {
-                Callback?.Invoke(Enums.EPStatus.AuthFailed);
+                CallbackS?.Invoke(Enums.EPStatus.AuthFailed);
                 return;
             }
             shortToken = Auth.Token; //Works fine without this line, but it's something KLC does.
@@ -72,7 +74,7 @@ namespace KLC {
                 Eirc = Api15.EndpointsInitiateRemoteControl(vsa, shorttoken, agentGuid);
             } catch(Exception)
             {
-                Callback?.Invoke(Enums.EPStatus.UnableToStartSession);
+                CallbackS?.Invoke(Enums.EPStatus.UnableToStartSession);
                 return;
             }
             RandSessionGuid = Guid.NewGuid().ToString();

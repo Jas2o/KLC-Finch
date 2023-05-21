@@ -92,7 +92,7 @@ namespace KLC_Finch
 
                     DisplayAccess(peerAcceptPort);
                     DisplayStatus("Setting up...");
-                    session.Callback(Enums.EPStatus.NativeRDPStarting);
+                    session.CallbackS(Enums.EPStatus.NativeRDPStarting);
 
                     if (Port == 3389)
                     {
@@ -119,7 +119,7 @@ namespace KLC_Finch
                         return;
                     }
 
-                    session.Callback(Enums.EPStatus.NativeRDPActive);
+                    session.CallbackS(Enums.EPStatus.NativeRDPActive);
                     DisplayStatus("Active");
                     break;
 
@@ -131,7 +131,7 @@ namespace KLC_Finch
 
         private void Mstsc_Exited(object sender, EventArgs e)
         {
-            session.Callback(Enums.EPStatus.NativeRDPEnded);
+            session.CallbackS(Enums.EPStatus.NativeRDPEnded);
             session.WebsocketB.ControlAgentSendRDP_StateRestore();
 
             if (pathRDP.EndsWith(".rdp"))
