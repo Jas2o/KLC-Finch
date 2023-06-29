@@ -872,6 +872,7 @@ namespace KLC_Finch {
 
             clipboard = Clipboard.GetText();
             rc.SendClipboard(clipboard);
+            toolClipboardSendText.Text = clipboard.Truncate(50);
 
             //if (Settings.ClipboardSync > 0) toolClipboardGetText.Text = clipboard.Truncate(50);
         }

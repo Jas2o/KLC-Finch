@@ -46,7 +46,7 @@ namespace KLC_Finch {
 
                     toolboxData.Clear();
                     foreach (dynamic second in first["Result"].Children()) {
-                        if (second["isFile"] == false) {
+                        if ((bool)second["isFile"] == false) {
                             string name = (string)second["Name"];
 
                             IRestResponse response2 = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/folder//" + name);
