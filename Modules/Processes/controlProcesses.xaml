@@ -43,6 +43,11 @@
                 Margin="0,0,5,0"
                 Click="btnProcesseEnd_Click"
                 Content="End Task" />
+            <Button
+                x:Name="btnProcesseCopy"
+                Margin="0,0,5,0"
+                Click="btnProcesseCopyAll_Click"
+                Content="Copy All" />
             <Label
                 Margin="0,0,5,0"
                 VerticalAlignment="Center"
@@ -62,8 +67,7 @@
             ItemsSource="{Binding Source={StaticResource GridItems}}"
             PreviewKeyDown="dgvProcesses_PreviewKeyDown"
             PreviewMouseDown="dgvProcesses_PreviewMouseDown"
-            SelectionChanged="dgvProcesses_SelectionChanged"
-            SelectionMode="Single">
+            SelectionChanged="dgvProcesses_SelectionChanged">
             <DataGrid.Resources>
                 <local:FormatKbSizeConverter x:Key="FormatKbSizeConverter" />
                 <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{Binding Path=Color, Source={x:Static SystemColors.HighlightBrush}}" />

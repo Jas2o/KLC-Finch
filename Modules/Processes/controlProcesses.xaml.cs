@@ -1,17 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
+//using System.Windows.Forms;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace KLC_Finch {
     /// <summary>
@@ -58,6 +50,7 @@ namespace KLC_Finch {
 
         private void dgvProcesses_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             btnProcesseEnd.IsEnabled = false;
+            btnProcesseSafety.IsEnabled = (dgvProcesses.SelectedItems.Count == 1);
         }
 
         private void btnProcesseSafety_Click(object sender, RoutedEventArgs e) {
@@ -114,6 +107,36 @@ namespace KLC_Finch {
                     btnProcessesStart.Visibility = Visibility.Collapsed;
                 }
             }
+        }
+
+        private void btnProcesseCopyAll_Click(object sender, RoutedEventArgs e)
+        {
+            /*
+            var newline = System.Environment.NewLine;
+            var tab = "\t";
+            var clipboard_string = new StringBuilder();
+            int i;
+
+            for (i = 0; i < dgvProcesses.Columns.Count - 1; i++)
+            {
+                clipboard_string.Append(dgvProcesses.Columns[i].Name);
+                clipboard_string.Append(tab);
+            }
+            clipboard_string.Append(dgvProcesses.Columns[i].Name);
+            clipboard_string.Append(newline);
+            foreach (DataGridViewRow row in dgvProcesses.Rows)
+            {
+                for (i = 0; i < row.Cells.Count - 1; i++)
+                {
+                    clipboard_string.Append(row.Cells[i].Value);
+                    clipboard_string.Append(tab);
+                }
+                clipboard_string.Append(row.Cells[i].Value);
+                clipboard_string.Append(newline);
+            }
+
+            System.Windows.Clipboard.SetDataObject(clipboard_string.ToString());
+            */
         }
     }
 }
