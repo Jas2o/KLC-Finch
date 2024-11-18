@@ -24,8 +24,8 @@
                 <Run Foreground="Blue" Text="Launching directly only intended for testing." />
                 <LineBreak />
                 For normal usage:<LineBreak />
-                Run KLCProxy, open Settings menu,<LineBreak />
-                tick Use KLCProxy and Use Alternative<LineBreak />
+                Run KLC-Proxy, open Settings menu,<LineBreak />
+                tick Use KLC-Proxy and Use Alternative<LineBreak />
                 then connect to an agent from VSA.</TextBlock>
 
             <Button

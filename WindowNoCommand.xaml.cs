@@ -56,8 +56,8 @@ namespace KLC_Finch
                     {
                         thisAgentVSA = subkey.GetValue("lastKnownConnAddr").ToString();
                         thisAgentID = subkey.GetValue("AgentGUID").ToString();
+                        subkey.Close();
                     }
-                    subkey.Close();
                 }
             }
             catch (Exception)

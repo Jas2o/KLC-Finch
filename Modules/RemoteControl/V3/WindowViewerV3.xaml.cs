@@ -43,7 +43,7 @@ namespace KLC_Finch {
         private readonly Timer timerClipboard;
         private readonly Timer timerHealth;
         private readonly WindowScreens winScreens;
-        private string[] arrAdmins = new string[] { "administrator", "brandadmin", "adminc", "company" };
+        private string[] arrAdmins = new string[] { "administrator" };
         private bool autotypeAlwaysConfirmed;
         private string clipboard = "";
         private TSSession currentTSSession = null;

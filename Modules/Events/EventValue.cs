@@ -12,7 +12,7 @@ namespace KLC_Finch.Modules {
         public DateTime EventGeneratedTime { get; private set; } //2021-04-13T00:10:22.77Z
         public int RecordNumber { get; private set; } //3767
         public string User { get; private set; } //N/A
-        public string Computer { get; private set; } //NB.company.com.au
+        public string Computer { get; private set; }
         
         public int EventId { get; private set; }
         public int EventQualifiers { get; private set; }

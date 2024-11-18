@@ -27,7 +27,7 @@ namespace KLC_Finch
 
     public class RCstate : INotifyPropertyChanged
     {
-        private static string[] arrAdmins = new string[] { "administrator", "brandadmin", "adminc", "company" };
+        private static string[] arrAdmins = new string[] { "administrator" };
 
         public Agent.OSProfile endpointOS;
         public string endpointLastUser;
