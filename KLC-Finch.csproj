@@ -100,11 +100,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibrariesExternal\GLControl\OpenTK.WinForms\OpenTK.WinForms.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="VP8.NET">
-      <HintPath>..\VP8.NET\bin\Win64\Release\VP8.NET.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\VP8.NET\VP8.NET\VP8.NET.vcxproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">

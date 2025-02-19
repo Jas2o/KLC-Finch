@@ -1,15 +1,10 @@
 ﻿//Try: https://stackoverflow.com/questions/38148400/clipboard-monitor
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace KLC
-{
+namespace KLC {
     public class ClipBoardMonitor : NativeWindow
     {
         //Based on: https://stackoverflow.com/questions/31258905/how-to-monitor-clipboard-changes-in-c-sharp-to-capture-only-hyperlinks

@@ -1,11 +1,7 @@
-﻿using OpenTK;
-using OpenTK.Graphics;
-using OpenTK.Graphics.OpenGL;
+﻿using OpenTK.Graphics.OpenGL;
 using OpenTK.Windowing.Desktop;
-using System;
 
-namespace KLC_Finch
-{
+namespace KLC_Finch {
     public class OpenGLSoftwareTest : GameWindow
     {
 

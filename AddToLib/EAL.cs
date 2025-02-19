@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace KLC.Structure
-{
+﻿namespace KLC.Structure {
     public class EAL
     {
         public string auth_jwt;

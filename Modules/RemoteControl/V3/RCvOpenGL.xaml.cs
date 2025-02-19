@@ -1,22 +1,12 @@
-﻿using KLC;
-using LibKaseya;
-using NTR;
-using Ookii.Dialogs.Wpf;
-using OpenTK;
+﻿using NTR;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Timers;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
 
 namespace KLC_Finch {
     /// <summary>

@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Windows.Markup;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace KLC_Finch {
     public class UploadRC : INotifyPropertyChanged

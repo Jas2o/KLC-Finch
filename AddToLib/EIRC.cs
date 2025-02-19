@@ -1,10 +1,6 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace KLC.Structure
-{
+namespace KLC.Structure {
     public class EIRC //EndpointsInitiateRemoteControl
     {
         public string json;

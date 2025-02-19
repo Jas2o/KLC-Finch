@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace KLC_Finch
-{
+namespace KLC_Finch {
     /// <summary>
     /// Interaction logic for WinRCFileTransfer.xaml
     /// </summary>
