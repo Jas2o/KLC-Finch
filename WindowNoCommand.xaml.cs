@@ -46,22 +46,30 @@ namespace KLC_Finch
                 cmbBookmarks.Items.Add(bm);
             }
 
-            #region This Agent ID
-            try
-            {
-                using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
-                {
-                    RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent\AGENT11111111111111"); //Actually in WOW6432Node
-                    if (subkey != null)
-                    {
-                        thisAgentVSA = subkey.GetValue("lastKnownConnAddr").ToString();
-                        thisAgentID = subkey.GetValue("AgentGUID").ToString();
+            #region This Agent ID (first in registry)
+            try {
+                using (RegistryKey view32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) {
+                    RegistryKey subkey = view32.OpenSubKey(@"SOFTWARE\Kaseya\Agent"); //Actually in WOW6432Node
+                    if (subkey != null) {
+                        string[] agents = subkey.GetSubKeyNames();
+                        foreach (string agent in agents) {
+                            RegistryKey agentkey = subkey.OpenSubKey(agent);
+                            if (agentkey != null) {
+                                string valAddress = (string)agentkey.GetValue("lastKnownConnAddr");
+                                string valGUID = (string)agentkey.GetValue("AgentGUID");
+                                if (valAddress != null && valGUID != null) {
+                                    thisAgentVSA = valAddress;
+                                    thisAgentID = valGUID;
+                                    agentkey.Close();
+                                    break;
+                                }
+                                agentkey.Close();
+                            }
+                        }
                         subkey.Close();
                     }
                 }
-            }
-            catch (Exception)
-            {
+            } catch (Exception) {
             }
             #endregion
         }
