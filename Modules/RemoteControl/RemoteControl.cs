@@ -178,7 +178,7 @@ namespace KLC_Finch
                 request.AddHeader("Authorization", "Bearer " + session.shorttoken);
                 request.AddParameter("Content-Type", "application/json");
                 request.AddJsonBody("{\"UserName\":\"" + session.auth.UserName + "\",\"AgentName\":\"" + session.agent.Name + "\",\"LogMessage\":\"Remote Control Log Notes: \"}");
-                IRestResponse response = K_Client.Execute(request);
+                RestResponse response = K_Client.Execute(request);
                 */
             }
             else if (type == (byte)Enums.KaseyaMessageTypes.SessionNotSupported)

@@ -35,7 +35,7 @@ namespace KLC_Finch {
                 case "ScriptReady":
                     Console.WriteLine("Toolbox ready\r\n");
 
-                    IRestResponse response = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/folder//");
+                    RestResponse response = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/folder//");
                     dynamic first = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(response.Content);
 
                     toolboxData.Clear();
@@ -43,7 +43,7 @@ namespace KLC_Finch {
                         if ((bool)second["isFile"] == false) {
                             string name = (string)second["Name"];
 
-                            IRestResponse response2 = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/folder//" + name);
+                            RestResponse response2 = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/folder//" + name);
                             dynamic third = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(response2.Content);
 
                             foreach (dynamic forth in third["Result"].Children()) {
@@ -71,7 +71,7 @@ namespace KLC_Finch {
         }
 
         public void Execute(ToolboxValue tv) {
-            IRestResponse response = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/endpointref/" + tv.ParentPath + "/" + tv.NameActual);
+            RestResponse response = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/endpointref/" + tv.ParentPath + "/" + tv.NameActual);
             dynamic result = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(response.Content);
 
             /*{
@@ -95,7 +95,7 @@ namespace KLC_Finch {
             string output = folder + "\\" + tv.NameDisplay;
             if (!File.Exists(output)) {
                 //The missing slash is intentional
-                IRestResponse response = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/file" + tv.ParentPath + "/" + tv.NameActual);
+                RestResponse response = Kaseya.GetRequest(vsa, "api/v1.0/assetmgmt/customextensions/" + AgentID + "/file" + tv.ParentPath + "/" + tv.NameActual);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.OK) {
                     FileStream fs = new FileStream(folder + "\\" + tv.NameDisplay, FileMode.Create);

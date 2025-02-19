@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
     <OutputType>WinExe</OutputType>
     <RootNamespace>KLC_Finch</RootNamespace>
     <PublishUrl>publish\</PublishUrl>
@@ -77,13 +77,15 @@
     <PackageReference Include="CredentialManagement.Standard" Version="1.0.4" />
     <PackageReference Include="Fleck" Version="1.2.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-    <PackageReference Include="nucs.JsonSettings" Version="1.0.7" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="nucs.JsonSettings" Version="2.0.2" />
     <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
-    <PackageReference Include="OpenTK" Version="4.7.5" />
-    <PackageReference Include="OpenTK.GLWpfControl" Version="4.2.2" />
-    <PackageReference Include="RestSharp" Version="106.15.0" />
+    <PackageReference Include="OpenTK" Version="4.9.3" />
+    <PackageReference Include="OpenTK.GLControl" Version="4.0.2" />
+    <PackageReference Include="OpenTK.GLWpfControl" Version="4.3.3" />
+    <PackageReference Include="RestSharp" Version="112.1.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.2" />
     <PackageReference Include="VtNetCore" Version="1.0.30" />
   </ItemGroup>
   <ItemGroup>
@@ -99,7 +101,6 @@
     <Page Remove="Resources\TemplateMenuFixed.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LibrariesExternal\GLControl\OpenTK.WinForms\OpenTK.WinForms.csproj" />
     <ProjectReference Include="..\VP8.NET\VP8.NET\VP8.NET.vcxproj" />
   </ItemGroup>
   <ItemGroup>

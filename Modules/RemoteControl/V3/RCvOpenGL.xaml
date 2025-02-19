@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:KLC_Finch"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:opentk="clr-namespace:OpenTK.WinForms;assembly=OpenTK.WinForms"
+    xmlns:opentk="clr-namespace:OpenTK.GLControl;assembly=OpenTK.GLControl"
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">

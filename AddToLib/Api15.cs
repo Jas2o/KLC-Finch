@@ -7,7 +7,7 @@ namespace KLC {
 
         public static EAL EndpointsAdminLogin(string vsa, string shorttoken)
         {
-            IRestResponse response = LibKaseya.Kaseya.GetRequest(vsa, "api/v1.5/endpoints/adminlogon");
+            RestResponse response = LibKaseya.Kaseya.GetRequest(vsa, "api/v1.5/endpoints/adminlogon");
 
             /*
             RestClient K_Client = new RestClient("https://" + vsa)
@@ -16,7 +16,7 @@ namespace KLC {
             };
             RestRequest request = new RestRequest("api/v1.5/endpoints/adminlogon", Method.GET);
             request.AddHeader("Authorization", "Bearer " + shorttoken);
-            IRestResponse response = K_Client.Execute(request);
+            RestResponse response = K_Client.Execute(request);
             */
 
             return new EAL(response.Content);
@@ -24,7 +24,7 @@ namespace KLC {
 
         public static EIRC EndpointsInitiateRemoteControl(string vsa, string shorttoken, string agentguid)
         {
-            IRestResponse response = LibKaseya.Kaseya.GetRequest(vsa, "api/v1.5/endpoints/" + agentguid + "/initiateremotecontrol");
+            RestResponse response = LibKaseya.Kaseya.GetRequest(vsa, "api/v1.5/endpoints/" + agentguid + "/initiateremotecontrol");
 
             /*
             RestClient K_Client = new RestClient("https://" + vsa)
@@ -34,7 +34,7 @@ namespace KLC {
             RestRequest request = new RestRequest("api/v1.5/endpoints/" + agentguid + "/initiateremotecontrol", Method.GET);
             request.AddHeader("Authorization", "Bearer " + shorttoken);
             //request.AddParameter("Content-Type", "application/json");
-            IRestResponse response = K_Client.Execute(request);
+            RestResponse response = K_Client.Execute(request);
             */
 
             if(response.StatusCode == System.Net.HttpStatusCode.OK)

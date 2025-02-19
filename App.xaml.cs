@@ -1,5 +1,5 @@
 ﻿using LibKaseya;
-using nucs.JsonSettings;
+using Nucs.JsonSettings;
 using System;
 using System.Diagnostics;
 using System.IO;
