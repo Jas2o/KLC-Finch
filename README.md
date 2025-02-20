@@ -1,20 +1,23 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# KLC-Finch 
+Finch is an alternative frontend to Kaseya Live Connect (which is required to be installed to use it) written in C#. It was functional up to VSA 9.5.20 however will not receive any further VSA testing/development.
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+The main reason this exists is because years ago with Live Connect there was issues with keys getting stuck down and clipboard data leaking to endpoints even after closing the remote control window.
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+## Usage
+Typically, KLC-Finch is launched by KLC-Proxy rather than directly.
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+## Required other repos to build
+- LibKaseya
+- LibKaseyaAuth
+- LibKaseyaLiveConnect
+- VP8.NET (modified)
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+## Required packages to build
+- CredentialManagement.Standard
+- Fleck
+- Newtonsoft.Json
+- nucs.JsonSettings
+- Ookii.Dialogs.Wpf
+- OpenTK, GLControl and GLWpfControl (GLControl while not WPF was better for hardware and workflows I was using in the past)
+- RestSharp
+- VtNetCore (this is used for the CMD/PowerShell/Mac Terminal interfaces)
