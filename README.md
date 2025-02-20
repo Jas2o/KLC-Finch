@@ -6,6 +6,8 @@ The main reason this exists is because years ago with Live Connect there was iss
 ## Usage
 Typically, KLC-Finch is launched by KLC-Proxy rather than directly.
 
+![Screenshot of KLC-Finch](/Resources/KLC-Finch-Test.png?raw=true)
+
 ## Required other repos to build
 - LibKaseya
 - LibKaseyaAuth
